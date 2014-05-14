@@ -1,0 +1,30 @@
+
+//
+// Openpux Internet Of Things (IOT) Framework.
+//
+// Copyright (C) 2014 Menlo Park Innovation LLC
+//
+// menloparkinnovation.com
+// menloparkinnovation@gmail.com
+//
+// Snapshot License
+//
+// This license is for a specific snapshot of a base work of
+// Menlo Park Innovation LLC on a non-exclusive basis with no warranty
+// or obligation for future updates. This work, any portion, or derivative
+// of it may be made available under other license terms by
+// Menlo Park Innovation LLC without notice or obligation to this license.
+//
+// There is no warranty, statement of fitness, statement of
+// fitness for any purpose, and no statements as to infringements
+// on any patents.
+//
+// Menlo Park Innovation has no obligation to offer support, updates,
+// future revisions and improvements, source code, source code downloads,
+// media, etc.
+//
+// This specific snapshot is made available under the terms of
+// the Apache License Version 2.0 of January 2004
+// http://www.apache.org/licenses/
+//
+
