@@ -163,6 +163,139 @@ function updateSensorTargetState(
 }
 
 //
+// Add Sensor Reading
+//
+//  callback - Function to invoke with response JSON document
+//
+// Return Value:
+//
+//   null - Request has been posted. Asynchronous callback function will
+//          be invoked with JSON document with results or error.
+//
+//  !=null - Local error status inside a JSON document as string.
+//
+function addSensorReadingShortForm(
+    scheme,
+    host,
+    httpauthusername,
+    httpauthpassword,
+    callback,
+    items
+    )
+{
+    var s = "/smartpuxdata/data";
+
+    var shortForm = convertToShortForm(items);
+
+    var sensorValuesString = generateSensorValues(shortForm);
+
+    var url = buildUrl(scheme, host, s);
+
+    executePostRequest(url, httpauthusername, httpauthpassword, sensorValuesString, callback);
+
+    return null;
+}
+
+var generateSensorValues = function (sensorValues) {
+
+    var responseString = '';
+    var index = 0;
+
+    for (var prop in sensorValues) {
+        if (index > 0) responseString += '&';
+
+        responseString += prop;
+        responseString += '=';
+        responseString += sensorValues[prop];
+        index++;
+    }
+    
+    return responseString;
+}
+
+//
+// Simple sensor exchange uses limited number of short form values.
+//
+var convertToShortForm = function (settings) {
+
+    var o = new Object();
+
+    if (settings["AccountID"] != null) {
+        o.A = settings["AccountID"];
+    }
+
+    if (settings["PassCode"] != null) {
+        o.P = settings["PassCode"];
+    }
+
+    if (settings["SensorID"] != null) {
+        o.S = settings["SensorID"];
+    }
+
+    if (settings["Command"] != null) {
+        o.C = settings["Command"];
+    }
+
+    if (settings["TargetMask0"] != null) {
+        o.M0 = settings["TargetMask0"];
+    }
+
+    if (settings["TargetMask1"] != null) {
+        o.M1 = settings["TargetMask1"];
+    }
+
+    if (settings["TargetMask2"] != null) {
+        o.M2 = settings["TargetMask2"];
+    }
+
+    if (settings["TargetMask3"] != null) {
+        o.M3 = settings["TargetMask3"];
+    }
+
+    if (settings["SensorReading0"] != null) {
+        o.S0 = settings["SensorReading0"];
+    }
+
+    if (settings["SensorReading1"] != null) {
+        o.S1 = settings["SensorReading1"];
+    }
+
+    if (settings["SensorReading2"] != null) {
+        o.S2 = settings["SensorReading2"];
+    }
+
+    if (settings["SensorReading3"] != null) {
+        o.S3 = settings["SensorReading3"];
+    }
+
+    if (settings["SensorReading4"] != null) {
+        o.S4 = settings["SensorReading4"];
+    }
+
+    if (settings["SensorReading5"] != null) {
+        o.S5 = settings["SensorReading5"];
+    }
+
+    if (settings["SensorReading6"] != null) {
+        o.S6 = settings["SensorReading6"];
+    }
+
+    if (settings["SensorReading7"] != null) {
+        o.S7 = settings["SensorReading7"];
+    }
+
+    if (settings["SensorReading8"] != null) {
+        o.S8 = settings["SensorReading8"];
+    }
+
+    if (settings["SensorReading9"] != null) {
+        o.S9 = settings["SensorReading9"];
+    }
+
+    return o;
+}
+
+//
 // Build REST sensor object path
 //
 function buildRestSensorPath(

@@ -118,6 +118,10 @@ function showPage() {
     document.write("</td>");
 
     document.write("<td>");
+    formCreateInput("button", "buttonaddreading", "Add Reading", "navigateAddReading();");
+    document.write("</td>");
+
+    document.write("<td>");
     formCreateInput("button", "buttonreload", "Reload", "location.reload();");
     document.write("</td>");
 
@@ -134,6 +138,7 @@ function navigateQuery() {
 
     // Disable previous form(s)
     disableSensorUpdateForm();
+    disableAddReadingForm();
 
     // Disable the response until we have one
     disableSensorQueryResponseForm();
@@ -146,9 +151,21 @@ function navigateUpdate() {
     // Disable previous form(s)
     disableSensorQueryResponseForm();
     disableSensorQueryForm();
+    disableAddReadingForm();
 
     // Show sensor update form
     showSensorUpdateForm();
+}
+
+function navigateAddReading() {
+
+    // Disable previous form(s)
+    disableSensorQueryResponseForm();
+    disableSensorQueryForm();
+    disableAddReadingForm();
+
+    // Show sensor update form
+    showAddReadingForm();
 }
 
 // Sensor Query/Update page navigation handler
@@ -611,6 +628,174 @@ function updateSensorQueryResponseForm(
 
     if (sensorreading9 != null) {
         document.forms["querysensorresponseform"]["sensorreading9"].value = sensorreading9;
+    }
+}
+
+//
+// This is used to add a reading
+//
+function createAddReadingForm() {
+
+    if (document.forms["addreadingform"] != null) {
+        // already created
+        return;
+    }
+
+    //
+    // These forms don't really post, but provide the
+    // input controls read by the Javascript implementing
+    // the client application.
+    //
+    formStart(
+        "addreadingform",
+        "addreadingformaction",
+        "post",
+        "return validateaddreadingresponseform()",
+        "application/www.form-urlencoded"
+    );
+
+    document.write("<a href=\"javascript: processAddReadingForm()\">Add Reading</a><br>");
+
+    formCreateInputWithTitle("Status", "text", "status");
+    formCreateInputWithTitle("TimeAdded", "text", "timeadded");
+
+    formCreateInputWithTitle("Targetmask0", "text", "targetmask0");
+    formCreateInputWithTitle("Targetmask1", "text", "targetmask1");
+    formCreateInputWithTitle("Targetmask2", "text", "targetmask2");
+    formCreateInputWithTitle("Targetmask3", "text", "targetmask3");
+
+    formCreateInputWithTitle("Sensorreading0", "text", "sensorreading0");
+    formCreateInputWithTitle("Sensorreading1", "text", "sensorreading1");
+    formCreateInputWithTitle("Sensorreading2", "text", "sensorreading2");
+    formCreateInputWithTitle("Sensorreading3", "text", "sensorreading3");
+    formCreateInputWithTitle("Sensorreading4", "text", "sensorreading4");
+    formCreateInputWithTitle("Sensorreading5", "text", "sensorreading5");
+    formCreateInputWithTitle("Sensorreading6", "text", "sensorreading6");
+    formCreateInputWithTitle("Sensorreading7", "text", "sensorreading7");
+    formCreateInputWithTitle("Sensorreading8", "text", "sensorreading8");
+    formCreateInputWithTitle("Sensorreading9", "text", "sensorreading9");
+
+    formStop();
+}
+
+//
+// Process the sensor update form
+//
+function processAddReadingForm()
+{
+  // Scheme is unsecured http vs. https
+  var scheme = "http";
+
+  // Get host from the browsers environment
+  var host = location.host;
+
+  // no http auth information
+  var httpauthusername = null;
+  var httpauthpassword = null;
+
+  //
+  // Get input values from the DOM
+  //
+
+  var o = new Object();
+
+  // sensoraccountform
+  o.AccountID = document.forms["sensoraccountform"]["accountid"].value;
+  o.PassCode = document.forms["sensoraccountform"]["passcode"].value;
+  o.SensorID = document.forms["sensoraccountform"]["sensorid"].value;
+
+  o.TargetMask0 = document.forms["addreadingform"]["targetmask0"].value;
+  o.TargetMask1 = document.forms["addreadingform"]["targetmask1"].value;
+  o.TargetMask2 = document.forms["addreadingform"]["targetmask2"].value;
+  o.TargetMask3 = document.forms["addreadingform"]["targetmask3"].value;
+
+  o.SensorReading0 = document.forms["addreadingform"]["sensorreading0"].value;
+  o.SensorReading1 = document.forms["addreadingform"]["sensorreading1"].value;
+  o.SensorReading2 = document.forms["addreadingform"]["sensorreading2"].value;
+  o.SensorReading3 = document.forms["addreadingform"]["sensorreading3"].value;
+  o.SensorReading4 = document.forms["addreadingform"]["sensorreading4"].value;
+  o.SensorReading5 = document.forms["addreadingform"]["sensorreading5"].value;
+  o.SensorReading6 = document.forms["addreadingform"]["sensorreading6"].value;
+  o.SensorReading7 = document.forms["addreadingform"]["sensorreading7"].value;
+  o.SensorReading8 = document.forms["addreadingform"]["sensorreading8"].value;
+  o.SensorReading9 = document.forms["addreadingform"]["sensorreading9"].value;
+
+  if (o.AccountID==null || o.AccountID=="") {
+    alert("Must supply AccountID");
+    return;
+  }
+
+  if (o.PassCode==null || o.PassCode=="") {
+    alert("Must supply PassCode");
+    return;
+  }
+
+  if (o.SensorID==null || o.SensorID=="") {
+    alert("Must supply SensorID");
+    return;
+  }
+
+  // Must supply at least one update
+  var update = false;
+
+  if (o.TargetMask0 != null && o.TargetMask0 != "") update = true;
+
+  if (o.SensorReading0 != null && o.SensorReading0 != "") update = true;
+
+  if (!update) {
+      alert("At least one sensor update value must be entered");
+      return;
+  }
+
+  var result = addSensorReadingShortForm(
+      scheme,
+      host,
+      httpauthusername,
+      httpauthpassword,
+      processAddReadingFormResponse,
+      o
+      );
+
+  if (result != null) {
+    alert("Local Error Status: " + result);
+  }
+
+  return ;
+}
+
+function processAddReadingFormResponse(responseDocument) {
+      if (responseDocument == null) {
+          responseDocument = "null";
+      }
+
+      // Response is a set of masks, sleep time, etc.
+      // TODO: fix me!
+
+      var obj = JSON.parse(responseDocument);
+
+      var status = obj.status;
+      if (status != "200 OK") {
+          document.forms["addreadingform"]["status"].value = status;
+          return;
+      }
+
+      document.forms["addreadingform"]["status"].value = status;
+
+      // TODO: Show status masks, etc.
+}
+
+function showAddReadingForm() {
+
+    createAddReadingForm();
+
+    if (document.forms["addreadingform"] != null) {
+        document.forms["addreadingform"].hidden = false;
+    }
+}
+
+function disableAddReadingForm() {
+    if (document.forms["addreadingform"] != null) {
+        document.forms["addreadingform"].hidden = true;
     }
 }
 

@@ -56,39 +56,6 @@ var SensorReadingsTable = new Array();
 
 var SensorSettingsTable = new Array();
 
-// RFC 2822 http://tools.ietf.org/html/rfc2822#page-14
-// http://msdn.microsoft.com/en-us/library/ie/ff743760
-// http://stackoverflow.com/questions/14914739/which-date-formats-are-ietf-compliant-rfc-2822-timestamps
-// http://en.wikipedia.org/wiki/Year_2038_problem
-var MaxDate = Date.parse("01/01/2038 00:00:00");
-
-//
-// Reverse dates are used so that the sort order is reversed
-// which has the latest readings at the "top" if standard collating
-// order is used.
-//
-var calculateReverseDate = function (date) {
-    return MaxDate - date;
-}
-
-// http://stackoverflow.com/questions/1344500/efficient-way-to-insert-a-number-into-a-sorted-array-of-numbers
-var sortedInsert = function (element, array) {
-    array.splice(locationOf(element, array) + 1, 0, element);
-}
-
-// http://stackoverflow.com/questions/1344500/efficient-way-to-insert-a-number-into-a-sorted-array-of-numbers
-var locationOf = function (element, array, start, end) {
-  start = start || 0;
-  end = end || array.length;
-  var pivot = parseInt(start + (end - start) / 2, 10);
-  if (end-start <= 1 || array[pivot] === element) return pivot;
-  if (array[pivot] < element) {
-    return locationOf(element, array, pivot, end);
-  } else {
-    return locationOf(element, array, start, pivot);
-  }
-}
-
 var dumpSensorReadingsTable = function() {
 
     for (var prop in SensorReadingsTable) {
