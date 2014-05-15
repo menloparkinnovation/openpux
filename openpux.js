@@ -613,6 +613,30 @@ var convertToShortForm = function (settings) {
         o.M3 = settings["TargetMask3"];
     }
 
+    if (settings["TargetMask4"] != null) {
+        o.M4 = settings["TargetMask4"];
+    }
+
+    if (settings["TargetMask5"] != null) {
+        o.M5 = settings["TargetMask5"];
+    }
+
+    if (settings["TargetMask6"] != null) {
+        o.M6 = settings["TargetMask6"];
+    }
+
+    if (settings["TargetMask7"] != null) {
+        o.M7 = settings["TargetMask7"];
+    }
+
+    if (settings["TargetMask8"] != null) {
+        o.M8 = settings["TargetMask8"];
+    }
+
+    if (settings["TargetMask9"] != null) {
+        o.M9 = settings["TargetMask9"];
+    }
+
     return o;
 }
 
@@ -692,6 +716,10 @@ M0 - M3 are valid masks
         o.SensorID = sensorReading["S"];
     }
 
+    if (sensorReading["C"] != null) {
+        o.Command = sensorReading["C"];
+    }
+
     if (sensorReading["M0"] != null) {
         o.TargetMask0 = sensorReading["M0"];
     }
@@ -706,6 +734,30 @@ M0 - M3 are valid masks
 
     if (sensorReading["M3"] != null) {
         o.TargetMask3 = sensorReading["M3"];
+    }
+
+    if (sensorReading["M4"] != null) {
+        o.TargetMask4 = sensorReading["M4"];
+    }
+
+    if (sensorReading["M5"] != null) {
+        o.TargetMask5 = sensorReading["M5"];
+    }
+
+    if (sensorReading["M6"] != null) {
+        o.TargetMask6 = sensorReading["M6"];
+    }
+
+    if (sensorReading["M7"] != null) {
+        o.TargetMask7 = sensorReading["M7"];
+    }
+
+    if (sensorReading["M8"] != null) {
+        o.TargetMask8 = sensorReading["M8"];
+    }
+
+    if (sensorReading["M9"] != null) {
+        o.TargetMask9 = sensorReading["M9"];
     }
 
     if (sensorReading["D0"] != null) {

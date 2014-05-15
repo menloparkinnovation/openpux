@@ -80,7 +80,7 @@ Openpux operates around two data tables.
   an application can represent as a string.
 
   The schema is open in order to be flexible for different usage scenarios
-  and does impose strict limits as a SQL implementation would. A given
+  and does not impose strict limits as a SQL implementation would. A given
   application may choose to restrict its schema, such as to allow storage
   in an existing SQL implementation.
 

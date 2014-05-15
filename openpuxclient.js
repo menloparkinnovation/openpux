@@ -213,6 +213,26 @@ var generateSensorValues = function (sensorValues) {
     return responseString;
 }
 
+var processQueryString = function (queryString) {
+
+    var parms = queryString.split('&');
+
+    var nameValueArray = new Array();
+
+    for (var i = 0; i < parms.length; i++) {
+
+        var str = parms[i];
+
+        var position = str.indexOf('=');
+
+        nameValueArray[str.substring(0, position)] = str.substring(position + 1);
+
+        //console.log(i + ': ' + parms[i]);
+    }
+
+    return nameValueArray;
+}
+
 //
 // Simple sensor exchange uses limited number of short form values.
 //
@@ -290,6 +310,169 @@ var convertToShortForm = function (settings) {
 
     if (settings["SensorReading9"] != null) {
         o.S9 = settings["SensorReading9"];
+    }
+
+    return o;
+}
+
+//
+// Short form is used by the minimal sensor readings POST function
+// as 'application/x-www-form-urlencoded'.
+//
+// We convert to the full names that we actually store in the
+// data store and return/manipulate for applications.
+//
+var convertFromShortForm = function (sensorReading) {
+
+/*
+
+Short form from POST as 'application/x-www-form-urlencoded'
+
+A is the account
+P is the passcode
+S is the sensorID
+
+D0 - D9 are valid sensor readings
+M0 - M3 are valid masks
+
+{ A: '1',
+  P: '12345678',
+  S: '1',
+  D0: '0',
+  D1: '2',
+  D2: 'f',
+  M0: '0'
+  TimeAdded: 1399997573344 }
+
+  A=01234567&S=012345678&P=0123456789ABCDEF&D0=34f4&D1=3467&D2=ffff&D4=1234&D5=3467&D6=1234&M0=0
+
+ http://www.smartpux.com/smartpuxdata/dataapp/REST/1/12345678/1/querydata?latestCount=1
+
+{
+  "sensorreading": [
+    {
+      "SensorID": "1",
+      "SensorReading0": "67",
+      "SensorReading1": "66",
+      "SensorReading2": "0",
+      "SensorReading3": "0",
+      "SensorReading4": "0",
+      "SensorReading5": "0",
+      "SensorReading6": "0",
+      "SensorReading7": "0",
+      "SensorReading8": "1",
+      "SensorReading9": "0",
+      "SensorMask0": "0",
+      "SensorMask1": "70",
+      "SensorMask2": "145",
+      "SensorMask3": "1",
+      "TimeAdded": "Mon Apr 07 05:16:12 UTC 2014"
+    }
+  ],
+  "status": "200 OK"
+}
+*/
+
+    var o = new Object();
+
+    if (sensorReading["TimeAdded"] != null) {
+        o.TimeAdded = sensorReading["TimeAdded"];
+    }
+
+    if (sensorReading["A"] != null) {
+        o.AccountID = sensorReading["A"];
+    }
+
+    if (sensorReading["P"] != null) {
+        o.PassCode = sensorReading["P"];
+    }
+
+    if (sensorReading["S"] != null) {
+        o.SensorID = sensorReading["S"];
+    }
+
+    if (sensorReading["C"] != null) {
+        o.Command = sensorReading["C"];
+    }
+
+    if (sensorReading["M0"] != null) {
+        o.TargetMask0 = sensorReading["M0"];
+    }
+
+    if (sensorReading["M1"] != null) {
+        o.TargetMask1 = sensorReading["M1"];
+    }
+
+    if (sensorReading["M2"] != null) {
+        o.TargetMask2 = sensorReading["M2"];
+    }
+
+    if (sensorReading["M3"] != null) {
+        o.TargetMask3 = sensorReading["M3"];
+    }
+
+    if (sensorReading["M4"] != null) {
+        o.TargetMask4 = sensorReading["M4"];
+    }
+
+    if (sensorReading["M5"] != null) {
+        o.TargetMask5 = sensorReading["M5"];
+    }
+
+    if (sensorReading["M6"] != null) {
+        o.TargetMask6 = sensorReading["M6"];
+    }
+
+    if (sensorReading["M7"] != null) {
+        o.TargetMask7 = sensorReading["M7"];
+    }
+
+    if (sensorReading["M8"] != null) {
+        o.TargetMask8 = sensorReading["M8"];
+    }
+
+    if (sensorReading["M9"] != null) {
+        o.TargetMask9 = sensorReading["M9"];
+    }
+
+    if (sensorReading["D0"] != null) {
+        o.SensorReading0 = sensorReading["D0"];
+    }
+
+    if (sensorReading["D1"] != null) {
+        o.SensorReading1 = sensorReading["D1"];
+    }
+
+    if (sensorReading["D2"] != null) {
+        o.SensorReading2 = sensorReading["D2"];
+    }
+
+    if (sensorReading["D3"] != null) {
+        o.SensorReading3 = sensorReading["D3"];
+    }
+
+    if (sensorReading["D4"] != null) {
+        o.SensorReading4 = sensorReading["D4"];
+    }
+
+    if (sensorReading["D5"] != null) {
+        o.SensorReading5 = sensorReading["D5"];
+    }
+
+    if (sensorReading["D6"] != null) {
+        o.SensorReading6 = sensorReading["D6"];
+    }
+
+    if (sensorReading["D7"] != null) {
+        o.SensorReading7 = sensorReading["D7"];
+    }
+
+    if (sensorReading["D8"] != null) {
+        o.SensorReading8 = sensorReading["D8"];
+    }
+
+    if (sensorReading["D9"] != null) {
+        o.SensorReading9 = sensorReading["D9"];
     }
 
     return o;

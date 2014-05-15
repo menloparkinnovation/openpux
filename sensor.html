@@ -657,7 +657,7 @@ function createAddReadingForm() {
     document.write("<a href=\"javascript: processAddReadingForm()\">Add Reading</a><br>");
 
     formCreateInputWithTitle("Status", "text", "status");
-    formCreateInputWithTitle("TimeAdded", "text", "timeadded");
+    formCreateInputWithTitle("ResponseString", "text", "responsestring");
 
     formCreateInputWithTitle("Targetmask0", "text", "targetmask0");
     formCreateInputWithTitle("Targetmask1", "text", "targetmask1");
@@ -752,7 +752,7 @@ function processAddReadingForm()
       host,
       httpauthusername,
       httpauthpassword,
-      processAddReadingFormResponse,
+      processAddSensorReadingFormResponse,
       o
       );
 
@@ -763,17 +763,23 @@ function processAddReadingForm()
   return ;
 }
 
-function processAddReadingFormResponse(responseDocument) {
+function processAddSensorReadingFormResponse(responseDocument)
+{
       if (responseDocument == null) {
           responseDocument = "null";
+
+          document.forms["addreadingform"]["status"].value = "response document == null";
+          return;
       }
 
-      // Response is a set of masks, sleep time, etc.
-      // TODO: fix me!
+      var Status = "200 OK";
 
-      var obj = JSON.parse(responseDocument);
+      // See if its a JSON based error status return
+      if (responseDocument[0] == '{') {
+          var obj = JSON.parse(responseDocument);
+          status = obj.status;
+      }
 
-      var status = obj.status;
       if (status != "200 OK") {
           document.forms["addreadingform"]["status"].value = status;
           return;
@@ -781,7 +787,15 @@ function processAddReadingFormResponse(responseDocument) {
 
       document.forms["addreadingform"]["status"].value = status;
 
-      // TODO: Show status masks, etc.
+      document.forms["addreadingform"]["responsestring"].value = responseDocument;
+
+      // C=10&S=30&M0=0&M1=ff&M2=0&M3=0
+      var shortFormItems = processQueryString(responseDocument);
+
+      var items = convertFromShortForm(shortFormItems);
+
+      // TODO: Fill in detailed responses
+
 }
 
 function showAddReadingForm() {
