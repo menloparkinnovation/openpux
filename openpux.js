@@ -177,7 +177,7 @@ var addSensorReadingsToStorage = function(itemsArray) {
     readings.push(itemsArray);
 
     // Dump all the readings
-    dumpSensorReadingsTable();
+    //dumpSensorReadingsTable();
 
     return true;
 }
@@ -274,6 +274,7 @@ var processHeadersAndDispatch = function (req, res) {
   if (req.url == '/smartpuxdata/data') {
 
       if (req.method != "POST") {
+          console.log("/smartpuxdata/data method not POST\n");
           sendError(req, res, 400, "only POST accepted");
           return false;
       }
@@ -292,9 +293,9 @@ var processHeadersAndDispatch = function (req, res) {
       //
 
       if (req.headers['content-type'] != 'application/x-www-form-urlencoded') {
-          sendError(req, res, 400, "content-type != application/x-www.form-urlencoded");
           console.log("content-type != application/x-www.form-urlencoded");
           console.log(req.headers);
+          sendError(req, res, 400, "content-type != application/x-www.form-urlencoded");
           return false;
       }
 
@@ -318,6 +319,7 @@ var processHeadersAndDispatch = function (req, res) {
           processSensorQuery(req, res);
       }
       else {
+          console.log("/smartpuxdata/dataapp unknown REST Method\n");
           sendError(req, res, 400, "Unknown request " + req.method);
           return false;
       }
@@ -538,6 +540,7 @@ var processSensorInputAndSendResponse = function (req, res, queryString) {
     console.log(longFormReadings);
 
     if (!addSensorReadingsToStorage(longFormReadings)) {
+        console.log("storage update error");
         sendError(req, res, 500, "storage update error");
     }
 
@@ -562,6 +565,7 @@ var sendSimpleSensorResponse = function (req, res, sensorValues) {
 
   // It's OK if there are no values set yet
   if (sensorValues == null) {
+      console.log("No sensor values to send");
       res.writeHead(200, {'Content-Type': 'application/x-www-form-urlencoded'});
       res.end();
       return;
@@ -578,6 +582,8 @@ var sendSimpleSensorResponse = function (req, res, sensorValues) {
   console.log(shortFormValues);
 
   res.writeHead(200, {'Content-Type': 'application/x-www-form-urlencoded'});
+
+  console.log("responseString=" + responseString + "\n");
 
   res.end(responseString);
 }
@@ -714,6 +720,10 @@ M0 - M3 are valid masks
 
     if (sensorReading["S"] != null) {
         o.SensorID = sensorReading["S"];
+    }
+
+    if (sensorReading["U"] != null) {
+        o.SleepTIme = sensorReading["U"];
     }
 
     if (sensorReading["C"] != null) {
@@ -938,6 +948,7 @@ var serveFile = function (req, res, filePath) {
 var http = require('http');
 
 // http://nodejs.org/dist/v0.10.28/docs/api/http.html#http_http_createserver_requestlistener
-http.createServer(request_func).listen(8080, '127.0.0.1');
+//http.createServer(request_func).listen(8080, '127.0.0.1');
+http.createServer(request_func).listen(8080, '0.0.0.0');
 
 console.log('HttpTest Server version 3 running at http://127.0.0.1:8080/');
