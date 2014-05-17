@@ -66,7 +66,6 @@
  by Tom Igoe
  */
 
-
 #include <SPI.h>
 #include <WiFi.h>
 
@@ -83,6 +82,39 @@ unsigned long SensorUpdateInterval = (30 * 1000);
 char* openpuxUrl = "/smartpuxdata/data";
 
 int status = WL_IDLE_STATUS;
+
+//
+// Settings we send to the Cloud.
+//
+// Updated by the various sensor loops due to
+// interrupts, timers, or polling.
+//
+int SensorReading0 = 0;
+int SensorReading1 = 0;
+int SensorReading2 = 0;
+int SensorReading3 = 0;
+int SensorReading4 = 0;
+int SensorReading5 = 0;
+int SensorReading6 = 0;
+int SensorReading7 = 0;
+int SensorReading8 = 0;
+int SensorReading9 = 0;
+
+//
+// Settings received from Cloud
+//
+int Command = 0;
+int SleepTime = 0;
+int TargetMask0 = 0;
+int TargetMask1 = 0;
+int TargetMask2 = 0;
+int TargetMask3 = 0;
+int TargetMask4 = 0;
+int TargetMask5 = 0;
+int TargetMask6 = 0;
+int TargetMask7 = 0;
+int TargetMask8 = 0;
+int TargetMask9 = 0;
 
 //
 // if you don't want to use DNS (and reduce your sketch size)
@@ -194,6 +226,24 @@ void printWifiStatus() {
 //
 
 void
+UpdateSensorReadings()
+{
+    // TODO: Fill in sensor readings updates here
+
+    // Operational masks are in TargetMask0 - TargetMask9
+
+    // SensorReadings are in SensorReading0 - SensorReading9
+}
+
+void
+OperateOnSensorUpdate()
+{
+    // TODO: Operate on sensor update
+
+    // Operational masks are in TargetMask0 - TargetMask9
+}
+
+void
 SensorLoop()
 {
   char* content;
@@ -208,6 +258,9 @@ SensorLoop()
   //
   if ( ( millis() - startTime ) > timeout ) {
 
+      // Get lastest readings values
+      UpdateSensorReadings();
+
       SendSensorUpdate();
 
       // reset starttime
@@ -218,18 +271,6 @@ SensorLoop()
   }
 }
 
-void
-SendSensorUpdate()
-{
-  char* content;
-
-  Serial.println("Sending Sensor Readings:");
-
-  content = "A=1&P=12345678&S=1&D0=0&D1=1&D2=2&D3=3&M0=0&M1=1&M2=2&M3=3";
-
-  SendHttpPost(server, serverport, openpuxUrl, content);
-}
-
 #define CONTENT_BUFFER_SIZE 512
 
 int ContentBufferLength = 0;
@@ -237,9 +278,144 @@ int ContentBufferSize = CONTENT_BUFFER_SIZE;
 char ContentBuffer[CONTENT_BUFFER_SIZE];
 
 void
-ContentBufferReset()
+SendSensorUpdate()
 {
-    ContentBufferLength = 0;
+  char* content;
+
+  Serial.println("Sending Sensor Readings:");
+
+  content = GenerateSensorContent();
+
+  SendHttpPost(server, serverport, openpuxUrl, content);
+}
+
+char*
+GenerateSensorContent()
+{
+  char* content;
+
+  ContentBufferReset();
+
+  GenerateNameValuePair("A", 1, true);
+  GenerateNameValuePair("P", 12345678, false);
+  GenerateNameValuePair("S", 1, false);
+
+  //
+  // First four TargetMasks are always sent
+  // even if 0 since they can represent outstanding
+  // commands.
+  //
+  GenerateNameValuePair("M0", TargetMask0, false);
+
+  GenerateNameValuePair("M1", TargetMask1, false);
+
+  GenerateNameValuePair("M2", TargetMask2, false);
+
+  GenerateNameValuePair("M3", TargetMask3, false);
+
+  //
+  // Optional TargetMasks 4-9 are sent if set.
+  //
+  if (TargetMask4 != 0) {
+      GenerateNameValuePair("M4", TargetMask4, false);
+  }
+
+  if (TargetMask5 != 0) {
+      GenerateNameValuePair("M5", TargetMask5, false);
+  }
+
+  if (TargetMask6 != 0) {
+      GenerateNameValuePair("M6", TargetMask6, false);
+  }
+
+  if (TargetMask7 != 0) {
+      GenerateNameValuePair("M7", TargetMask7, false);
+  }
+
+  if (TargetMask8 != 0) {
+      GenerateNameValuePair("M8", TargetMask8, false);
+  }
+
+  if (TargetMask9 != 0) {
+      GenerateNameValuePair("M9", TargetMask9, false);
+  }
+
+  //
+  // First four SensorReadings are always sent
+  // even if 0 since they can represent outstanding
+  // commands.
+  //
+
+  GenerateNameValuePair("D0", SensorReading0, false);
+  GenerateNameValuePair("D1", SensorReading1, false);
+  GenerateNameValuePair("D2", SensorReading2, false);
+  GenerateNameValuePair("D3", SensorReading3, false);
+
+  if (SensorReading4 != 0) {
+      GenerateNameValuePair("D4", SensorReading4, false);
+  }
+
+  if (SensorReading5 != 0) {
+      GenerateNameValuePair("D5", SensorReading5, false);
+  }
+
+  if (SensorReading6 != 0) {
+      GenerateNameValuePair("D6", SensorReading6, false);
+  }
+
+  if (SensorReading7 != 0) {
+      GenerateNameValuePair("D7", SensorReading7, false);
+  }
+
+  if (SensorReading8 != 0) {
+      GenerateNameValuePair("D8", SensorReading8, false);
+  }
+
+  if (SensorReading9 != 0) {
+      GenerateNameValuePair("D9", SensorReading9, false);
+  }
+
+  content = "A=1&P=12345678&S=1&D0=0&D1=1&D2=2&D3=3&M0=0&M1=1&M2=2&M3=3";
+
+  return content;
+}
+
+void
+GenerateNameValuePair(char* name, int value, int begin)
+{
+    if (!begin) {
+        ContentBufferAddString("&");
+    }
+
+    ContentBufferAddString(name);
+    ContentBufferAddString("=");
+
+    // Need hex string format...
+    ContentBufferAddString("needhexstring");
+}
+
+void
+ContentBufferReset()
+{ 
+   ContentBufferLength = 0;
+}
+
+void
+ContentBufferAddString(char* string)
+{
+    ContentBufferAdd(string, strlen(string));
+}
+
+void
+ContentBufferAdd(char* buf, int len)
+{
+    if ((ContentBufferLength + len) > ContentBufferSize) {
+        Serial.println("Overflow on content buffer");
+        return;
+    }
+
+    memcpy(&ContentBuffer[ContentBufferLength], buf, len);
+    ContentBufferLength += len;
 }
 
 void
@@ -293,6 +469,8 @@ ProcessResponse()
     Serial.print(ContentBuffer);
 
     Serial.println("ContentBuffer End:");
+
+    HttpResponseData(ContentBuffer, ContentBufferLength);
 }
 
 void
@@ -304,6 +482,8 @@ SendHttpGet(
 {
   // if you get a connection, report back via serial:
   ContentBufferReset();
+
+  HttpResponseReady();
 
   if (client.connect(server, port)) {
 
@@ -330,6 +510,8 @@ SendHttpPost(
   int contentLength;
 
   ContentBufferReset();
+
+  HttpResponseReady();
 
   // if you get a connection, report back via serial:
   if (client.connect(server, port)) {
@@ -376,4 +558,635 @@ SendHttpPost(
   else {
       Serial.println("SendHttpPost: error connecting to server");
   }
+}
+
+//
+// HTTP response processing is designed to be supported on tiny
+// microcontrollers with minimal buffer space. As a result
+// it operates as a state machine with minimal history while
+// processing a response.
+//
+
+//
+// TCP can return data on any record boundary and this
+// follows for the HTTP response received. Since minimal to
+// no buffering is available inside tiny microcontroller
+// implementations, the state machine directly processes the incoming
+// byte stream handles HTTP state transitions, HTTP header processing,
+// response document processing, and response document parsing into
+// binary values.
+//
+
+//
+// Systems with larger buffers can have a simpler state machine
+// to process a line at a time, buffer an entire response
+// document, array of HTTP headers, etc. We have no such
+// luxury with embedded systems such as AtMega328's with
+// 2kb of total RAM for heap, stack, and initialized data.
+//
+
+//
+// This is the decoded content from the sensor
+// response document.
+//
+typedef struct _SensorResponseData {
+  int command;
+  int sleepTime;
+  int targetMask0;
+  int targetMask1;
+  int targetMask2;
+  int targetMask3;
+  int targetMask4;
+  int targetMask5;
+  int targetMask6;
+  int targetMask7;
+  int targetMask8;
+  int targetMask9;
+} SensorResponseData;
+
+//
+// This processes the final decoded result
+// document by the sensor.
+//
+void
+ProcessSensorResponseDocument(
+    //SensorResponseData* sensor
+    struct _SensorResponseData* sensor
+    )
+{
+    Serial.println("*** Cloud Response to Sensor ***");
+
+    Serial.print(" command ");
+    Serial.println(sensor->command);
+
+    Serial.print(" sleepTime ");
+    Serial.println(sensor->sleepTime);
+
+    Serial.print(" targetMask0 ");
+    Serial.println(sensor->targetMask0);
+
+    Serial.print(" targetMask1 ");
+    Serial.println(sensor->targetMask1);
+
+    Serial.print(" targetMask2 ");
+    Serial.println(sensor->targetMask2);
+
+    Serial.print(" targetMask3 ");
+    Serial.println(sensor->targetMask3);
+
+    Serial.println("*** End Cloud Response to Sensor ***");
+
+    // Update operational settings from the Cloud response
+    Command = sensor->command;
+    SleepTime = sensor->sleepTime;
+    TargetMask0 = sensor->targetMask0;
+    TargetMask1 = sensor->targetMask1;
+    TargetMask2 = sensor->targetMask2;
+    TargetMask3 = sensor->targetMask3;
+    TargetMask4 = sensor->targetMask4;
+    TargetMask5 = sensor->targetMask5;
+    TargetMask6 = sensor->targetMask6;
+    TargetMask7 = sensor->targetMask7;
+    TargetMask8 = sensor->targetMask8;
+    TargetMask9 = sensor->targetMask9;
+
+    // Allow the application to process the new targetmasks
+    OperateOnSensorUpdate();
+}
+
+//
+// HTTP receive state machine
+//
+
+#if DEBUG_TRACE_ON
+#define DEBUG_TRACE(x) Serial.println(x)
+#define DEBUG_TRACE2(x, y) Serial.println(x, y)
+#define DEBUG_TRACE3(x, y, z) Serial.println(x, y, z)
+#else
+#define DEBUG_TRACE(x)
+#define DEBUG_TRACE2(x, y)
+#define DEBUG_TRACE3(x, y, z)
+#endif
+
+#define HTTP_TOKEN_HTTP1_1_OK         0
+#define HTTP_TOKEN_CONTENT_URLENCODED 1
+
+#define HTTP_TOKENS_NUMBER            2
+
+//
+// Tokens/response lines we look for
+//
+
+// TODO: Document if any order is required, optimal
+// such as:
+//
+// stringfulllength
+// string
+//
+char* HttpHeaderTokens[] = {
+  "HTTP/1.1 200 OK",
+  "Content-Type: application/x-www-form-urlencoded"
+};
+
+int HttpHeaderTokensSize = 2;
+
+//
+// This contains the state for the HTTP response
+// state machine.
+//
+typedef struct _HttpResponseState {
+    char documentOK;
+    char lastChar;
+    char lastTokenNewline;
+    char endOfHeaders;
+    char candidateToken;
+    char candidateTokenIndex;
+    char TokensFound[HTTP_TOKENS_NUMBER];
+} HttpResponseState;
+
+//
+// This contains the state for the Sensor response
+// document state machine.
+//
+#define SENSOR_RESPONSE_MAX_DIGITS 8
+
+typedef struct _SensorResponseState {
+    char EndOfDocument;
+    char NameChar;
+    char NameChar2;
+    char DigitsIndex;
+    char Digits[SENSOR_RESPONSE_MAX_DIGITS + 1]; // +1 for null
+} SensorResponseState;
+
+struct _HttpResponseState g_httpData;
+struct _SensorResponseState g_sensorStateData;
+struct _SensorResponseData g_sensorData;
+
+// Prepare the state machine for a new response
+void
+HttpResponseReset(
+    struct _HttpResponseState* http,
+    struct _SensorResponseState* sensorState,
+    struct _SensorResponseData* sensor
+    )
+{
+  int index;
+
+  http->documentOK = 0;
+  http->endOfHeaders = 0;
+  http->candidateTokenIndex = 0;
+  http->lastTokenNewline = 0;
+
+  http->candidateToken = -1;
+
+  // lastChar initialized to '\n' allows a new line to to be recognized at start
+  http->lastChar = '\n';
+
+  // Intitalize our HTTP receiver headers state machine
+  for(index = 0; index < HTTP_TOKENS_NUMBER; index++) {
+    http->TokensFound[index] = 0;
+  }
+
+  // Initialize our response document data
+  sensorState->EndOfDocument = 0;
+  sensorState->NameChar = 0;
+  sensorState->NameChar2 = 0;
+  sensorState->DigitsIndex = -1;
+
+  // Initialize parsed result data
+  sensor->command = 0;
+  sensor->sleepTime = 0;
+  sensor->targetMask0 = 0;
+  sensor->targetMask1 = 0;
+  sensor->targetMask2 = 0;
+  sensor->targetMask3 = 0;
+  sensor->targetMask4 = 0;
+  sensor->targetMask5 = 0;
+  sensor->targetMask6 = 0;
+  sensor->targetMask7 = 0;
+  sensor->targetMask8 = 0;
+  sensor->targetMask9 = 0;
+}
+
+void
+HttpProcessSensorDocument(
+//    HttpResponseState* http,
+//    SensorResponseState* sensorState,
+//    SensorResponseData* sensor,
+    struct _HttpResponseState* http,
+    struct _SensorResponseState* sensorState,
+    struct _SensorResponseData* sensor,
+    char* buf,
+    int len
+    )
+{
+  int value;
+
+  DEBUG_TRACE2("HttpProcessSensorDocument: len %d\n", len);
+
+    while (len > 0) {
+
+        if (sensorState->EndOfDocument) {
+            // Swallow rest of buffer(s) at end of document
+            return;
+        }
+
+        // C=0&S=3C&M0=0&M1=0&M2=0&M3=99
+
+	if((sensorState->DigitsIndex != -1) &&
+	     (((buf[0] >= '0') && (buf[0] <= '9')) ||
+	     ((buf[0] >= 'a') && (buf[0] <= 'f')) ||
+	     ((buf[0] >= 'A') && (buf[0] <= 'F')))) {
+
+	    if(sensorState->DigitsIndex >= SENSOR_RESPONSE_MAX_DIGITS) {
+		// Abandon current number, to long
+		DEBUG_TRACE("Number to Long\n");
+		sensorState->NameChar = 0;
+		sensorState->DigitsIndex = -1;
+	    }
+
+	    sensorState->Digits[sensorState->DigitsIndex] = buf[0];
+	    sensorState->DigitsIndex++;
+	}
+	else {
+
+	  switch(buf[0]) {
+
+	  case '\0':
+	    // a null in the HTTP response stream is skipped
+	    break;
+
+	  case '=':
+	    if (sensorState->NameChar != 0) {
+	       DEBUG_TRACE2("Found = for %c, switching to digits state\n", sensorState->NameChar);
+	       // Switch to recording numbers
+	       sensorState->DigitsIndex = 0;
+	    }
+	    break;
+
+	  case '\n':
+
+	      // Two Newline's ("\r\n") represents end of document
+	      if ((http->lastChar == '\r') && http->lastTokenNewline) {
+		  DEBUG_TRACE("EndOfDocument\n");
+		  sensorState->EndOfDocument = 1;
+		  ProcessSensorResponseDocument(sensor);
+		  return;
+	      }
+
+	  case '\r':
+	      // Fall through since '\r' ends any current name=value item
+
+	  case '&':
+	    // End of current name=value
+
+	    if (sensorState->DigitsIndex != -1) {
+	      sensorState->Digits[sensorState->DigitsIndex] = 0;
+
+  	      value = strtol(sensorState->Digits, NULL, 16);
+    
+    	      DEBUG_TRACE2("Found & or \\r, ending current value %x\n", value);
+
+    	      if (sensorState->NameChar == 'C') {
+                DEBUG_TRACE2("Setting value %x for C\n", value);
+		sensor->command = value;
+	      }
+	      else if (sensorState->NameChar == 'S') {
+                DEBUG_TRACE2("Setting value %x for S\n", value);
+		sensor->sleepTime = value;
+	      }
+	      else if (sensorState->NameChar == 'M') {
+		switch(sensorState->NameChar2) {
+		case '0':
+                DEBUG_TRACE2("Setting value %x for M0\n", value);
+		sensor->targetMask0 = value;
+		break;
+		case '1':
+                DEBUG_TRACE2("Setting value %x for M1\n", value);
+		sensor->targetMask1 = value;
+		break;
+		case '2':
+                DEBUG_TRACE2("Setting value %x for M2\n", value);
+		sensor->targetMask2 = value;
+		break;
+		case '3':
+                DEBUG_TRACE2("Setting value %x for M3\n", value);
+		sensor->targetMask3 = value;
+		break;
+		case '4':
+                DEBUG_TRACE2("Setting value %x for M4\n", value);
+		sensor->targetMask4 = value;
+		break;
+		case '5':
+                DEBUG_TRACE2("Setting value %x for M5\n", value);
+		sensor->targetMask5 = value;
+		break;
+		case '6':
+                DEBUG_TRACE2("Setting value %x for M6\n", value);
+		sensor->targetMask6 = value;
+		break;
+		case '7':
+                DEBUG_TRACE2("Setting value %x for M7\n", value);
+		sensor->targetMask7 = value;
+		break;
+		case '8':
+                DEBUG_TRACE2("Setting value %x for M8\n", value);
+		sensor->targetMask8 = value;
+		break;
+		case '9':
+                DEBUG_TRACE2("Setting value %x for M9\n", value);
+		sensor->targetMask9 = value;
+		break;
+    		}
+	      }
+
+	      sensorState->NameChar = 0;
+	      sensorState->DigitsIndex = -1;
+    	    }
+    
+    	    break;
+
+	  case 'C':
+	  case 'S':
+	  case 'M':
+	  case 'E':
+	    DEBUG_TRACE2("Found keyword %c\n", buf[0]);
+	    sensorState->NameChar = buf[0];
+	    break;
+
+	  case '0':
+	  case '1':
+	  case '2':
+	  case '3':
+	  case '4':
+	  case '5':
+	  case '6':
+	  case '7':
+	  case '8':
+	  case '9':
+	    if (sensorState->NameChar == 'M') {
+		DEBUG_TRACE2("Found Mask %c\n", buf[0]);
+		sensorState->NameChar2 = buf[0];
+	    }
+	    else {
+		DEBUG_TRACE2("Number not part of a Mask %c\n", buf[0]);
+	    }
+	    break;
+
+	  default:
+
+	    // Unrecognized character, stop current name=value processing
+	    DEBUG_TRACE2("Unrecognized character %c\n", buf[0]);
+	    sensorState->NameChar = 0;
+	    sensorState->DigitsIndex = -1;
+
+	    break;
+         }
+     }
+
+	 //
+	 // Newline is a two character sequence, so we handle here so as
+	 // not to complicate the above switch()
+	 //
+	 if ((buf[0] == '\n') && (http->lastChar == '\r')) {
+	     http->lastTokenNewline = 1;
+	 }
+	 else if (buf[0] == '\r') {
+	     // do nothing, as we may be setting up for \r\n\r\n
+	 }
+	 else {
+	     http->lastTokenNewline = 0;
+	 }
+
+	 http->lastChar = buf[0];
+
+	 buf++;
+         len--;
+    }
+
+  return;
+}
+
+//
+// Find the token that starts with prefix and
+// matches the newChar after the prefix.
+//
+// Skips the entry indexToSkip if != -1 to allow
+// search for "all, but entry".
+//
+int
+HttpFindCandidateToken(
+    char* prefix,
+    char  newChar,
+    int indexToSkip
+    )
+{
+  int len;
+  int index;
+
+  for(index = 0; index < HttpHeaderTokensSize; index++) {
+
+    len = strlen(HttpHeaderTokens[index]);
+
+    if (strncmp(HttpHeaderTokens[index], prefix, len) == 0) {
+
+      if ((index != indexToSkip) &&
+          (HttpHeaderTokens[index][len] == newChar)) {
+
+        return index;
+      }
+    }
+  }
+
+  return -1;
+}
+
+void
+HttpResponseProcessBuffer(
+    struct _HttpResponseState* http,
+    struct _SensorResponseState* sensorState,
+    struct _SensorResponseData* sensor,
+    char* buf,
+    int len
+    )
+{
+  int index;
+
+  //
+  // TCP streams bring in data in any chunk size, at any
+  // boundary.
+  //
+  // This processes the HTTP response stream looking first
+  // for a valid set of HTTP headers and the headers end
+  // response ("\r\n\r\n"). It then switches to processing
+  // the expected www-urlencoded document stream till end
+  // of connection.
+  //
+
+  //
+  // TODO: Currently does not obey content length, but uses
+  // connection close as an indication of done.
+  //
+
+  DEBUG_TRACE2("HttpResponseProcessBuffer: len %d\n", len);
+
+  while (len-- > 0) {
+
+    //
+    // At any time we can get end of headers and
+    // have to switch to content processing.
+    //
+    if (http->endOfHeaders) {
+
+      //
+      // We only process the content response if the headers
+      // are what we expected, and not an error response from
+      // the cloud server.
+      //
+      if (http->documentOK) {
+
+          // Processing HTTP response document/content
+          HttpProcessSensorDocument(http, sensorState, sensor, buf, len);
+      }
+    }
+    else {
+
+      // Processing HTTP response headers
+
+      //
+      // HTTP header tokens are matched from the begining of
+      // a line, but may have trailing data.
+      //
+
+      switch(buf[0]) {
+
+      case '\0':
+        // a null in the HTTP response stream is skipped
+        break;
+
+      case '\n':
+
+          // Two newlines (of "\r\n" each) represents end of HTTP response headers
+  	  if ((http->lastChar == '\r') && http->lastTokenNewline) {
+
+            DEBUG_TRACE("End of Headers\n");
+	    http->endOfHeaders = 1;
+
+            //
+            // See if its an OK response document that
+	    // we recognize
+            //
+            if (http->TokensFound[HTTP_TOKEN_HTTP1_1_OK] &&
+                http->TokensFound[HTTP_TOKEN_CONTENT_URLENCODED]) {
+              DEBUG_TRACE("Document OK\n");
+	      http->documentOK = 1;
+	    }
+            else {
+              DEBUG_TRACE("Http Response document not recognized\n");
+            }
+
+            break;
+          }
+
+        // fall through
+
+      case '\r':
+        // fall through
+
+      default:
+
+        // See if we have a token in progress
+        if (http->candidateToken != (-1)) {
+          
+	  http->candidateTokenIndex++;
+
+          // if reached end of candidateToken, complete it
+ 	  if ('\0' == HttpHeaderTokens[http->candidateToken][http->candidateTokenIndex]) {
+            DEBUG_TRACE2("Completing token %s\n", HttpHeaderTokens[http->candidateToken]);
+	    http->TokensFound[http->candidateToken] = 1;
+            http->candidateToken = -1;
+            http->candidateTokenIndex = 0;
+          }
+	  else if(buf[0] == '\r') {
+	    // '\r' ends the search for the current header line and begins a new one
+            http->candidateToken = -1;
+            http->candidateTokenIndex = 0;
+          }
+	  else if (buf[0] != HttpHeaderTokens[http->candidateToken][http->candidateTokenIndex]) {
+
+            //
+            // Character does not match current candidate token, see if
+	    // there is a token which does match
+	    //
+            int saveIndex = http->candidateToken;
+
+            http->candidateToken = HttpFindCandidateToken(
+		  HttpHeaderTokens[http->candidateToken],
+                  buf[0],
+                  index);
+
+            if (http->candidateToken == (-1)) {
+	        // Cancel the current candidate, hit a no match character
+                DEBUG_TRACE3("Canceling token %s due to no match character %c\n",
+                    HttpHeaderTokens[saveIndex], buf[0]);
+                http->candidateTokenIndex = 0;
+            }
+	  }
+	}
+
+        //
+        // Search for a new candidate if this is the start of a new line
+	//
+        if ((http->lastChar == '\n') && http->candidateToken == (-1)) {
+	  for(index = 0; index < HttpHeaderTokensSize; index++) {
+            if (HttpHeaderTokens[index][0] == buf[0]) {
+              DEBUG_TRACE2("Found new candidate token %s\n", HttpHeaderTokens[index]);
+	      http->candidateToken = index;
+	    }
+	  }
+        }
+
+        break;
+      }
+    }
+
+    //
+    // Newline is a two character sequence, so we handle here so as
+    // not to complicate the above switch()
+    //
+    if ((buf[0] == '\n') && (http->lastChar == '\r')) {
+      http->lastTokenNewline = 1;
+    }
+    else if (buf[0] == '\r') {
+      // do nothing, as we may be setting up for \r\n\r\n
+    }
+    else {
+      http->lastTokenNewline = 0;
+    }
+
+    http->lastChar = buf[0];
+
+    buf++;
+  }
+
+  return;
+}
+
+//
+// This is to keep the definitions of the state machine
+// structures out of the rest of the utility.
+//
+void
+HttpResponseReady()
+{
+  HttpResponseReset(&g_httpData, &g_sensorStateData, &g_sensorData);
+}
+
+void
+HttpResponseData(
+    char *buf,
+    int len
+    )
+{
+  HttpResponseProcessBuffer(&g_httpData, &g_sensorStateData, &g_sensorData, buf, len);
 }
