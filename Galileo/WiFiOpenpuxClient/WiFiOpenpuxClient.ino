@@ -230,7 +230,11 @@ UpdateSensorReadings()
 {
     // TODO: Fill in sensor readings updates here
 
-    // Operational masks are in TargetMask0 - TargetMask9
+    //
+    // Test data for end-to-end testing against openpux.js server
+    //
+    //GenerateTestData();
+    //GenerateTestDataSequential();
 
     // SensorReadings are in SensorReading0 - SensorReading9
 }
@@ -241,6 +245,61 @@ OperateOnSensorUpdate()
     // TODO: Operate on sensor update
 
     // Operational masks are in TargetMask0 - TargetMask9
+}
+
+void
+GenerateTestData()
+{
+    SensorReading0 = 0x30;
+    SensorReading1 = 0x31;
+    SensorReading2 = 0x32;
+    SensorReading3 = 0x33;
+    SensorReading4 = 0x34;
+    SensorReading5 = 0x35;
+    SensorReading6 = 0x36;
+    SensorReading7 = 0x37;
+    SensorReading8 = 0x38;
+    SensorReading9 = 0x39;
+
+    TargetMask0 = 0x40;
+    TargetMask1 = 0x41;
+    TargetMask2 = 0x42;
+    TargetMask3 = 0x43;
+    TargetMask4 = 0x44;
+    TargetMask5 = 0x45;
+    TargetMask6 = 0x46;
+    TargetMask7 = 0x47;
+    TargetMask8 = 0x48;
+    TargetMask9 = 0x49;
+}
+
+void
+GenerateTestDataSequential()
+{
+static int testdata = 0x0;
+
+    // Generate test data
+    SensorReading0 = testdata++;
+    SensorReading1 = testdata++;
+    SensorReading2 = testdata++;
+    SensorReading3 = testdata++;
+    SensorReading4 = testdata++;
+    SensorReading5 = testdata++;
+    SensorReading6 = testdata++;
+    SensorReading7 = testdata++;
+    SensorReading8 = testdata++;
+    SensorReading9 = testdata++;
+
+    TargetMask0 = testdata++;
+    TargetMask1 = testdata++;
+    TargetMask2 = testdata++;
+    TargetMask3 = testdata++;
+    TargetMask4 = testdata++;
+    TargetMask5 = testdata++;
+    TargetMask6 = testdata++;
+    TargetMask7 = testdata++;
+    TargetMask8 = testdata++;
+    TargetMask9 = testdata++;
 }
 
 void
@@ -375,7 +434,10 @@ GenerateSensorContent()
       GenerateNameValuePair("D9", SensorReading9, false);
   }
 
-  content = "A=1&P=12345678&S=1&D0=0&D1=1&D2=2&D3=3&M0=0&M1=1&M2=2&M3=3";
+  // NULL terminator
+  ContentBufferAdd(0);
+
+  content = ContentBuffer;
 
   return content;
 }
@@ -383,6 +445,8 @@ GenerateSensorContent()
 void
 GenerateNameValuePair(char* name, int value, int begin)
 {
+    char buffer[17];
+
     if (!begin) {
         ContentBufferAddString("&");
     }
@@ -390,8 +454,8 @@ GenerateNameValuePair(char* name, int value, int begin)
     ContentBufferAddString(name);
     ContentBufferAddString("=");
 
-    // Need hex string format...
-    ContentBufferAddString("needhexstring");
+    snprintf(buffer, sizeof(buffer), "%x", value);
+    ContentBufferAddString(buffer);
 }
 
 void
@@ -617,22 +681,22 @@ ProcessSensorResponseDocument(
     Serial.println("*** Cloud Response to Sensor ***");
 
     Serial.print(" command ");
-    Serial.println(sensor->command);
+    Serial.println(sensor->command, HEX);
 
     Serial.print(" sleepTime ");
-    Serial.println(sensor->sleepTime);
+    Serial.println(sensor->sleepTime, HEX);
 
     Serial.print(" targetMask0 ");
-    Serial.println(sensor->targetMask0);
+    Serial.println(sensor->targetMask0, HEX);
 
     Serial.print(" targetMask1 ");
-    Serial.println(sensor->targetMask1);
+    Serial.println(sensor->targetMask1, HEX);
 
     Serial.print(" targetMask2 ");
-    Serial.println(sensor->targetMask2);
+    Serial.println(sensor->targetMask2, HEX);
 
     Serial.print(" targetMask3 ");
-    Serial.println(sensor->targetMask3);
+    Serial.println(sensor->targetMask3, HEX);
 
     Serial.println("*** End Cloud Response to Sensor ***");
 
@@ -677,7 +741,7 @@ ProcessSensorResponseDocument(
 // Tokens/response lines we look for
 //
 
-// TODO: Document if any order is required, optimal
+// Document if any order is required, optimal
 // such as:
 //
 // stringfulllength
