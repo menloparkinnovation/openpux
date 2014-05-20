@@ -333,6 +333,11 @@ var processHeadersAndDispatch = function (req, res) {
   else if (req.url == '/openpuxclient.js') {
       serveFile(req, res, "openpuxclient.js");
   }
+  else if (req.url == '/openpux.js') {
+      // We allow the server itself to be downloaded, handy for boot strapping with wget
+      // an embedded computer such as Intel Galileo or RaspberryPI
+      serveFile(req, res, "openpux.js");
+  }
   else {
       console.log("Unknown URL: " + req.url + "\n");
       sendError(req, res, 400, "Unknown URL " + req.url);
@@ -951,4 +956,4 @@ var http = require('http');
 //http.createServer(request_func).listen(8080, '127.0.0.1');
 http.createServer(request_func).listen(8080, '0.0.0.0');
 
-console.log('HttpTest Server version 3 running at http://127.0.0.1:8080/');
+console.log('HttpTest Server version 3 running at http://0.0.0.0:8080/');
