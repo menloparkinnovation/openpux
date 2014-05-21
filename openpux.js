@@ -330,6 +330,9 @@ var processHeadersAndDispatch = function (req, res) {
   else if (req.url == '/sensor.html') {
       serveFile(req, res, "sensor.html");
   }
+  else if (req.url == '/plantmonitor.html') {
+      serveFile(req, res, "plantmonitor.html");
+  }
   else if (req.url == '/openpuxclient.js') {
       serveFile(req, res, "openpuxclient.js");
   }
@@ -917,14 +920,20 @@ var serveFile = function (req, res, filePath) {
     var contentType = 'text/html';
     switch (extname) {
 	case '.js':
-            contentType = 'text/javascript';
+            // http://stackoverflow.com/questions/4101394/javascript-mime-type
+            //contentType = 'text/javascript';
+            contentType = 'application/javascript';
 	    break;
 	case '.css':
 	    contentType = 'text/css';
 	    break;
     }
     
-    path.exists(filePath, function(exists) {
+
+    // Generates warning, but works
+    //path.exists(filePath, function(exists) {
+
+    fs.exists(filePath, function(exists) {
 	
 	if (exists) {
             var s = fs.createReadStream(filePath);
@@ -933,8 +942,12 @@ var serveFile = function (req, res, filePath) {
                 res.end();
             })
 
+            console.log("Serving File " + filePath + " Content-Type " + contentType);
+
             s.once('fd', function() {
-	        res.writeHead(200, { 'Content-Type': contentType });
+	        res.setHeader("Content-Type", contentType);
+	        res.writeHead(200);
+	        //res.writeHead(200, { 'Content-Type': contentType });
             });
 
             s.pipe(res);

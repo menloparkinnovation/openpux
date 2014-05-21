@@ -273,43 +273,43 @@ var convertToShortForm = function (settings) {
     }
 
     if (settings["SensorReading0"] != null) {
-        o.S0 = settings["SensorReading0"];
+        o.D0 = settings["SensorReading0"];
     }
 
     if (settings["SensorReading1"] != null) {
-        o.S1 = settings["SensorReading1"];
+        o.D1 = settings["SensorReading1"];
     }
 
     if (settings["SensorReading2"] != null) {
-        o.S2 = settings["SensorReading2"];
+        o.D2 = settings["SensorReading2"];
     }
 
     if (settings["SensorReading3"] != null) {
-        o.S3 = settings["SensorReading3"];
+        o.D3 = settings["SensorReading3"];
     }
 
     if (settings["SensorReading4"] != null) {
-        o.S4 = settings["SensorReading4"];
+        o.D4 = settings["SensorReading4"];
     }
 
     if (settings["SensorReading5"] != null) {
-        o.S5 = settings["SensorReading5"];
+        o.D5 = settings["SensorReading5"];
     }
 
     if (settings["SensorReading6"] != null) {
-        o.S6 = settings["SensorReading6"];
+        o.D6 = settings["SensorReading6"];
     }
 
     if (settings["SensorReading7"] != null) {
-        o.S7 = settings["SensorReading7"];
+        o.D7 = settings["SensorReading7"];
     }
 
     if (settings["SensorReading8"] != null) {
-        o.S8 = settings["SensorReading8"];
+        o.D8 = settings["SensorReading8"];
     }
 
     if (settings["SensorReading9"] != null) {
-        o.S9 = settings["SensorReading9"];
+        o.D9 = settings["SensorReading9"];
     }
 
     return o;
