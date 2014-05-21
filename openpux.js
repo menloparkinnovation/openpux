@@ -333,6 +333,12 @@ var processHeadersAndDispatch = function (req, res) {
   else if (req.url == '/plantmonitor.html') {
       serveFile(req, res, "plantmonitor.html");
   }
+  else if (req.url == '/drinkcooler.html') {
+      serveFile(req, res, "drinkcooler.html");
+  }
+  else if (req.url == '/humidor.html') {
+      serveFile(req, res, "humidor.html");
+  }
   else if (req.url == '/openpuxclient.js') {
       serveFile(req, res, "openpuxclient.js");
   }
