@@ -966,6 +966,71 @@ var serveFile = function (req, res, filePath) {
 }
 
 //
+// Output an HTML header, then a specialization
+// file (typically java script), then the main
+// body.
+//
+var serveHtmlForm = function (
+    req,
+    res,
+    htmlHeader,
+    specialization,
+    htmlBody
+    ) {
+
+    if (req.method != "GET") {
+        res.writeHead(404);
+        res.end();
+        return;
+    }
+
+    var contentType = 'text/html';
+
+    //
+    // This assumes that htmlHeader, htmlBody exists as templates
+    // The caller ensures this.
+    //
+
+    fs.exists(specialization, function(exists) {
+	
+	if (exists) {
+            var specializatonStream = fs.createReadStream(specialization);
+            var htmlHeaderStream = fs.createReadStream(htmlHeader);
+            var htmlBodyStream = fs.createReadStream(htmlBody);
+
+            specializationStream.on('error', function() {
+                res.writeHead(404);
+                res.end();
+            })
+
+            htmlHeaderStream.once('fd', function() {
+	        res.setHeader("Content-Type", contentType);
+	        res.writeHead(200);
+            });
+
+            htmlHeaderStream.pipe(res, { end: false });
+
+            htmlHeaderStream.on('end', function() {
+
+	        specializationStream.pipe(res, { end: false });
+
+                specializationStream.on('end', function() {
+
+                    // This ends the chain
+		    htmlBodyStream.pipe(res);
+                    htmlBodyStream.on('end', function() {
+                    });
+                });
+            });
+	}
+	else {
+	    res.writeHead(404);
+            res.end();
+	}
+    });
+}
+
+//
 // Setup server
 //
 
