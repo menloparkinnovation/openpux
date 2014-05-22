@@ -130,10 +130,7 @@ function updateSensorTargetState(
     passcode,
     sensorid,
     sleeptime,
-    targetmask0,
-    targetmask1,
-    targetmask2,
-    targetmask3
+    items
     )
 {
     var s = buildRestSensorPath(accountid, passcode, sensorid);
@@ -141,14 +138,7 @@ function updateSensorTargetState(
         return "{\"status\": \"400 BAD_REQUEST\"}";
     }
 
-    var command = buildSetTargetMaskUrl(
-        sleeptime,
-        targetmask0,
-        targetmask1,
-        targetmask2,
-        targetmask3
-        );
-
+    var command = buildSetTargetMaskUrl(sleeptime, items);
     if (command == null) {
         return "{\"status\": \"400 BAD_REQUEST\"}";
     }
@@ -256,6 +246,10 @@ var convertToShortForm = function (settings) {
         o.C = settings["Command"];
     }
 
+    if (settings["SleepTime"] != null) {
+        o.T = settings["SleepTime"];
+    }
+
     if (settings["TargetMask0"] != null) {
         o.M0 = settings["TargetMask0"];
     }
@@ -270,6 +264,30 @@ var convertToShortForm = function (settings) {
 
     if (settings["TargetMask3"] != null) {
         o.M3 = settings["TargetMask3"];
+    }
+
+    if (settings["TargetMask4"] != null) {
+        o.M4 = settings["TargetMask4"];
+    }
+
+    if (settings["TargetMask5"] != null) {
+        o.M5 = settings["TargetMask5"];
+    }
+
+    if (settings["TargetMask6"] != null) {
+        o.M6 = settings["TargetMask6"];
+    }
+
+    if (settings["TargetMask7"] != null) {
+        o.M7 = settings["TargetMask7"];
+    }
+
+    if (settings["TargetMask8"] != null) {
+        o.M8 = settings["TargetMask8"];
+    }
+
+    if (settings["TargetMask9"] != null) {
+        o.M9 = settings["TargetMask9"];
     }
 
     if (settings["SensorReading0"] != null) {
@@ -395,6 +413,10 @@ M0 - M3 are valid masks
         o.Command = sensorReading["C"];
     }
 
+    if (sensorReading["T"] != null) {
+        o.SleepTime = sensorReading["T"];
+    }
+
     if (sensorReading["M0"] != null) {
         o.TargetMask0 = sensorReading["M0"];
     }
@@ -507,10 +529,7 @@ function buildRestSensorPath(
 
 function buildSetTargetMaskUrl(
     sleeptime,
-    targetmask0,
-    targetmask1,
-    targetmask2,
-    targetmask3
+    items
     )
 {
   var reststring = null;
@@ -526,47 +545,108 @@ function buildSetTargetMaskUrl(
       reststring += sleeptime;
   }
 
-  if (!(targetmask0==null || targetmask0=="")) {
+  if (!(items.TargetMask0==null || items.TargetMask0=="")) {
       if (anymaskset != null) {
           reststring += "&";
       }
 
-      anymaskset = targetmask0;
+      anymaskset = items.TargetMask0;
       reststring += "TargetMask0=";
-      reststring += targetmask0;
+      reststring += items.TargetMask0;
   }
 
-  if (!(targetmask1==null || targetmask1=="")) {
+  if (!(items.TargetMask1==null || items.TargetMask1=="")) {
       if (anymaskset != null) {
           reststring += "&";
       }
 
-      anymaskset = targetmask1;
+      anymaskset = items.TargetMask1;
       reststring += "TargetMask1=";
-      reststring += targetmask1;
+      reststring += items.TargetMask1;
   }
 
-  if (!(targetmask2==null || targetmask2=="")) {
+  if (!(items.TargetMask2==null || items.TargetMask2=="")) {
       if (anymaskset != null) {
           reststring += "&";
       }
 
-      anymaskset = targetmask2;
+      anymaskset = items.TargetMask2;
       reststring += "TargetMask2=";
-      reststring += targetmask2;
+      reststring += items.TargetMask2;
   }
 
-  if (!(targetmask3==null || targetmask3=="")) {
+  if (!(items.TargetMask3==null || items.TargetMask3=="")) {
       if (anymaskset != null) {
           reststring += "&";
       }
 
-      anymaskset = targetmask3;
+      anymaskset = items.TargetMask3;
       reststring += "TargetMask3=";
-      reststring += targetmask3;
+      reststring += items.TargetMask3;
+  }
+
+  if (!(items.TargetMask4==null || items.TargetMask4=="")) {
+      if (anymaskset != null) {
+          reststring += "&";
+      }
+
+      anymaskset = items.Targetmask4;
+      reststring += "TargetMask4=";
+      reststring += items.Targetmask4;
+  }
+
+  if (!(items.TargetMask5==null || items.TargetMask5=="")) {
+      if (anymaskset != null) {
+          reststring += "&";
+      }
+
+      anymaskset = items.TargetMask5;
+      reststring += "TargetMask5=";
+      reststring += items.TargetMask5;
+  }
+
+  if (!(items.TargetMask6==null || items.TargetMask6=="")) {
+      if (anymaskset != null) {
+          reststring += "&";
+      }
+
+      anymaskset = items.TargetMask6;
+      reststring += "TargetMask6=";
+      reststring += items.TargetMask6;
+  }
+
+  if (!(items.TargetMask7==null || items.TargetMask7=="")) {
+      if (anymaskset != null) {
+          reststring += "&";
+      }
+
+      anymaskset = items.TargetMask7;
+      reststring += "TargetMask7=";
+      reststring += items.TargetMask7;
+  }
+
+  if (!(items.TargetMask8==null || items.TargetMask8=="")) {
+      if (anymaskset != null) {
+          reststring += "&";
+      }
+
+      anymaskset = items.TargetMask8;
+      reststring += "TargetMask8=";
+      reststring += items.TargetMask8;
+  }
+
+  if (!(items.TargetMask9==null || items.TargetMask9=="")) {
+      if (anymaskset != null) {
+          reststring += "&";
+      }
+
+      anymaskset = items.TargetMask9;
+      reststring += "TargetMask9=";
+      reststring += items.TargetMask9;
   }
 
   // If no masks are set, do not return a URL
+
   if (anymaskset == null) {
       return null;
   }

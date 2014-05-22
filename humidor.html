@@ -112,6 +112,11 @@ TargetMask1 = "Target Humidity";
 TargetMask2 = "Temperature Hysteresis";
 TargetMask3 = "Humidity Hysteresis";
 TargetMask4 = "Interior Light On";
+TargetMask5 = null;
+TargetMask6 = null;
+TargetMask7 = null;
+TargetMask8 = null;
+TargetMask9 = null;
 
 function showPage() {
 
@@ -287,6 +292,26 @@ function createSensorUpdateForm() {
         formCreateInputWithTitle(TargetMask4, "text", "targetmask4", null);
     }
 
+    if (TargetMask5 != null) {
+        formCreateInputWithTitle(TargetMask5, "text", "targetmask5", null);
+    }
+
+    if (TargetMask6 != null) {
+        formCreateInputWithTitle(TargetMask6, "text", "targetmask6", null);
+    }
+
+    if (TargetMask7 != null) {
+        formCreateInputWithTitle(TargetMask7, "text", "targetmask7", null);
+    }
+
+    if (TargetMask8 != null) {
+        formCreateInputWithTitle(TargetMask8, "text", "targetmask8", null);
+    }
+
+    if (TargetMask9 != null) {
+        formCreateInputWithTitle(TargetMask9, "text", "targetmask9", null);
+    }
+
     document.write("<a href=\"javascript: processSensorUpdateForm()\">Update Sensor</a><br>");
     formCreateInputWithTitle("Status", "text", "status");
 
@@ -319,24 +344,61 @@ function processSensorUpdateForm()
 
   var sleeptime = document.forms["updatesensorform"]["sleeptime"].value;
 
+  // Must supply at least one update
+  var update = false;
+
+  if (sleeptime != null && sleeptime != "") update = true;
+
+  var masks = new Object();
+
   if (document.forms["updatesensorform"]["targetmask0"] != null) {
-      var targetmask0 = document.forms["updatesensorform"]["targetmask0"].value;
+      masks.TargetMask0 = document.forms["updatesensorform"]["targetmask0"].value;
+      update = true;
   }
 
   if (document.forms["updatesensorform"]["targetmask1"] != null) {
-      var targetmask1 = document.forms["updatesensorform"]["targetmask1"].value;
+      masks.TargetMask1 = document.forms["updatesensorform"]["targetmask1"].value;
+      update = true;
   }
 
   if (document.forms["updatesensorform"]["targetmask2"] != null) {
-      var targetmask2 = document.forms["updatesensorform"]["targetmask2"].value;
+      masks.TargetMask2 = document.forms["updatesensorform"]["targetmask2"].value;
+      update = true;
   }
 
   if (document.forms["updatesensorform"]["targetmask3"] != null) {
-      var targetmask3 = document.forms["updatesensorform"]["targetmask3"].value;
+      masks.Targetmask4 = document.forms["updatesensorform"]["targetmask3"].value;
+      update = true;
   }
 
   if (document.forms["updatesensorform"]["targetmask4"] != null) {
-      var targetmask4 = document.forms["updatesensorform"]["targetmask4"].value;
+      masks.TargetMask4 = document.forms["updatesensorform"]["targetmask4"].value;
+      update = true;
+  }
+
+  if (document.forms["updatesensorform"]["targetmask5"] != null) {
+      masks.TargetMask5 = document.forms["updatesensorform"]["targetmask5"].value;
+      update = true;
+  }
+
+  if (document.forms["updatesensorform"]["targetmask6"] != null) {
+      masks.TargetMask6 = document.forms["updatesensorform"]["targetmask6"].value;
+      update = true;
+  }
+
+  if (document.forms["updatesensorform"]["targetmask7"] != null) {
+      masks.TargetMask7 = document.forms["updatesensorform"]["targetmask7"].value;
+      update = true;
+  }
+
+  if (document.forms["updatesensorform"]["targetmask8"] != null) {
+      masks.TargetMask8 = document.forms["updatesensorform"]["targetmask8"].value;
+      update = true;
+  }
+
+  if (document.forms["updatesensorform"]["targetmask9"] != null) {
+      masks.TargetMask9 = document.forms["updatesensorform"]["targetmask9"].value;
+      update = true;
   }
 
   if (accountid==null || accountid=="") {
@@ -354,16 +416,6 @@ function processSensorUpdateForm()
     return;
   }
 
-  // Must supply at least one update
-  var update = false;
-
-  if (sleeptime != null && sleeptime != "") update = true;
-  if (targetmask0 != null && targetmask0 != "") update = true;
-  if (targetmask1 != null && targetmask1 != "") update = true;
-  if (targetmask2 != null && targetmask2 != "") update = true;
-  if (targetmask3 != null && targetmask3 != "") update = true;
-  if (targetmask4 != null && targetmask4 != "") update = true;
-
   if (!update) {
       alert("At least one sensor update value must be entered");
       return;
@@ -379,10 +431,7 @@ function processSensorUpdateForm()
       passcode,
       sensorid,
       sleeptime,
-      targetmask0,
-      targetmask1,
-      targetmask2,
-      targetmask3
+      masks
       );
 
   if (result != null) {
@@ -600,6 +649,26 @@ function createSensorQueryResponseForm() {
         formCreateInputWithTitle(TargetMask4, "text", "targetmask4");
     }
 
+    if (TargetMask5 != null) {
+        formCreateInputWithTitle(TargetMask5, "text", "targetmask5");
+    }
+
+    if (TargetMask6 != null) {
+        formCreateInputWithTitle(TargetMask6, "text", "targetmask6");
+    }
+
+    if (TargetMask7 != null) {
+        formCreateInputWithTitle(TargetMask7, "text", "targetmask7");
+    }
+
+    if (TargetMask8 != null) {
+        formCreateInputWithTitle(TargetMask8, "text", "targetmask8");
+    }
+
+    if (TargetMask9 != null) {
+        formCreateInputWithTitle(TargetMask9, "text", "targetmask9");
+    }
+
     if (SensorReading0 != null) {
        formCreateInputWithTitle(SensorReading0, "text", "sensorreading0");
     }
@@ -650,6 +719,12 @@ function updateSensorQueryResponseForm(
     targetmask1,
     targetmask2,
     targetmask3,
+    targetmask4,
+    targetmask5,
+    targetmask6,
+    targetmask7,
+    targetmask8,
+    targetmask9,
     sensorreading0,
     sensorreading1,
     sensorreading2,
@@ -685,6 +760,30 @@ function updateSensorQueryResponseForm(
 
     if ((TargetMask3 != null) && (targetmask3 != null)) {
         document.forms["querysensorresponseform"]["targetmask3"].value = targetmask3;
+    }
+
+    if ((TargetMask4 != null) && (targetmask4 != null)) {
+        document.forms["querysensorresponseform"]["targetmask4"].value = targetmask4;
+    }
+
+    if ((TargetMask5 != null) && (targetmask5 != null)) {
+        document.forms["querysensorresponseform"]["targetmask5"].value = targetmask5;
+    }
+
+    if ((TargetMask6 != null) && (targetmask6 != null)) {
+        document.forms["querysensorresponseform"]["targetmask6"].value = targetmask6;
+    }
+
+    if ((TargetMask7 != null) && (targetmask7 != null)) {
+        document.forms["querysensorresponseform"]["targetmask7"].value = targetmask7;
+    }
+
+    if ((TargetMask8 != null) && (targetmask8 != null)) {
+        document.forms["querysensorresponseform"]["targetmask8"].value = targetmask8;
+    }
+
+    if ((TargetMask9 != null) && (targetmaskp != null)) {
+        document.forms["querysensorresponseform"]["targetmask9"].value = targetmask9;
     }
 
     if ((SensorReading0 != null) && (sensorreading0 != null)) {
@@ -772,6 +871,30 @@ function createAddReadingForm() {
         formCreateInputWithTitle(TargetMask3, "text", "targetmask3");
     }
 
+    if (TargetMask4 != null) {
+        formCreateInputWithTitle(TargetMask4, "text", "targetmask4");
+    }
+
+    if (TargetMask5 != null) {
+        formCreateInputWithTitle(TargetMask5, "text", "targetmask5");
+    }
+
+    if (TargetMask6 != null) {
+        formCreateInputWithTitle(TargetMask6, "text", "targetmask6");
+    }
+
+    if (TargetMask7 != null) {
+        formCreateInputWithTitle(TargetMask7, "text", "targetmask7");
+    }
+
+    if (TargetMask8 != null) {
+        formCreateInputWithTitle(TargetMask8, "text", "targetmask8");
+    }
+
+    if (TargetMask9 != null) {
+        formCreateInputWithTitle(TargetMask9, "text", "targetmask9");
+    }
+
     if (SensorReading0 != null) {
         formCreateInputWithTitle(SensorReading0, "text", "sensorreading0");
     }
@@ -855,6 +978,30 @@ function processAddReadingForm()
 
   if (document.forms["addreadingform"]["targetmask3"] != null) {
       o.TargetMask3 = document.forms["addreadingform"]["targetmask3"].value;
+  }
+
+  if (document.forms["addreadingform"]["targetmask4"] != null) {
+      o.TargetMask4 = document.forms["addreadingform"]["targetmask4"].value;
+  }
+
+  if (document.forms["addreadingform"]["targetmask5"] != null) {
+      o.TargetMask5 = document.forms["addreadingform"]["targetmask5"].value;
+  }
+
+  if (document.forms["addreadingform"]["targetmask6"] != null) {
+      o.TargetMask6 = document.forms["addreadingform"]["targetmask6"].value;
+  }
+
+  if (document.forms["addreadingform"]["targetmask7"] != null) {
+      o.TargetMask7 = document.forms["addreadingform"]["targetmask7"].value;
+  }
+
+  if (document.forms["addreadingform"]["targetmask8"] != null) {
+      o.TargetMask8 = document.forms["addreadingform"]["targetmask8"].value;
+  }
+
+  if (document.forms["addreadingform"]["targetmask9"] != null) {
+      o.TargetMask9 = document.forms["addreadingform"]["targetmask9"].value;
   }
 
   if (document.forms["addreadingform"]["sensorreading0"] != null) {
@@ -1000,6 +1147,12 @@ function processSensorReading(sensorreading, status) {
     var targetmask1 = sensorreading.TargetMask1;
     var targetmask2 = sensorreading.TargetMask2;
     var targetmask3 = sensorreading.TargetMask3;
+    var targetmask4 = sensorreading.TargetMask4;
+    var targetmask5 = sensorreading.TargetMask5;
+    var targetmask6 = sensorreading.TargetMask6;
+    var targetmask7 = sensorreading.TargetMask7;
+    var targetmask8 = sensorreading.TargetMask8;
+    var targetmask9 = sensorreading.TargetMask9;
 
     var sensorreading0 = sensorreading.SensorReading0;
     var sensorreading1 = sensorreading.SensorReading1;
@@ -1019,6 +1172,12 @@ function processSensorReading(sensorreading, status) {
         targetmask1,
         targetmask2,
         targetmask3,
+        targetmask4,
+        targetmask5,
+        targetmask6,
+        targetmask7,
+        targetmask8,
+        targetmask9,
         sensorreading0,
         sensorreading1,
         sensorreading2,
@@ -1039,6 +1198,12 @@ function printSensorReading(
     targetmask1,
     targetmask2,
     targetmask3,
+    targetmask4,
+    targetmask5,
+    targetmask6,
+    targetmask7,
+    targetmask8,
+    targetmask9,
     sensorreading0,
     sensorreading1,
     sensorreading2,
@@ -1111,6 +1276,30 @@ function printSensorReading(
 
     if (targetmask3 != null) {
         document.write("TargetMask3=" + targetmask3 + "<br>");
+    }
+
+    if (targetmask4 != null) {
+        document.write("TargetMask4=" + targetmask4 + "<br>");
+    }
+
+    if (targetmask5 != null) {
+        document.write("TargetMask5=" + targetmask5 + "<br>");
+    }
+
+    if (targetmask6 != null) {
+        document.write("TargetMask6=" + targetmask6 + "<br>");
+    }
+
+    if (targetmask7 != null) {
+        document.write("TargetMask7=" + targetmask7 + "<br>");
+    }
+
+    if (targetmask8 != null) {
+        document.write("TargetMask8=" + targetmask8 + "<br>");
+    }
+
+    if (targetmask9 != null) {
+        document.write("TargetMask9=" + targetmask9 + "<br>");
     }
 }
 
