@@ -330,6 +330,16 @@ var processHeadersAndDispatch = function (req, res) {
   else if (req.url == '/sensor.html') {
       serveFile(req, res, "sensor.html");
   }
+  else if (req.url == '/autosensor') {
+      //
+      // Testing automatic specialization of forms
+      // In the future an automatic lookup of "xxx.osb" will load
+      // sensorheader.html, xxx.osb, sensorbody.html
+      // .osb stands for Openpux Specialization Block and is the javascript
+      // configuration for the dynamically generated client side scripting form.
+      //
+      serveHtmlForm(req, res, "sensorheader.html", "sensorspecialization.js", "sensorbody.html");
+  }
   else if (req.url == '/plantmonitor.html') {
       serveFile(req, res, "plantmonitor.html");
   }
@@ -994,7 +1004,7 @@ var serveHtmlForm = function (
     fs.exists(specialization, function(exists) {
 	
 	if (exists) {
-            var specializatonStream = fs.createReadStream(specialization);
+            var specializationStream = fs.createReadStream(specialization);
             var htmlHeaderStream = fs.createReadStream(htmlHeader);
             var htmlBodyStream = fs.createReadStream(htmlBody);
 
