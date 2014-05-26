@@ -325,6 +325,7 @@ var processHeadersAndDispatch = function (req, res) {
       }
   }
   else if (req.url == '/') {
+      // Serve the default file
       serveFile(req, res, "sensor.html");
   }
   else if (req.url == '/sensor.html') {
@@ -356,6 +357,15 @@ var processHeadersAndDispatch = function (req, res) {
       // We allow the server itself to be downloaded, handy for boot strapping with wget
       // an embedded computer such as Intel Galileo or RaspberryPI
       serveFile(req, res, "openpux.js");
+  }
+  else if (req.url == '/sensorheader.html') {
+      serveFile(req, res, "sensorheader.html");
+  }
+  else if (req.url == '/sensorbody.html') {
+      serveFile(req, res, "sensorbody.html");
+  }
+  else if (req.url == '/sensorspecialization.js') {
+      serveFile(req, res, "sensorspecialization.js");
   }
   else {
       console.log("Unknown URL: " + req.url + "\n");

@@ -81,6 +81,8 @@
 int g_DigitalPin = 13;
 int g_Toggle = LOW;
 
+int g_DigitalInputPin = 5;
+
 // Analog pins are 0-5
 int g_AnalogPin = 0;
 
@@ -106,6 +108,9 @@ setup()
 
     // To write a PWM value to a (PWM) pin (0-255)
     analogWrite(g_PwmPin, 128);
+
+    pinMode(g_DigitalInputPin, INPUT);
+    int buttonState = digitalRead(g_DigitalInputPin);
 }
 
 void
