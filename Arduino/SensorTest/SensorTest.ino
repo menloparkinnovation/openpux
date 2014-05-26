@@ -52,10 +52,60 @@
 //
 // SensorTest
 //
-// 05/19/2014
+// 05/25/2014
 //
-// Created from ReadAnalogVoltage example
+// Re-written to be based on openpux Arduino Template.
 //
+
+//
+// The sensor is wired to a prototype breadboard
+// to an RFduino based sensor.
+//
+// This is the mapping to the Arduino pins on the Breadboard
+//
+//GPIO 0 - Green LED digital output (90 ohm)      Arduino D3
+//GPIO 1 - Red LED digital output (152 ohm)       Ardunio D5
+//GPIO 2 - Blue LED digital output (90 ohm)       Arduino D6
+//GPIO 3 - Moisture Sensor analog input           Arduino A1
+//GPIO 4 - Sensor Power for CDS and 2n2222a       Arduino D2
+//GPIO 5 - Light Sensor/CDS analog input          Arduino A0
+//GPIO 6 - Bat analog in through 100 ohm resistor Arduino A5
+//
+//RFDuino     Arduino
+//
+//GPIO_0      D3       (PWM) Green LED
+//GPIO_1      D5       (PWM) Red LED
+//GPIO_2      D6       (PWM) Blue LED
+//GPIO_3      A1        Moisture
+//GPIO_4      D2        Sensor Power (Light, Moisture)
+//GPIO_5      A0        Light
+//GPIO_6      A5        Battery Level
+//
+
+//
+// Digital Pins are 0-13
+//
+// D0  - Serial RX
+// D1  - Serial TX
+// D2  - 
+// D3  - (PWM)
+// D4  -
+// D5  - (PWM)
+// D6  - (PWM)
+// D7  -
+// D8  -
+// D9  - (PWM)
+// D10 - SPI SS   (PWM)
+// D11 - SPI MOSI (PWM)
+// D12 - SPI MISO
+// D13 - SPI SCK, on board LED on many boards
+//
+
+// PWM Pins are D3, D5, D6, D9, D10, D11
+//int g_PwmPin = 3;
+
+//
+// Analog pins are 0-5
 //
 
 float VoltageReference = 3.3;
@@ -68,37 +118,48 @@ int SensorReading0 = 0; // Light
 int SensorReading1 = 0; // Temperature
 int SensorReading2 = 0; // Moisture
 
-void setup() {
-  Serial.begin(9600);
+void
+setup()
+{
+    Serial.begin(9600);
 
-  // If you want to set the aref to something other than 5v
-  //analogReference(EXTERNAL);
+    //
+    // Uncomment what is needed for various hardware setup
+    //
+   
+    //analogReference(EXTERNAL);
+    //pinMode(g_DigitalPin, INPUT);
 
-  //pinMode(redLEDpin, OUTPUT);
-  //pinMode(greenLEDpin, OUTPUT);
-  //pinMode(blueLEDpin, OUTPUT);
+    //pinMode(g_DigitalPin, OUTPUT);
+    //digitalWrite(g_DigitalPin, LOW);
 
-  //digitalWrite(greenLEDpin, HIGH);
-  //digitalWrite(greenLEDpin, LOW);
+    //pinMode(g_PwmPin, OUTPUT);
+
+    // To write a PWM value to a (PWM) pin (0-255)
+    //analogWrite(g_PwmPin, 128);
 }
 
-void loop() {
+void
+loop()
+{
 
-  PerformSensorReadings();
+    PerformSensorReadings();
 
-  Serial.print("SensorReading0(Light)=");
-  Serial.println(SensorReading0);
+    Serial.print("SensorReading0(Light)=");
+    Serial.println(SensorReading0);
 
-  Serial.print("SensorReading1(Temperature)=");
-  Serial.println(SensorReading1);
+    Serial.print("SensorReading1(Temperature)=");
+    Serial.println(SensorReading1);
 
-  Serial.print("SensorReading2(Moisture)=");
-  Serial.println(SensorReading2);
+    Serial.print("SensorReading2(Moisture)=");
+    Serial.println(SensorReading2);
 
-  delay(5000);
+    // delay is in ms
+    delay(5000);
 }
 
-void PerformSensorReadings()
+void
+PerformSensorReadings()
 {
     SensorReading0 = ReadVoltage(LightPin);
     SensorReading1 = ReadTemperature(TemperaturePin);
@@ -106,26 +167,28 @@ void PerformSensorReadings()
 }
 
 // Returns voltage in millivolts so it can be an int
-int ReadVoltage(int pinNumber)
+int
+ReadVoltage(int pinNumber)
 {
-  int sensorValue = analogRead(pinNumber);
+    int sensorValue = analogRead(pinNumber);
 
-  Serial.print("Raw Reading Pin=");
-  Serial.print(pinNumber);
-  Serial.print(" Value=");
-  Serial.println(sensorValue);
+    Serial.print("Raw Reading Pin=");
+    Serial.print(pinNumber);
+    Serial.print(" Value=");
+    Serial.println(sensorValue);
 
-  // Convert the analog reading (which goes from 0 - 1023)
-  // to a voltage (0 - VoltageReference):
-  float voltage = sensorValue * (VoltageReference / 1023.0);
+    // Convert the analog reading (which goes from 0 - 1023)
+    // to a voltage (0 - VoltageReference):
+    float voltage = sensorValue * (VoltageReference / 1023.0);
 
-  Serial.print("voltage=");
-  Serial.println(voltage);
+    Serial.print("voltage=");
+    Serial.println(voltage);
 
-  return (int)(voltage * 1000);
+    return (int)(voltage * 1000);
 }
 
-int ReadTemperature(int tempPin)
+int
+ReadTemperature(int tempPin)
 {
     int tempReading = analogRead(tempPin);
 
