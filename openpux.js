@@ -395,27 +395,6 @@ var processHeadersAndDispatch = function (req, res) {
   }
 
   //
-  // These entries are to be removed after moving to autospecialization
-  //
-
-  else if (req.url == '/sensor.html') {
-      // TODO: Remove after testing...
-      serveFile(req, res, "sensor.html");
-  }
-  else if (req.url == '/plantmonitor.html') {
-      // TODO: Remove after testing...
-      serveFile(req, res, "plantmonitor.html");
-  }
-  else if (req.url == '/drinkcooler.html') {
-      // TODO: Remove after testing...
-      serveFile(req, res, "drinkcooler.html");
-  }
-  else if (req.url == '/humidor.html') {
-      // TODO: Remove after testing...
-      serveFile(req, res, "humidor.html");
-  }
-
-  //
   // Unrecognized request
   //
 
