@@ -324,38 +324,55 @@ var processHeadersAndDispatch = function (req, res) {
           return false;
       }
   }
+
+  //
+  //
+  // Automatic specialization of forms
+  //
+  // In the future an automatic lookup of "xxx.ocs" will load
+  // sensorheader.html, xxx.ocs, sensorbody.html
+  // .ocs stands for Openpux Client Specialization and is the javascript
+  // configuration for the dynamically generated client side scripting form.
+  //
+  // xxx.oss would be Openpux Server Specialization if needed.
+  //
+
   else if (req.url == '/') {
       // Serve the default file
-      serveFile(req, res, "sensor.html");
-  }
-  else if (req.url == '/sensor.html') {
-      serveFile(req, res, "sensor.html");
-  }
-  else if (req.url == '/autosensor') {
-      //
-      // Testing automatic specialization of forms
-      // In the future an automatic lookup of "xxx.osb" will load
-      // sensorheader.html, xxx.osb, sensorbody.html
-      // .osb stands for Openpux Specialization Block and is the javascript
-      // configuration for the dynamically generated client side scripting form.
-      //
       serveHtmlForm(req, res, "sensorheader.html", "sensorspecialization.js", "sensorbody.html");
   }
-  else if (req.url == '/plantmonitor.html') {
-      serveFile(req, res, "plantmonitor.html");
+  else if (req.url == '/sensor') {
+      serveHtmlForm(req, res, "sensorheader.html", "sensorspecialization.js", "sensorbody.html");
   }
-  else if (req.url == '/drinkcooler.html') {
-      serveFile(req, res, "drinkcooler.html");
+  else if (req.url == '/humidor') {
+      serveHtmlForm(req, res, "sensorheader.html", "humidorspecialization.js", "sensorbody.html");
   }
-  else if (req.url == '/humidor.html') {
-      serveFile(req, res, "humidor.html");
+  else if (req.url == '/plantmonitor') {
+      serveHtmlForm(req, res, "sensorheader.html", "plantmonitorspecialization.js", "sensorbody.html");
   }
+  else if (req.url == '/drinkcooler') {
+      serveHtmlForm(req, res, "sensorheader.html", "drinkcoolerspecialization.js", "sensorbody.html");
+  }
+
+  //
+  // Client Library file
+  //
+
   else if (req.url == '/openpuxclient.js') {
       serveFile(req, res, "openpuxclient.js");
   }
+
+  //
+  // These entries allow the openpux server and client files
+  // to be served by the server itself using wget.
+  //
+  // This is handy for bootstrapping platforms such as RaspberryPI
+  // or Intel Galileo.
+  //
+  // Note: Don't place any passwords in these files!
+  //
+
   else if (req.url == '/openpux.js') {
-      // We allow the server itself to be downloaded, handy for boot strapping with wget
-      // an embedded computer such as Intel Galileo or RaspberryPI
       serveFile(req, res, "openpux.js");
   }
   else if (req.url == '/sensorheader.html') {
@@ -364,9 +381,44 @@ var processHeadersAndDispatch = function (req, res) {
   else if (req.url == '/sensorbody.html') {
       serveFile(req, res, "sensorbody.html");
   }
-  else if (req.url == '/sensorspecialization.js') {
+  else if (req.url == '/sensorpecialization.js') {
       serveFile(req, res, "sensorspecialization.js");
   }
+  else if (req.url == '/humidorpecialization.js') {
+      serveFile(req, res, "humidorspecialization.js");
+  }
+  else if (req.url == '/plantmonitorspecialization.js') {
+      serveFile(req, res, "plantmonitorspecialization.js");
+  }
+  else if (req.url == '/drinkcoolerspecialization.js') {
+      serveFile(req, res, "drinkcoolerspecialization.js");
+  }
+
+  //
+  // These entries are to be removed after moving to autospecialization
+  //
+
+  else if (req.url == '/sensor.html') {
+      // TODO: Remove after testing...
+      serveFile(req, res, "sensor.html");
+  }
+  else if (req.url == '/plantmonitor.html') {
+      // TODO: Remove after testing...
+      serveFile(req, res, "plantmonitor.html");
+  }
+  else if (req.url == '/drinkcooler.html') {
+      // TODO: Remove after testing...
+      serveFile(req, res, "drinkcooler.html");
+  }
+  else if (req.url == '/humidor.html') {
+      // TODO: Remove after testing...
+      serveFile(req, res, "humidor.html");
+  }
+
+  //
+  // Unrecognized request
+  //
+
   else {
       console.log("Unknown URL: " + req.url + "\n");
       sendError(req, res, 400, "Unknown URL " + req.url);

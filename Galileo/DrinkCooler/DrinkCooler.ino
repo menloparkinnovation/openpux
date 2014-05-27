@@ -173,16 +173,22 @@ OperateOnSensorUpdate()
 void
 PerformControlLoop()
 {
-    // See if heating setpoint reached
-    if (SensorReading0 > TargetMask4) {
-        SetIdleMode();
-        return;
+    if (TargetMask2 != 0) {
+
+        // See if heating setpoint reached
+        if (SensorReading0 > TargetMask4) {
+            SetIdleMode();
+            return;
+        }
     }
 
-    // See i cooling setpoint reached
-    if (SensorReading0 < TargetMask3) {
-        SetIdleMode();
-        return;
+    if (TargetMask1 != 0) {
+
+        // See if cooling setpoint reached
+        if (SensorReading0 < TargetMask3) {
+            SetIdleMode();
+            return;
+        }
     }
 
     //
