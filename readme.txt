@@ -44,12 +44,24 @@ their network connection to power down. Sensors will periodically send
 updates to the cloud service which records the readings, and are returned
 an application defined set of settings.
 
+The design expects sensors to be "mostly sleeping" and to not be
+available for direct connect, real time communication.
+
 Application Exchange
 
 An application exchange REST protocol is used to update the sensor
 settings and to query the sensor readings. Client side user agents are
 provided in HTML/Javascript, but may be any application such as a native
 mobile phone/tablet application. ("Rich Client").
+
+Since Sensors are expected to be mostly sleeping, the Cloud service
+provides the always available serer to the Cloud application
+clients over REST. This server can serve previous sensor readings,
+and to accept sensor value updates to be returned to the sensor
+the next time a sensor posts an update.
+
+"Pushing" an alert to a sensor is allowed, but not part of the
+current implementation.
 
 Openpux operates around two data tables.
 
@@ -82,7 +94,9 @@ Openpux operates around two data tables.
   The schema is open in order to be flexible for different usage scenarios
   and does not impose strict limits as a SQL implementation would. A given
   application may choose to restrict its schema, such as to allow storage
-  in an existing SQL implementation.
+  in an existing SQL implementation. In this case the data back end
+  adapter would return the proper error status if it can't place or
+  retrieved data in its proper format.
 
   There are only four fields defined by the schema:
 

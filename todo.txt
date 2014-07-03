@@ -1,0 +1,11 @@
+07/03/2014
+
+Write a command line utility that allows sensor queries
+and updates using node.js. This is to replace the C
+coded one currently built under Cygwin.
+
+The command line utility can allow it to act as the sensor
+posting updates and getting back settings/commands, or act
+as the application retrieving sensor readings and posting
+updates to the sensor settings tables.
+
