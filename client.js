@@ -77,10 +77,39 @@ var args = process.argv.slice(2);
 //console.log("process.argv.slice(2)");
 console.log(args);
 
-//var opclient = require('openpuxclient.js');
-//var opclient = require('openpuxclient');
+var opclient = require('./openpuxclient.js');
 
-//processSensorQuery();
+processSensorQuery();
+
+function processSensorQueryFormResponse()
+{
+}
+
+//
+// This is invoked with the response JSON document.
+//
+// The document may be an error response, or the data requested.
+//
+function processSensorQueryFormResponse(responseDocument) {
+      if (responseDocument == null) {
+          responseDocument = "null";
+      }
+
+      //showSensorQueryResponseForm();
+
+      var obj = JSON.parse(responseDocument);
+
+      var status = obj.status;
+      if (status != "200 OK") {
+          console.log("Error " + status);
+          return;
+      }
+
+      for(var index = 0; index < obj.sensorreading.length; index++) {
+          //processSensorReading(obj.sensorreading[index], status);
+          console.log(obj);
+      }
+}
 
 function processSensorQuery() {
 
@@ -106,7 +135,7 @@ function processSensorQuery() {
     if (readingcount == null) readingcount = 1;
 
     // openpuxclient.js
-    result = querySensorReadings(
+    result = opclient.querySensorReadings(
         scheme,
         host,
         httpauthusername,
