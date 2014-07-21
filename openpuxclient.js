@@ -697,80 +697,13 @@ function buildUrl(scheme, host, apppath) {
     return url;
 }
 
-//
-// Create an HTTP request object for different browsers
-//
-
-//
-// WORKING 07/17/2014
-//
-// Want to use this code for stand alone command line node.js
-// utilities so a basic emulation of an XMLHttpRequest
-// is required for browserless situations.
-//
-// Available XMLHttpLibraries on the web are to much for
-// the needs here, and require access to process creation
-// libraries, etc., which is not warranted.
-//
-//  XMLHttpRequest req;
-//
-//  req.onreadystatechange = function();
-//
-//  if (req.readyState != 4)
-//
-//  if (req.status != 200)
-//
-//  callback(req.responseText);
-//
-//  req.open("POST", url, true, httpauthusername, httpauthpassword);
-//
-//  req.setRequestHeader("Content-Type", "application/x-www-form-urlencoded");
-//
-//  req.send(content_document);
-//
-// WORKING 07/17/2014
-
-function createLocalHttpRequest() {
-    var obj = new Object();
-
-    // fields
-    obj.readyState = 0;
-    obj.status = 401;
-    obj.responseText = null;
-
-    // methods
-    obj.open = localHttpRequest_open;
-    obj.setRequestHeader = localHttpRequest_setRequestHeader;
-    obj.send = localHttpRequest_send;
-
-    // callbacks
-    obj.onreadystatechange = null;
-
-    return obj;
-}
-
-function localHttpRequest_open(verb, url, async, username, password) {
-}
-
-function localHttpRequest_setRequestHeader() {
-}
-
-function localHttpRequest_send() {
-
-    this.responseText = "S=1&C=0&M0=1";
-    
-    if (this.onreadystatechange != null) {
-        this.onreadystatechange();
-    }
-}
-
 function createRequest() {
   var result = null;
 
   if (typeof window == "undefined") {
       // Create a local replacement for XMLHttpRequest
-      result = createLocalHttpRequest();
-      return result;
+      //result = createLocalHttpRequest();
+      return null;
   }
   else if (window.XMLHttpRequest) {
 
