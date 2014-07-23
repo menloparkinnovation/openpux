@@ -53,6 +53,8 @@
 // This allows the listed functions to be available from this
 // module when not loaded in the browser, but run from node.js.
 //
+/*
+TODO: Working:
 module.exports = {
   querySensorReadings: function (
     scheme,
@@ -83,6 +85,7 @@ module.exports = {
 	    );
   }
 };
+*/
 
 //
 // Query sensor readings.
@@ -792,6 +795,7 @@ function executePostRequest(
 
       if (req.status != 200) {
         // Process failure status in JSON for main response path
+        //alert("openpuxclient.js: executePostRequest: req.status failed " + req.status);
         callback("{\"status\": \"" + req.status + " FAILED" + "\"}");
         return;
       }
