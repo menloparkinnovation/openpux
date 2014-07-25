@@ -57,7 +57,7 @@ function showPage() {
     document.write("</td>");
 
     document.write("<td>");
-    formCreateInput("button", "buttonaddreading", "Add Reading", "navigateAddReading();");
+    formCreateInput("button", "buttonaddreading", "Add Sensor Reading", "navigateAddReading();");
     document.write("</td>");
 
     document.write("<td>");
@@ -760,7 +760,7 @@ function createAddReadingForm() {
         "application/www.form-urlencoded"
     );
 
-    document.write("<a href=\"javascript: processAddReadingForm()\">Add Reading</a><br>");
+    document.write("<a href=\"javascript: processAddReadingForm()\">Send Reading</a><br>");
 
     formCreateInputWithTitle("Status", "text", "status");
     formCreateInputWithTitle("ResponseString", "text", "responsestring");
@@ -1006,7 +1006,7 @@ function processAddSensorReadingFormResponse(responseDocument)
           return;
       }
 
-      var Status = "200 OK";
+      var status = "200 OK";
 
       // See if its a JSON based error status return
       if (responseDocument[0] == '{') {
@@ -1018,6 +1018,9 @@ function processAddSensorReadingFormResponse(responseDocument)
           document.forms["addreadingform"]["status"].value = status;
           return;
       }
+
+      //alert("status=" + status);
+      //alert("responsedocument=" + responseDocument);
 
       document.forms["addreadingform"]["status"].value = status;
 

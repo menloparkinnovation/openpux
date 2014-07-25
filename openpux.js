@@ -1,3 +1,16 @@
+
+//
+// TODO:
+//
+// Add Reading is broken.
+//
+// Finish testing external storage module
+//
+// 07/24/2014
+// IE is broken.
+//
+//
+
 //
 //   Copyright (C) 2014 Menlo Park Innovation LLC
 //
@@ -51,6 +64,8 @@
 //
 // Storage Support
 //
+
+var store = require('./memorystore.js');
 
 var SensorReadingsTable = new Array();
 
@@ -986,6 +1001,7 @@ var serveFile = function (req, res, filePath) {
 	    break;
     }
     
+    //console.log("sendFile: " + filePath + " contentType=" + contentType);
 
     // Generates warning, but works
     //path.exists(filePath, function(exists) {
@@ -999,13 +1015,7 @@ var serveFile = function (req, res, filePath) {
                 res.end();
             })
 
-            console.log("Serving File " + filePath + " Content-Type " + contentType);
-
-            s.once('fd', function() {
-	        res.setHeader("Content-Type", contentType);
-	        res.writeHead(200);
-	        //res.writeHead(200, { 'Content-Type': contentType });
-            });
+	    res.writeHead(200, { 'Content-Type': contentType });
 
             s.pipe(res);
 	}
