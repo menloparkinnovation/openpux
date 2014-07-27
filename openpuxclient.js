@@ -53,23 +53,28 @@
 // This allows the listed functions to be available from this
 // module when not loaded in the browser, but run from node.js.
 //
-/*
-TODO: Working:
-module.exports = {
-  querySensorReadings: function (
-    scheme,
-    host,
-    httpauthusername,
-    httpauthpassword,
-    callback,
-    accountid,
-    passcode,
-    sensorid,
-    latestcount,
-    startdate,
-    enddate
-    )
-  {
+// This is used by the client.js utility, which is also used for
+// unit and regression testing.
+//
+
+if (typeof window == "undefined") {
+
+    // module is only available for Node.js
+    module.exports = {
+      querySensorReadings: function (
+       scheme,
+       host,
+       httpauthusername,
+       httpauthpassword,
+       callback,
+       accountid,
+       passcode,
+       sensorid,
+       latestcount,
+       startdate,
+       enddate
+      )
+      {
         return querySensorReadings(
           scheme,
           host,
@@ -83,9 +88,13 @@ module.exports = {
           startdate,
           enddate
 	    );
-  }
-};
-*/
+      }
+    };
+}
+
+function createLocalHttpRequest() {
+    return null;
+}
 
 //
 // Query sensor readings.
@@ -711,7 +720,7 @@ function createRequest() {
       //
       // So a local replacement for XMLHttpRequest is created.
       //
-      //result = createLocalHttpRequest();
+      result = createLocalHttpRequest();
 
       return null;
   }
