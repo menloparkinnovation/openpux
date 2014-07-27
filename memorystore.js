@@ -58,29 +58,28 @@
 // The contract is async as real I/O can be required
 // for storage providers.
 //
-// Each function returns true or false if it was successfully
-// queued.
+// Each function returns 0 if it was successfully queued
+// and the callback will be invoked.
 //
-// Callback is invoked when the results are complete.
+// Callback is invoked when the results are complete with
+// their final results, which may contain a storage system error.
+//
+// Callback arguments:
+//
+// error == null with no errors, string otherwise.
+//
+// result depends on the request, typically a storage document.
+//
+// callback(error, result)
 //
 module.exports = {
 
-  //
-  // TODO: Finish updating everything to new callbac model
-  //
-
   querySettings: function (itemsArray, callback) {
-        var returnValue;
-	returnValue = querySensorSettingsFromStorage(itemsArray);
-        callback(returnValue);
-        return 1;
+	return querySensorSettingsFromStorage(itemsArray, callback);
   },
 
   addReadings: function (itemsArray, callback) {
-        var returnValue;
-        returnValue = addSensorReadingsToStorage(itemsArray);
-        callback(returnValue);
-        return 1;
+        return addSensorReadingsToStorage(itemsArray, callback);
   },
 
   queryLastReading: function (account, sensor, callback) {
@@ -92,24 +91,15 @@ module.exports = {
   },
 
   updateSensorSettings: function (itemsArray, callback) {
-        var returnValue;
-	returnValue =  updateSensorSettingsToStorage(itemsArray);
-        callback(returnValue);
-        return 1;
+	return updateSensorSettingsToStorage(itemsArray, callback);
   },
 
   dumpReadings: function (callback) {
-        var returnValue;
-	returnValue = dumpSensorReadingsTable();
-        callback(returnValue);
-        return 1;
+	return dumpSensorReadingsTable(callback);
   },
 
   dumpSettings: function (callback) {
-        var returnValue;
-	returnValue = dumpSensorSettingsTable();
-        callback(returnValue);
-        return 1;
+	return dumpSensorSettingsTable(callback);
   }
 };
 
@@ -117,7 +107,7 @@ var SensorReadingsTable = new Array();
 
 var SensorSettingsTable = new Array();
 
-var dumpSensorReadingsTable = function() {
+var dumpSensorReadingsTable = function(callback) {
 
     for (var prop in SensorReadingsTable) {
         console.log("prop=" + prop);
@@ -140,9 +130,14 @@ var dumpSensorReadingsTable = function() {
             }
         }
     }
+
+    // No results here
+    callback(null, null);
+
+    return 0;
 }
 
-var dumpSensorSettingsTable = function() {
+var dumpSensorSettingsTable = function(callback) {
 
     for (var prop in SensorSettingsTable) {
         console.log("prop=" + prop);
@@ -162,9 +157,26 @@ var dumpSensorSettingsTable = function() {
             }
         }
     }
+
+    // No results here
+    callback(null, null);
+
+    return 0;
 }
 
-var querySensorSettingsFromStorage = function(itemsArray) {
+//
+// Returns 0 on successful submission. A callback will be generated
+// error or not.
+//
+// Returns != 0 if a submission request occurs and a callback will
+// not be invoked.
+//
+// The callback function is provided:
+//
+// callback(error, result)
+//
+
+var querySensorSettingsFromStorage = function(itemsArray, callback) {
 
     // itemsArray['AccountID'] == Account
     // itemsArray['Password'] == PassCode
@@ -173,29 +185,47 @@ var querySensorSettingsFromStorage = function(itemsArray) {
     var account = itemsArray['AccountID'];
     if (account == null) {
         console.log("missing AccountID");
-        return false;
+        callback("missing AccountID", null);
+        return 0;
     }
 
     var sensor = itemsArray['SensorID'];
     if (sensor == null) {
         console.log("missing SensorID");
-        return false;
+        callback("missing SensorID", null);
+        return 0;
     }
 
     var sensors = SensorSettingsTable[account];
     if (sensors == null) {
-        return null;
+        callback("no sensors present for account", account);
+        return 0;
     }
 
     var settings = sensors[sensor];
     if (settings == null) {
-        return null;
+        callback("no setting present for sensor", sensor);
+        return 0;
     }
 
-    return settings;
+    callback(null, settings);
+
+    return 0;
 }
 
-var addSensorReadingsToStorage = function(itemsArray) {
+//
+// Returns 0 on successful submission. A callback will be generated
+// error or not.
+//
+// Returns != 0 if a submission request occurs and a callback will
+// not be invoked.
+//
+// The callback function is provided:
+//
+// callback(error, result)
+//
+
+var addSensorReadingsToStorage = function(itemsArray, callback) {
 
     // itemsArray['AccountID'] == Account
     // itemsArray['PassCode'] == PassCode
@@ -204,13 +234,15 @@ var addSensorReadingsToStorage = function(itemsArray) {
     var account = itemsArray['AccountID'];
     if (account == null) {
         console.log("missing AccountID");
-        return false;
+        callback("missing AccountID", null);
+        return 0;
     }
 
     var sensor = itemsArray['SensorID'];
     if (sensor == null) {
         console.log("missing SensorID");
-        return false;
+        callback("missing SensorID", null);
+        return 0;
     }
 
     var sensors = SensorReadingsTable[account];
@@ -240,7 +272,9 @@ var addSensorReadingsToStorage = function(itemsArray) {
     // Dump all the readings
     //dumpSensorReadingsTable();
 
-    return true;
+    callback(null, null);
+
+    return 0;
 }
 
 //
@@ -284,22 +318,56 @@ var queryLastReading = function(account, sensor, callback) {
     return 0;
 }
 
-var queryLastReadings = function(account, sensor, readingCount) {
+//
+// Returns 0 on successful submission. A callback will be generated
+// error or not.
+//
+// Returns != 0 if a submission request occurs and a callback will
+// not be invoked.
+//
+// The callback function is provided:
+//
+// callback(error, result)
+//
+var queryLastReadings = function(account, sensor, readingCount, callback) {
     
     var sensors = SensorReadingsTable[account];
     if (sensors == null) {
-        return null;
+        console.log("queryLastReading: null sensors for account=" + account);
+        callback("404 Not found", account);
+        return 0;
     }
 
     var readings = sensors[sensor];
     if (readings == null) {
-        return null;
+        console.log("queryLastReading: null readings for account=" + account + " sensors=" + sensors);
+        callback("404 Not found", sensor);
+        return 0;
     }
 
-    return readings.slice(readings.length - readingCount);
+    var returnSet = readings.slice(readings.length - readingCount);
+    if (returnSet == null) {
+        callback("404 Not found", "No readings");
+        return 0;
+    }
+
+    callback(null, returnSet);
+
+    return 0;
 }
 
-var updateSensorSettingsToStorage = function(itemsArray) {
+//
+// Returns 0 on successful submission. A callback will be generated
+// error or not.
+//
+// Returns != 0 if a submission request occurs and a callback will
+// not be invoked.
+//
+// The callback function is provided:
+//
+// callback(error, result)
+//
+var updateSensorSettingsToStorage = function(itemsArray, callback) {
 
     // itemsArray['AccountID'] == Account
     // itemsArray['PassCode'] == PassCode
@@ -308,13 +376,15 @@ var updateSensorSettingsToStorage = function(itemsArray) {
     var account = itemsArray['AccountID'];
     if (account == null) {
         console.log("missing AccountID");
-        return false;
+        callback("missing AccountID", null);
+        return 0;
     }
 
     var sensor = itemsArray['SensorID'];
     if (sensor == null) {
         console.log("missing SensorID");
-        return false;
+        callback("missing SensorID", null);
+        return 0;
     }
 
     var sensors = SensorSettingsTable[account];
@@ -346,7 +416,9 @@ var updateSensorSettingsToStorage = function(itemsArray) {
     }
 
     // Dump the settings
-    dumpSensorSettingsTable();
+    //dumpSensorSettingsTable();
 
-    return true;
+    callback(null, null);
+
+    return 0;
 }

@@ -4,9 +4,6 @@
 //
 // 07/26/2014 8:46AM
 //
-//  - Can send sensor readings, but they don't return in query
-//      - null document
-//
 //  - Write/finish node.js client for automated testing
 //
 // Finish testing external storage module
@@ -80,252 +77,32 @@
 
 var store = require('./memorystore.js');
 
-var SensorReadingsTable = new Array();
-
-var SensorSettingsTable = new Array();
-
-var querySensorSettingsFromStorage = function(itemsArray) {
-    return store.querySettings(itemsArray, storageCallback);
+var querySensorSettingsFromStorage = function(itemsArray, callback) {
+    return store.querySettings(itemsArray, callback);
 }
 
-var addSensorReadingsToStorage = function(itemsArray) {
-    return store.addReadings(itemsArray, storageCallback);
+var addSensorReadingsToStorage = function(itemsArray, callback) {
+    return store.addReadings(itemsArray, callback);
 }
 
 var queryLastReading = function(account, sensor, callback) {
     return store.queryLastReading(account, sensor, callback);
 }
 
-var queryLastReadings = function(account, sensor, readingCount) {
-    return store.queryLastReadings(account, sensor, readingCount, storageCallbac);
+var queryLastReadings = function(account, sensor, readingCount, callback) {
+    return store.queryLastReadings(account, sensor, readingCount, callback);
 }
 
-var updateSensorSettingsToStorage = function(itemsArray) {
-    return store.updateSensorSettings(itemsArray, storageCallback);
+var updateSensorSettingsToStorage = function(itemsArray, callback) {
+    return store.updateSensorSettings(itemsArray, callback);
 }
 
-var dumpSensorReadingsTable = function() {
-    store.dumpReadings(storageCallback);
+var dumpSensorReadingsTable = function(callback) {
+    return store.dumpReadings(callback);
 }
 
-var dumpSensorSettingsTable = function() {
-    store.dumpSettings(storageCallbac);
-}
-
-var storageCallback = function() {
-}
-
-//
-// Local version of in memory storage to keep a single file
-// version working.
-//
-
-var dumpSensorReadingsTableLocal = function() {
-
-    for (var prop in SensorReadingsTable) {
-        console.log("prop=" + prop);
-        console.log("value=" + SensorReadingsTable[prop]);
-
-        var sensors = SensorReadingsTable[prop];
-
-        for (var prop in sensors) {
-            console.log("sensors_prop=" + prop);
-            console.log("sensors_value=" + sensors[prop]);
-
-            var readings = sensors[prop];
-
-            for (var prop in readings) {
-                console.log("readings_prop=" + prop);
-                console.log("readings_value=" + readings[prop]);
-
-                var values = readings[prop];
-                console.log(values);
-            }
-        }
-    }
-}
-
-var dumpSensorSettingsTableLocal = function() {
-
-    for (var prop in SensorSettingsTable) {
-        console.log("prop=" + prop);
-        console.log("value=" + SensorSettingsTable[prop]);
-
-        var sensors = SensorSettingsTable[prop];
-
-        for (var prop in sensors) {
-            console.log("sensors_prop=" + prop);
-            console.log("sensors_value=" + sensors[prop]);
-
-            var settings = sensors[prop];
-
-            for (var prop in settings) {
-                console.log("readings_prop=" + prop);
-                console.log("readings_value=" + settings[prop]);
-            }
-        }
-    }
-}
-
-var querySensorSettingsFromStorageLocal = function(itemsArray) {
-
-    // itemsArray['AccountID'] == Account
-    // itemsArray['Password'] == PassCode
-    // itemsArray['SensorID'] == Sensor
-
-    var account = itemsArray['AccountID'];
-    if (account == null) {
-        console.log("missing AccountID");
-        return false;
-    }
-
-    var sensor = itemsArray['SensorID'];
-    if (sensor == null) {
-        console.log("missing SensorID");
-        return false;
-    }
-
-    var sensors = SensorSettingsTable[account];
-    if (sensors == null) {
-        return null;
-    }
-
-    var settings = sensors[sensor];
-    if (settings == null) {
-        return null;
-    }
-
-    return settings;
-}
-
-var addSensorReadingsToStorageLocal = function(itemsArray) {
-
-    // itemsArray['AccountID'] == Account
-    // itemsArray['PassCode'] == PassCode
-    // itemsArray['SensorID'] == Sensor
-
-    var account = itemsArray['AccountID'];
-    if (account == null) {
-        console.log("missing AccountID");
-        return false;
-    }
-
-    var sensor = itemsArray['SensorID'];
-    if (sensor == null) {
-        console.log("missing SensorID");
-        return false;
-    }
-
-    var sensors = SensorReadingsTable[account];
-    if (sensors == null) {
-        console.log("creating sensors for account=" + account);
-        sensors = new Array();
-        SensorReadingsTable[account] = sensors;
-    }
-
-    var readings = sensors[sensor];
-    if (readings == null) {
-        console.log("creating readings for sensor=" + sensor);
-        readings = new Array();
-        sensors[sensor] = readings;
-    }
-
-    var millis = Date.now();
-
-    console.log("Date.now()=" + millis);
-
-    // Add the reading insertation time
-    itemsArray.TimeAdded = millis;
-
-    // Add the readings to the end of the time indexed array
-    readings.push(itemsArray);
-
-    // Dump all the readings
-    //dumpSensorReadingsTable();
-
-    return true;
-}
-
-var queryLastReadingLocal = function(account, sensor) {
-    
-    var sensors = SensorReadingsTable[account];
-    if (sensors == null) {
-        return null;
-    }
-
-    var readings = sensors[sensor];
-    if (readings == null) {
-        return null;
-    }
-
-    return readings[readings.length - 1];
-}
-
-var queryLastReadingsLocal = function(account, sensor, readingCount) {
-    
-    var sensors = SensorReadingsTable[account];
-    if (sensors == null) {
-        return null;
-    }
-
-    var readings = sensors[sensor];
-    if (readings == null) {
-        return null;
-    }
-
-    return readings.slice(readings.length - readingCount);
-}
-
-var updateSensorSettingsToStorageLocal = function(itemsArray) {
-
-    // itemsArray['AccountID'] == Account
-    // itemsArray['PassCode'] == PassCode
-    // itemsArray['SensorID'] == Sensor
-
-    var account = itemsArray['AccountID'];
-    if (account == null) {
-        console.log("missing AccountID");
-        return false;
-    }
-
-    var sensor = itemsArray['SensorID'];
-    if (sensor == null) {
-        console.log("missing SensorID");
-        return false;
-    }
-
-    var sensors = SensorSettingsTable[account];
-    if (sensors == null) {
-        console.log("creating sensors settings for account=" + account);
-        sensors = new Array();
-        SensorSettingsTable[account] = sensors;
-    }
-
-    var settings = sensors[sensor];
-    if (settings == null) {
-        console.log("creating settings for sensor=" + sensor);
-
-        // A single set of settings updated as required.
-        settings = new Object();
-        sensors[sensor] = settings;
-    }
-
-    var millis = Date.now();
-
-    console.log("Date.now()=" + millis);
-
-    // Add the settings update time
-    itemsArray.TimeAdded = millis;
-
-    // Place the settings into the object
-    for(var prop in itemsArray) {
-        settings[prop] = itemsArray[prop];
-    }
-
-    // Dump the settings
-    dumpSensorSettingsTable();
-
-    return true;
+var dumpSensorSettingsTable = function(callback) {
+    return store.dumpSettings(callback);
 }
 
 //
@@ -553,6 +330,7 @@ var readAndProcessSensorSettings = function (req, res) {
     if (cmd.search("settargetmask?") != 0) {
         console.log("no querystring on request " + req.url);
         sendError(req, res, 400, "no querystring");
+        return;
     }
 
     queryString = cmd.substring(14, cmd.length);
@@ -574,20 +352,36 @@ var readAndProcessSensorSettings = function (req, res) {
         o[prop] = sensorSettings[prop];
     }
 
-    updateSensorSettingsToStorage(o);
+    var retVal = updateSensorSettingsToStorage(o, function(error, result) {
 
-    var returnBlock = new Object();
-    returnBlock.status = "200 OK";
+        var returnBlock = new Object();
 
-    res.writeHead(200, {'Content-Type': 'application/json'});
+        if (error == null) {
+            returnBlock.status = "200 OK";
+        }
+        else {
+            returnBlock.status = "404 Not found" + error;
+        }
 
-    var jsonString = JSON.stringify(returnBlock);
+        res.writeHead(200, {'Content-Type': 'application/json'});
 
-    console.log(jsonString);
+        var jsonString = JSON.stringify(returnBlock);
 
-    res.write(jsonString);
+        console.log(jsonString);
 
-    res.end();
+        res.write(jsonString);
+
+        res.end();
+    });
+
+    if (retVal != 0) {
+        // Error on submission
+        console.log("readAndProcessSensorSettings: error submitting request to storage " + retVal);
+        sendError(req, res, 400, "storage layer error=" + retVal);
+        return;
+    }
+
+    return;
 }
 
 //
@@ -892,23 +686,31 @@ var processSensorInputAndSendResponse = function (req, res, queryString) {
     console.log("Long Form:");
     console.log(longFormReadings);
 
-    if (!addSensorReadingsToStorage(longFormReadings)) {
-        console.log("storage update error");
-        sendError(req, res, 500, "storage update error");
-    }
+    var returnValue = addSensorReadingsToStorage(longFormReadings, function(error, result) {
 
-    var sensorValues = querySensorSettingsFromStorage(longFormReadings);
+        if (error != null) {
+            console.log("storage update error " + error);
+            sendError(req, res, 500, "storage update error=" + error);
+            return;
+        }
 
-    console.log("querySensorSettingsFromStorage:");
+        // Now retrieve the settings, if any
+        var result2 = querySensorSettingsFromStorage(longFormReadings, function(error2, sensorValues) {
 
-    if (sensorValues != null) {
-        console.log(sensorValues);
-    }
-    else {
-        console.log("sensorValues == null");
-    }
+            console.log("querySensorSettingsFromStorage response:");
 
-    sendSimpleSensorResponse(req, res, sensorValues);
+            if (sensorValues != null) {
+                console.log(sensorValues);
+            }
+            else {
+                console.log("sensorValues == null");
+            }
+
+            sendSimpleSensorResponse(req, res, sensorValues);
+        });
+    });
+
+    return returnValue;
 }
 
 var sendSimpleSensorResponse = function (req, res, sensorValues) {
@@ -939,6 +741,8 @@ var sendSimpleSensorResponse = function (req, res, sensorValues) {
   console.log("responseString=" + responseString + "\n");
 
   res.end(responseString);
+
+  return;
 }
 
 //
