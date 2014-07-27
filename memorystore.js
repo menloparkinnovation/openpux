@@ -65,6 +65,10 @@
 //
 module.exports = {
 
+  //
+  // TODO: Finish updating everything to new callbac model
+  //
+
   querySettings: function (itemsArray, callback) {
         var returnValue;
 	returnValue = querySensorSettingsFromStorage(itemsArray);
@@ -80,20 +84,14 @@ module.exports = {
   },
 
   queryLastReading: function (account, sensor, callback) {
-        var returnValue;
-        returnValue = queryLastReading(account, sensor);
-        callback(returnValue);
-        return 1;
+        return queryLastReading(account, sensor, callback);
   },
 
   queryLastReadings: function (account, sensor, readingCount, callback) {
-        var returnValue;
-        returnValue = queryLastReadings(account, sensor, readingCount);
-        callback(returnValue);
-        return 1;
+        return queryLastReadings(account, sensor, readingCount, callback);
   },
 
-  updateSensorSetting: function (itemsArray, callback) {
+  updateSensorSettings: function (itemsArray, callback) {
         var returnValue;
 	returnValue =  updateSensorSettingsToStorage(itemsArray);
         callback(returnValue);
@@ -245,19 +243,45 @@ var addSensorReadingsToStorage = function(itemsArray) {
     return true;
 }
 
-var queryLastReading = function(account, sensor) {
+//
+// Returns 0 on successful submission. A callback will be generated
+// error or not.
+//
+// Returns != 0 if a submission request occurs and a callback will
+// not be invoked.
+//
+// The callback function is provided:
+//
+// callback(error, result)
+//
+var queryLastReading = function(account, sensor, callback) {
     
     var sensors = SensorReadingsTable[account];
     if (sensors == null) {
-        return null;
+        console.log("queryLastReading: null sensors for account=" + account);
+        callback("404 Not found", account);
+        return 0;
     }
 
     var readings = sensors[sensor];
     if (readings == null) {
-        return null;
+        console.log("queryLastReading: null readings for account=" + account + " sensors=" + sensors);
+        callback("404 Not found", sensor);
+        return 0;
     }
 
-    return readings[readings.length - 1];
+    console.log("queryLastReading: readings=");
+    console.log(readings[readings.length - 1]);
+
+    var reading = readings[readings.length - 1];
+    if (reading == null) {
+        callback("404 Not found", "No readings");
+        return 0;
+    }
+
+    callback(null, reading);
+
+    return 0;
 }
 
 var queryLastReadings = function(account, sensor, readingCount) {

@@ -2,13 +2,26 @@
 //
 // TODO:
 //
-// Add Reading is broken.
+// 07/26/2014 8:46AM
+//
+//  - Can send sensor readings, but they don't return in query
+//      - null document
+//
+//  - Write/finish node.js client for automated testing
 //
 // Finish testing external storage module
 //
 // 07/24/2014
 // IE is broken.
 //
+//  -> Use servfile.js, scriptform.html to test.
+//      - IE works in this case. Must be something with
+//        how the three file parts come together in
+//        the server. May be ending the HTTP request
+//        early, then streaming additional content in which
+//        Chrome seems more tolerant of.
+//
+//        ?Fiddler?
 //
 
 //
@@ -71,7 +84,43 @@ var SensorReadingsTable = new Array();
 
 var SensorSettingsTable = new Array();
 
+var querySensorSettingsFromStorage = function(itemsArray) {
+    return store.querySettings(itemsArray, storageCallback);
+}
+
+var addSensorReadingsToStorage = function(itemsArray) {
+    return store.addReadings(itemsArray, storageCallback);
+}
+
+var queryLastReading = function(account, sensor, callback) {
+    return store.queryLastReading(account, sensor, callback);
+}
+
+var queryLastReadings = function(account, sensor, readingCount) {
+    return store.queryLastReadings(account, sensor, readingCount, storageCallbac);
+}
+
+var updateSensorSettingsToStorage = function(itemsArray) {
+    return store.updateSensorSettings(itemsArray, storageCallback);
+}
+
 var dumpSensorReadingsTable = function() {
+    store.dumpReadings(storageCallback);
+}
+
+var dumpSensorSettingsTable = function() {
+    store.dumpSettings(storageCallbac);
+}
+
+var storageCallback = function() {
+}
+
+//
+// Local version of in memory storage to keep a single file
+// version working.
+//
+
+var dumpSensorReadingsTableLocal = function() {
 
     for (var prop in SensorReadingsTable) {
         console.log("prop=" + prop);
@@ -96,7 +145,7 @@ var dumpSensorReadingsTable = function() {
     }
 }
 
-var dumpSensorSettingsTable = function() {
+var dumpSensorSettingsTableLocal = function() {
 
     for (var prop in SensorSettingsTable) {
         console.log("prop=" + prop);
@@ -118,7 +167,7 @@ var dumpSensorSettingsTable = function() {
     }
 }
 
-var querySensorSettingsFromStorage = function(itemsArray) {
+var querySensorSettingsFromStorageLocal = function(itemsArray) {
 
     // itemsArray['AccountID'] == Account
     // itemsArray['Password'] == PassCode
@@ -149,7 +198,7 @@ var querySensorSettingsFromStorage = function(itemsArray) {
     return settings;
 }
 
-var addSensorReadingsToStorage = function(itemsArray) {
+var addSensorReadingsToStorageLocal = function(itemsArray) {
 
     // itemsArray['AccountID'] == Account
     // itemsArray['PassCode'] == PassCode
@@ -197,7 +246,7 @@ var addSensorReadingsToStorage = function(itemsArray) {
     return true;
 }
 
-var queryLastReading = function(account, sensor) {
+var queryLastReadingLocal = function(account, sensor) {
     
     var sensors = SensorReadingsTable[account];
     if (sensors == null) {
@@ -212,7 +261,7 @@ var queryLastReading = function(account, sensor) {
     return readings[readings.length - 1];
 }
 
-var queryLastReadings = function(account, sensor, readingCount) {
+var queryLastReadingsLocal = function(account, sensor, readingCount) {
     
     var sensors = SensorReadingsTable[account];
     if (sensors == null) {
@@ -227,7 +276,7 @@ var queryLastReadings = function(account, sensor, readingCount) {
     return readings.slice(readings.length - readingCount);
 }
 
-var updateSensorSettingsToStorage = function(itemsArray) {
+var updateSensorSettingsToStorageLocal = function(itemsArray) {
 
     // itemsArray['AccountID'] == Account
     // itemsArray['PassCode'] == PassCode
@@ -279,6 +328,12 @@ var updateSensorSettingsToStorage = function(itemsArray) {
     return true;
 }
 
+//
+// Process headers and dispatch according to the request.
+//
+// This function is responsible for ending the request
+// with a response, error or not.
+//
 var processHeadersAndDispatch = function (req, res) {
 
   // Note: This is handy, but verbose as it walks the object graph
@@ -318,7 +373,14 @@ var processHeadersAndDispatch = function (req, res) {
       // read and process the input. A response is generated
       // when the input end event occurs.
       //
+      // Note: All methods in which processing is handed off
+      // to is responsible for a final response to the
+      // request, error or not.
+      //
+
       readAndProcessSimpleSensorExchange(req, res);
+
+      // Fallthrough
   }
   else if (req.url.search('/smartpuxdata/dataapp') == 0) {
 
@@ -329,9 +391,11 @@ var processHeadersAndDispatch = function (req, res) {
 
       if (req.method == "POST") {
           readAndProcessSensorSettings(req, res);
+          // Fallthrough
       }
       else if (req.method == "GET") {
           processSensorQuery(req, res);
+          // Fallthrough
       }
       else {
           console.log("/smartpuxdata/dataapp unknown REST Method\n");
@@ -368,6 +432,9 @@ var processHeadersAndDispatch = function (req, res) {
   else if (req.url == '/drinkcooler') {
       serveHtmlForm(req, res, "sensorheader.html", "drinkcoolerspecialization.js", "sensorbody.html");
   }
+  else if (req.url == '/galileo') {
+      serveHtmlForm(req, res, "sensorheader.html", "galileospecialization.js", "sensorbody.html");
+  }
 
   //
   // Client Library file
@@ -387,26 +454,56 @@ var processHeadersAndDispatch = function (req, res) {
   // Note: Don't place any passwords in these files!
   //
 
+  //
+  // Server files
+  //
   else if (req.url == '/openpux.js') {
+      // Main server file
       serveFile(req, res, "openpux.js");
   }
+  else if (req.url == '/memorystore.js') {
+      // Memory storage support.
+      serveFile(req, res, "memorystore.js");
+  }
+
+  //
+  // Command line client for test/admin
+  //
+  else if (req.url == '/client.js') {
+      // Command line client front end
+      serveFile(req, res, "client.js");
+  }
+
+  //
+  // Client side HTML templates
+  //
   else if (req.url == '/sensorheader.html') {
       serveFile(req, res, "sensorheader.html");
   }
   else if (req.url == '/sensorbody.html') {
       serveFile(req, res, "sensorbody.html");
   }
+
+  //
+  // Client side specialization files for specific applications
+  //
   else if (req.url == '/sensorpecialization.js') {
       serveFile(req, res, "sensorspecialization.js");
   }
   else if (req.url == '/humidorpecialization.js') {
       serveFile(req, res, "humidorspecialization.js");
   }
+  else if (req.url == '/drinkcoolerspecialization.js') {
+      serveFile(req, res, "drinkcoolerspecialization.js");
+  }
   else if (req.url == '/plantmonitorspecialization.js') {
       serveFile(req, res, "plantmonitorspecialization.js");
   }
-  else if (req.url == '/drinkcoolerspecialization.js') {
-      serveFile(req, res, "drinkcoolerspecialization.js");
+  else if (req.url == '/fencepostlightspecialization.js') {
+      serveFile(req, res, "fencepostlightspecialization.js");
+  }
+  else if (req.url == '/galileospecialization.js') {
+      serveFile(req, res, "galileospecialization.js");
   }
 
   //
@@ -418,6 +515,10 @@ var processHeadersAndDispatch = function (req, res) {
       sendError(req, res, 400, "Unknown URL " + req.url);
       return false;
   }
+
+  //
+  // We have accepted the request, it is posted for async completion.
+  //
 
   return true;
 }
@@ -506,6 +607,87 @@ var arrayToObject = function (array) {
 //
 // This is a REST request to query the sensor readings.
 //
+// This function is responsible for providing a response
+// to the req, res stream regardless of error or not.
+//
+// Note: This function has comments about what is happening
+// with the async request and lambda functions to better show
+// what is happening under the covers with Node.js. The rest
+// of the functions do not have this level of detail, unless
+// required for clarity.
+//
+// Why Node.js?
+//
+// Note: In general Javascript and Node.js is a pretty advanced
+//       system using leading edge concepts in computer science,
+//       concurrency, and scaling. It's well suited to the type
+//       of processing that occurs for web/http requests which
+//       consist of moderate amounts of processing, waiting for I/O,
+//       and parallel execution of (mostly) independent requests.
+//
+//       It does it in a way that the programmer does not have
+//       to manage locking/synchronization, thread pools, request
+//       throttling, etc. Of course the underlying system hosting
+//       Node.js does, so Node.js can be looked at as a portable
+//       mechanism to access an underlying web host platforms
+//       power and scaleability, but without having to write
+//       the complex scaling code yourself. This is its main power
+//       and why many "simple" Node.js servers can outperform many
+//       "native" or "Java" based servers.
+//
+//       Sure, there are many native (C/C++) and Java based server
+//       implementations that have these patterns (Sun has many examples,
+//       including processors designed to exploit the model with multithreaded
+//       Sparc), but they are usually specific and tied to the container
+//       and language. Node.js is the first (at least first popular) platform
+//       to be transportable among these server implementations.
+//
+//       Some people may think the performance comes from Googles V8 Javascript
+//       engine, but for Node.js is really about the language's performance
+//       not getting in the way. V8 helps in this sense by significantly reducing
+//       the tradtional gap between scripting and "compiled"
+//       (is Java really compiled?, ok half compiled...) languages.
+//
+//       But if all Node.js did was to expose the existing programming models
+//       available to C/C++/Java it would perform similar +- any gap still
+//       remaining from V8 vs. native or JVM performance.
+//
+//       But this is not the case with Node.js, its a new async model which
+//       is really what exposes the power of todays multi-core platforms.
+//
+//       So the way to think about Node.js performance and scaleability is
+//       what power/scaleability is available on the platform underneath
+//       that Node.js can exploit since its program representation is
+//       in a form capable of exploiting this parallelism.
+//
+//       The source script does not encode a specific CPU instruction set
+//       or compromise based portable/intermediate language/virtual machine
+//       instruction set. This allows the target to compile based on its
+//       most optimized patterns. For server side deployments compiling
+//       the scripts and saving them for later re-use is a "no-brainer"
+//       optimization. Adding Profile Guided Optimization (PGO) to
+//       re-compile and re-cache over time based on actual execution history
+//       is something an advanced platform can be expected to provide.
+//
+//       Since the programming pattern is fully async non-blocking its
+//       adaptable to underlying systems that are either threaded, or
+//       async. Each platform can choose what works best for it,
+//       as programs in Node.js/Javascript do no impose a specific
+//       threading and locking model. Without Node.js high performance
+//       servers must invest heavily in multi-core scaling code which
+//       in many cases is tied to narrow platform target definitions
+//       such as 4 cores 4-8 cores, 4-16 cores, etc. Node.js allows
+//       the configured runtime to decide the binding of Node.js
+//       programs on a targeted machine.
+//
+//       It is expected that high performance Node.js implementations
+//       would have runtimes optimized for such target machines.
+//
+//       And this all happens without re-designing the original
+//       Node.js source program, something not available to todays
+//       native or even Java implementations.
+//
+
 var processSensorQuery = function (req, res) {
 
     // /smartpuxdata/dataapp/REST/1/12345678/1/querydata?latestCount=1
@@ -514,6 +696,12 @@ var processSensorQuery = function (req, res) {
 
     // http://localhost:8080/smartpuxdata/dataapp/REST/1/12345678/1/querydata?$format=json&latestCount=1
     // http://localhost:8080/smartpuxdata/dataapp/REST/account/passcode/SensorID/querydata?startDate=2013:01:01:00:00:00&endDate=2022:01:01:00:00:01
+
+    //
+    // sendError() completes processing of the Http stream and
+    // generates a valid response to the client with the provided
+    // errorCode and errorMessage.
+    //
 
     var tokens = processRESTString(req.url);
     if (tokens == null) {
@@ -528,43 +716,128 @@ var processSensorQuery = function (req, res) {
         return;
     }
 
-    console.log(req.url);
-    console.log(tokens);
+    //console.log(req.url);
+    //console.log(tokens);
 
     var account = tokens[3];
     var passcode = tokens[4];
     var sensor = tokens[5];
     var cmd = tokens[6];  // 'querydata?$format=json&latestCount=1'
 
-    // Get data
-    var reading = queryLastReading(account, sensor);
-    if (reading == null) {
-        console.log("Unknown account=" + account + " or sensor=" + sensor);
-        sendError(req, res, 400, "unknown account/sensor");
+    //
+    // Get data from the data store.
+    //
+    // Note: We use a lambda here instead of a separate function since
+    // we need access to the req, res variables.
+    //
+    var result = queryLastReading(account, sensor, function(error, reading) {
+
+        //
+        // This is a lambda block which will only execute if result != 0
+        // and contains the response from the storage layer, which could
+        // include an error.
+        //
+
+        //
+        // It has access to the outer scope local variables and
+        // arguments even though it may execute before, or after
+        // the enclosing method has finished.
+        //
+
+        //
+        // Note: Neither function will execute at the same time,
+        // such as on another CPU core. This is because Node.js is
+        // designed to provide a concurrency safe single threaded
+        // domain per request.
+        //
+        // Parallel processing is accomplished across multiple requests,
+        // each with their own independent concurrency domains. This
+        // makes the code in Node.js scripts "thread safe", or "concurrency safe".
+        //
+
+        //
+        // For those interested in the low level details:
+        //
+        // The local variables in an enclosing function that are referenced
+        // by a lambda block are promoted from the stack to a hidden object
+        // instance (display class in C#). Both the enclosing function and
+        // the lambda function reference these variables by pointer to their
+        // entry in the display class object, not as local stack references.
+        // This is because the enclosing function and the lambda can be on
+        // completely unrelated stacks (or frames).
+        //
+        // The lifetime of the display class is determined by the standard
+        // garbage collectors reference tracing and will remain live as
+        // long as either local variables are refering to it, or the
+        // object created to represent the lambda block function.
+        //
+        // Typically a lambda block functions object ends up on some
+        // I/O queue for later processing while the enclosing function
+        // returns to the caller. This is because Node.js is "non-blocking"
+        // and fully async.
+        //
+
+        //
+        // Our result is an Object an array of sensoreading
+        // and result status in JSON format.
+        //
+        var returnBlock = new Object();
+
+	returnBlock.sensorreading = new Array();
+
+        if (error != null) {
+   	    returnBlock.status = error;
+        }
+        else {
+	    returnBlock.status = "200 OK";
+        }
+
+	//
+	// Convert from an Array() of readings to an Object with members so that
+	// our JSON format is what is expected.
+	//
+        if (reading != null) {
+    	    returnBlock.sensorreading[0] = arrayToObject(reading);
+        }
+
+        //
+        // 200 here represents we are provided a valid query response JSON
+        // document though it may contain an error status from the storage layer.
+        //
+	res.writeHead(200, {'Content-Type': 'application/json'});
+
+	var jsonString = JSON.stringify(returnBlock);
+
+	res.write(jsonString);
+
+	res.end();
+
+        // There is an implied return here
+    });
+
+    //
+    // Check if request submission failed. If it fails to even submit
+    // the previous lambda block will not run.
+    //
+    // Note: ??? Is it Node.js pattern to always call the lambda
+    // to unify error handling?
+    //
+    if (result != 0) {
+        console.log("Error submitting request: account=" + account + " sensor=" + sensor);
+        sendError(req, res, 400, "unknown storage error result=" + result);
+        return;
     }
 
     //
-    // Our result is an Object an array of sensoreading
-    // and result status in JSON format.
+    // Request has been successfully submitted, the previous lambda block
+    // will handle final request disposition.
     //
-    var returnBlock = new Object();
 
-    returnBlock.sensorreading = new Array();
-    returnBlock.status = "200 OK";
+    return;
+}
 
-    //
-    // Convert from an Array() of readings to an Object with members so that
-    // our JSON format is what is expected.
-    //
-    returnBlock.sensorreading[0] = arrayToObject(reading);
+var processSensorQueryResponse = function (reading) {
 
-    res.writeHead(200, {'Content-Type': 'application/json'});
-
-    var jsonString = JSON.stringify(returnBlock);
-
-    res.write(jsonString);
-
-    res.end();
 }
 
 //
@@ -1092,7 +1365,7 @@ var serveHtmlForm = function (
 }
 
 //
-// Setup server
+// Http Server
 //
 
 var http = require('http');

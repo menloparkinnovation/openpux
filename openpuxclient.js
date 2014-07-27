@@ -704,8 +704,15 @@ function createRequest() {
   var result = null;
 
   if (typeof window == "undefined") {
-      // Create a local replacement for XMLHttpRequest
+
+      //
+      // If window is undefined we are not running inside a browser,
+      // but as a client inside of a Node.js [test] program.
+      //
+      // So a local replacement for XMLHttpRequest is created.
+      //
       //result = createLocalHttpRequest();
+
       return null;
   }
   else if (window.XMLHttpRequest) {
@@ -737,6 +744,11 @@ function executeGetRequest(
 {
     // Create browser independent request
     var req = createRequest();
+    if (req == null) {
+        var responseText = "{\"status\": \"NULL HTTPXmlRequest. Unsupported Browser\"}";
+        callback(responseText);
+        return;
+    }
 
     // Create the callback function and register it on the request object
     req.onreadystatechange = function() {
