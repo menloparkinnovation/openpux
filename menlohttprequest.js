@@ -126,9 +126,9 @@ function localHttpRequest_setRequestHeader(header)
 //
 // This actually initiates the request
 //
-function localHttpRequest_send()
+function localHttpRequest_send(postDocument)
 {
-    this.sendit(function(req) {
+    this.sendit(postDocument, function(req) {
         req.readyState = 4;
 
         // Shows MenloHttpRequest
@@ -151,13 +151,16 @@ function localHttpRequest_send()
 //
 // Handy to better understand what is actually going on.
 //
-function localHttpRequest_sendit(callback)
+function localHttpRequest_sendit(postDocument, callback)
 {
     // http://nodejs.org/api/url.html
     // This requires "http://hostname/path" to fully parse
     var parsed = url.parse(this.url);
 
-    //console.log(parsed);
+    console.log("URL=");
+    console.log(this.url);
+
+    console.log(parsed);
 
     // If its not supplied, its null, so default to 80
     if (parsed.port = null) {
@@ -264,9 +267,12 @@ function localHttpRequest_sendit(callback)
         callback(httpRequestThis);
     });
 
-    // TODO: Support this for POST/PUT
     // write data to request body
-    //req.write('data\n');
+    if (postDocument != null) {
+        console.log("postDocument=");
+        console.log(postDocument);
+        this.request.write(postDocument);
+    }
 
     if (httpRequestThis.debugTrace) console.log("sendit: calling this.request.end()");
 
