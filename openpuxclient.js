@@ -59,6 +59,11 @@
 
 if (typeof window == "undefined") {
 
+    //
+    // We export our functions to Node.js
+    // for command line testing.
+    //
+
     // module is only available for Node.js
     module.exports = {
       querySensorReadings: function (
@@ -93,6 +98,12 @@ if (typeof window == "undefined") {
 }
 
 function createLocalHttpRequest() {
+
+    if (typeof window == "undefined") {
+        var menlohttp = require('./menlohttprequest.js');
+        return menlohttp.createHttpRequest();
+    }
+
     return null;
 }
 
@@ -722,7 +733,7 @@ function createRequest() {
       //
       result = createLocalHttpRequest();
 
-      return null;
+      return result;
   }
   else if (window.XMLHttpRequest) {
 

@@ -57,32 +57,22 @@
 //   http://www.apache.org/licenses/
 //
 
-console.log("openpux node.js client:");
-
-//console.log(process.argv);
-
-//
-// The arguments passed to node.exe are:
-//
-// [0] executable_name
-// [1] node_script_path.js
-// [2] first user arg
-// [3] second user arg
-//    ...
-//
-// Remove argv[0], argv[1] to get to the base of the user supplied arguments
-var args = process.argv.slice(2);
-
-// This will dump the args in JSON
-//console.log("process.argv.slice(2)");
-console.log(args);
-
 var opclient = require('./openpuxclient.js');
 
-processSensorQuery();
+//
+// Remove argv[0] to get to the base of the standard arguments.
+// The first argument will now be the script name.
+//
+var args = process.argv.slice(1);
 
-function processSensorQueryFormResponse()
-{
+// Invoke main
+main(args.length, args);
+
+// This will dump the args in JSON
+//console.log(args);
+
+function main(argc, argv) {
+    processSensorQuery();
 }
 
 //
@@ -153,19 +143,3 @@ function processSensorQuery() {
       alert("Local Error Status: " + result);
     }
 }
-
-//
-// Do not exit the script here if any async event
-// handlers were setup above. Otherwise the program
-// will terminate before they get a chance to run, or
-// finish running.
-//
-// Doing a process.exit(0); here will stop before any
-// processing occurs.
-//
-// Node.js will continue to run while handlers are outstanding.
-//
-// It appears to exit when everything is done.
-//
-
-
