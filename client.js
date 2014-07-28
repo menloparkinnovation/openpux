@@ -72,7 +72,129 @@ main(args.length, args);
 //console.log(args);
 
 function main(argc, argv) {
-    processSensorQuery();
+
+    // Set sensor state
+    var doSetSensor = false;
+
+    // Query sensor readings
+    var doQuerySensor = false;
+
+    // Send sensor readings
+    var doSendReadings = false;
+
+    //var hostname = "www.smartpux.com";
+    //var port = 80;
+
+    //
+    // TODO: Problem with passing port override such as 8080 for localhost.
+    // Need to figure out what is going on inside the library and the
+    // http request client of node.js.
+    //
+    //var hostname = "localhost";
+    //var hostname = "127.0.0.1";
+    //var port = 8080;
+    //hostname = "localhost:8080";
+    //hostname = "127.0.0.1:8080";
+    hostname = "www.smartpux.com";
+    port = null;
+
+    var username = "username";
+    var password = "password";
+
+    // Scheme is unsecured http vs. https
+    var scheme = "http";
+
+    // Get form inputs
+    var accountid = "1";
+    var passcode = "12345678";
+    var sensorid = "1";
+
+    var readingcount = 1;
+    var startdate = "";
+    var enddate = "";
+
+    // Process arguments
+    if (argc > 1) {
+        if (argv[1] == "QUERYSENSOR") {
+            doQuerySensor = true;
+        }
+        else if (argv[1] == "SETSENSOR") {
+            doSetSensor = true;
+        }
+        else if (argv[1] == "SENDREADINGS") {
+            doSendReadings = true;
+        }
+        else {
+            console.log("Unrecognized argument: " + argv[1]);
+            return;
+        }
+    }
+
+    if (doSetSensor) {
+        console.log("SETSENSOR selected");
+        performSetSensor(scheme, hostname, port, username, password,
+		         accountid, passcode, sensorid);
+    }
+    else if (doSendReadings) {
+        console.log("SENDREADINGS selected");
+        performSendReadings(scheme, hostname, port, username, password,
+                            accountid, passcode, sensorid);
+    }
+    else if (doQuerySensor) {
+        console.log("QUERYSENSOR selected");
+        performQuerySensorReadings(scheme, hostname, port, username, password,
+            accountid, passcode, sensorid, readingcount, startdate, enddate);
+    }
+    else {
+        console.log("No action specified: QUERYSENSOR | SENDREADINGS | SETSENSOR");
+        return;
+    }
+}
+
+function performSetSensor(
+    scheme, hostname, port, username, password,
+    accountid, passcode, sensorid
+    )
+{
+}
+
+function performSendReadings(
+    scheme, hostname, port, username, password,
+    accountid, passcode, sensorid
+    )
+{
+}
+
+function performQuerySensorReadings(
+    scheme, hostname, port, username, password,
+    accountid, passcode, sensorid,
+    readingcount, startdate, enddate
+    )
+{
+    if (readingcount == null) readingcount = 1;
+
+    if ((port != null) && (port != 80)) {
+        hostname = hostname + ":" + port;
+    }
+
+    // openpuxclient.js
+    result = opclient.querySensorReadings(
+        scheme,
+        hostname,
+        username,
+        password,
+        processSensorQueryFormResponse,
+        accountid,
+        passcode,
+        sensorid,
+        readingcount,
+        startdate,
+        enddate
+        );
+
+    if (result != null) {
+      alert("Local Error Status: " + result);
+    }
 }
 
 //
@@ -99,47 +221,4 @@ function processSensorQueryFormResponse(responseDocument) {
           //processSensorReading(obj.sensorreading[index], status);
           console.log(obj);
       }
-}
-
-function processSensorQuery() {
-
-    // Scheme is unsecured http vs. https
-    var scheme = "http";
-
-    // Get host from the browsers environment
-    var host = "www.smartpux.com"
-
-    // no http auth information
-    var httpauthusername = null;
-    var httpauthpassword = null;
-
-    // Get form inputs
-    var accountid = "1";
-    var passcode = "12345678";
-    var sensorid = "1";
-
-    var readingcount = 10;
-    var startdate = "";
-    var enddate = "";
-
-    if (readingcount == null) readingcount = 1;
-
-    // openpuxclient.js
-    result = opclient.querySensorReadings(
-        scheme,
-        host,
-        httpauthusername,
-        httpauthpassword,
-        processSensorQueryFormResponse,
-        accountid,
-        passcode,
-        sensorid,
-        readingcount,
-        startdate,
-        enddate
-        );
-
-    if (result != null) {
-      alert("Local Error Status: " + result);
-    }
 }

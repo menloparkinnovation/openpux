@@ -1,1 +1,1 @@
-node client.js http://www.smartpux.com
+node client.js
