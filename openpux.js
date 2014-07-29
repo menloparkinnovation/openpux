@@ -113,6 +113,9 @@ var dumpSensorSettingsTable = function(callback) {
 //
 var processHeadersAndDispatch = function (req, res) {
 
+  console.log("processHeadersAndDispatch:");
+  console.log("req.url=" + req.url);
+
   // Note: This is handy, but verbose as it walks the object graph
   //console.log("Request: ObjectDumpBegin:\n\n");
   //console.log(req);
@@ -141,6 +144,7 @@ var processHeadersAndDispatch = function (req, res) {
 
       if (req.headers['content-type'] != 'application/x-www-form-urlencoded') {
           console.log("content-type != application/x-www.form-urlencoded");
+          console.log("content-type=" + req.headers['content-type']);
           console.log(req.headers);
           sendError(req, res, 400, "content-type != application/x-www.form-urlencoded");
           return false;
@@ -640,6 +644,8 @@ var processSensorQueryResponse = function (reading) {
 //
 var readAndProcessSimpleSensorExchange = function (req, res) {
 
+  console.log("readAndProcessSimpleSensorExchange invoked!");
+
   // http://nodejs.org/dist/v0.10.28/docs/api/stream.html#stream_class_stream_readable
 
   //
@@ -671,6 +677,7 @@ var readAndProcessSimpleSensorExchange = function (req, res) {
 
 var processSensorInputAndSendResponse = function (req, res, queryString) {
 
+    console.log("processSensorInputAndSendResponse:!");
     console.log('QueryString:' + queryString + ':\n');
 
     var sensorReadings = processQueryString(queryString);

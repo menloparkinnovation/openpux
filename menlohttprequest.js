@@ -114,13 +114,15 @@ function localHttpRequest_open(http_method, request_url, async, username, passwo
     this.password = password;
 }
 
-function localHttpRequest_setRequestHeader(header)
+function localHttpRequest_setRequestHeader(header, value)
 {
+    //console.log("setRequestHeader: " + header + " value=" + value);
+
     if (this.requestHeaders == null) {
         this.requestHeaders = new Object();
     }
 
-    this.requestHeaders = header;
+    this.requestHeaders[header] = value;
 }
 
 //
@@ -173,8 +175,11 @@ function localHttpRequest_sendit(postDocument, callback)
         port: parsed.port,
         path: parsed.path,
         method: this.method,
-        headers: this.headers
+        headers: this.requestHeaders
     };
+
+    //console.log("localHttpRequest_sendit: options=");
+    //console.log(options);
 
     // Reset responseText to null string
     this.responseText = "";
@@ -222,7 +227,6 @@ function localHttpRequest_sendit(postDocument, callback)
         // http://nodejs.org/docs/latest/api/stream.html#stream_class_stream_readable
         res.setEncoding('utf8');
 
-
         // http://nodejs.org/docs/latest/api/stream.html#stream_class_stream_readable
         // The documentation says this will get all of the data out of the
         // stream as fast as possible
@@ -269,8 +273,7 @@ function localHttpRequest_sendit(postDocument, callback)
 
     // write data to request body
     if (postDocument != null) {
-        console.log("postDocument=");
-        console.log(postDocument);
+        console.log("postDocument=" + postDocument);
         this.request.write(postDocument);
     }
 

@@ -263,20 +263,14 @@ function performSetSensor(
     }
 }
 
-function processUpdateSensorResponse(responseDocument) {
+function processUpdateSensorResponse(responseDocument)
+{
       if (responseDocument == null) {
-          responseDocument = "null";
+          console.log("responseDocument=null");
       }
-
-      var obj = JSON.parse(responseDocument);
-
-      var status = obj.status;
-      if (status != "200 OK") {
-          console.log("Error " + status);
-          return;
+      else {
+          console.log("responseDocument=" + responseDocument);
       }
-
-      console.log(obj);
 }
 
 function performSendReadings(
@@ -303,20 +297,16 @@ function performSendReadings(
     }
 }
 
-function processAddSensorReadingResponse(responseDocument) {
+function processAddSensorReadingResponse(responseDocument)
+{
+      //console.log("processAddSensorReadingResponse: responseDocument=");
+
       if (responseDocument == null) {
-          responseDocument = "null";
+          console.log("responseDocument=null");
       }
-
-      var obj = JSON.parse(responseDocument);
-
-      var status = obj.status;
-      if (status != "200 OK") {
-          console.log("Error " + status);
-          return;
+      else {
+          console.log("responseDocument=" + responseDocument);
       }
-
-      console.log(obj);
 }
 
 function performQuerySensorReadings(
