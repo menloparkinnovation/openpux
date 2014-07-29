@@ -273,7 +273,7 @@ function localHttpRequest_sendit(postDocument, callback)
 
     // write data to request body
     if (postDocument != null) {
-        console.log("postDocument=" + postDocument);
+        //console.log("postDocument=" + postDocument);
         this.request.write(postDocument);
     }
 

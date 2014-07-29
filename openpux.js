@@ -887,7 +887,7 @@ M0 - M3 are valid masks
     }
 
     if (sensorReading["U"] != null) {
-        o.SleepTIme = sensorReading["U"];
+        o.SleepTime = sensorReading["U"];
     }
 
     if (sensorReading["C"] != null) {
