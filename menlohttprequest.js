@@ -157,19 +157,19 @@ function localHttpRequest_sendit(postDocument, callback)
     // This requires "http://hostname/path" to fully parse
     var parsed = url.parse(this.url);
 
-    console.log("URL=");
-    console.log(this.url);
+    //console.log("URL=");
+    //console.log(this.url);
 
-    console.log(parsed);
+    //console.log(parsed);
 
     // If its not supplied, its null, so default to 80
-    if (parsed.port = null) {
+    if (parsed.port == null) {
         parsed.port = 80;
     }
 
     // http://nodejs.org/docs/latest/api/http.html#http_http_request_options_callback
     var options = {
-        hostname: parsed.host,
+        hostname: parsed.hostname,
         port: parsed.port,
         path: parsed.path,
         method: this.method,

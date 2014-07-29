@@ -93,6 +93,52 @@ if (typeof window == "undefined") {
           startdate,
           enddate
 	    );
+      },
+
+      updateSensorTargetState: function (
+       scheme,
+       host,
+       httpauthusername,
+       httpauthpassword,
+       callback,
+       accountid,
+       passcode,
+       sensorid,
+       sleeptime,
+       items
+      )
+      {
+        return updateSensorTargetState(
+          scheme,
+          host,
+          httpauthusername,
+          httpauthpassword,
+          callback,
+          accountid,
+          passcode,
+          sensorid,
+          sleeptime,
+          items
+	  );
+      },
+
+      addSensorReadingShortForm: function (
+       scheme,
+       host,
+       httpauthusername,
+       httpauthpassword,
+       callback,
+       items
+      )
+      {
+        return addSensorReadingShortForm(
+          scheme,
+          host,
+          httpauthusername,
+          httpauthpassword,
+          callback,
+          items
+	  );
       }
     };
 }

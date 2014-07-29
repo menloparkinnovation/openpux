@@ -82,21 +82,8 @@ function main(argc, argv) {
     // Send sensor readings
     var doSendReadings = false;
 
-    //var hostname = "www.smartpux.com";
-    //var port = 80;
-
-    //
-    // TODO: Problem with passing port override such as 8080 for localhost.
-    // Need to figure out what is going on inside the library and the
-    // http request client of node.js.
-    //
-    //var hostname = "localhost";
-    //var hostname = "127.0.0.1";
-    //var port = 8080;
-    //hostname = "localhost:8080";
-    //hostname = "127.0.0.1:8080";
-    hostname = "www.smartpux.com";
-    port = null;
+    var hostname = "localhost";
+    var port = 8080;
 
     var username = "username";
     var password = "password";
@@ -105,16 +92,19 @@ function main(argc, argv) {
     var scheme = "http";
 
     // Get form inputs
-    var accountid = "1";
+    var accountid = "99999";
     var passcode = "12345678";
-    var sensorid = "1";
+    var sensorid = "99999";
 
     var readingcount = 1;
     var startdate = "";
     var enddate = "";
 
+    // Set Sensor inputs
+    var sleeptime = 30;
+
     // Process arguments
-    if (argc > 1) {
+    if (argc >= 1) {
         if (argv[1] == "QUERYSENSOR") {
             doQuerySensor = true;
         }
@@ -130,15 +120,53 @@ function main(argc, argv) {
         }
     }
 
+    if (argc >= 2) {
+        if (argv[2] == "smartpux") {
+
+            hostname = "www.smartpux.com";
+            port = 80;
+
+            accountid = "1";
+            passcode = "12345678";
+            sensorid = "1";
+        }
+        else if (argv[2] == "localhost") {
+            hostname = "localhost";
+            port = 8080;
+
+            accountid = "99999";
+            passcode = "12345678";
+            sensorid = "99999";
+
+        }
+        else {
+            console.log("Please Select Host");
+            usage();
+            return;
+        }
+    }
+    else {
+        console.log("Please Select Host");
+        usage();
+        return;
+    }
+
     if (doSetSensor) {
         console.log("SETSENSOR selected");
+
+        var setSensorItems = setupSetSensorItems();
+
         performSetSensor(scheme, hostname, port, username, password,
-		         accountid, passcode, sensorid);
+		         accountid, passcode, sensorid,
+                         sleeptime, setSensorItems);
     }
     else if (doSendReadings) {
         console.log("SENDREADINGS selected");
+
+        var sendReadingsItems = setupSendReadingsItems();
+
         performSendReadings(scheme, hostname, port, username, password,
-                            accountid, passcode, sensorid);
+                            sendReadingsItems);
     }
     else if (doQuerySensor) {
         console.log("QUERYSENSOR selected");
@@ -147,22 +175,148 @@ function main(argc, argv) {
     }
     else {
         console.log("No action specified: QUERYSENSOR | SENDREADINGS | SETSENSOR");
+        usage();
         return;
     }
 }
 
+function usage()
+{
+    console.log("client.js action host");
+    console.log("action one of: QUERYSENSOR | SENDREADINGS | SETSENSOR");
+    console.log("host one of: www.smartpux.com localhost");
+}
+
+function setupSetSensorItems()
+{
+    var o = new Object();
+
+    o["AccountID"] = "99999";
+    o["PassCode"] = "12345678";
+    o["SensorID"] = "99999";
+
+    o["SleepTime"] = 30;
+
+    o["Command"] = 0;
+
+    o["TargetMask0"] = 0x100;
+    o["TargetMask1"] = 0x101;
+    o["TargetMask2"] = 0x102;
+    o["TargetMask3"] = 0x103;
+
+    return o;
+}
+
+function setupSendReadingsItems()
+{
+    var o = new Object();
+
+    var o = new Object();
+
+    o["AccountID"] = "99999";
+    o["PassCode"] = "12345678";
+    o["SensorID"] = "99999";
+
+    o["SleepTime"] = 30;
+
+    o["Command"] = 0;
+
+    o["SensorReading0"] = 0;
+    o["SensorReading1"] = 1;
+    o["SensorReading3"] = 2;
+    o["SensorReading3"] = 3;
+
+    o["TargetMask0"] = 10;
+    o["TargetMask1"] = 11;
+    o["TargetMask2"] = 12;
+    o["TargetMask3"] = 13;
+
+    return o;
+}
+
 function performSetSensor(
     scheme, hostname, port, username, password,
-    accountid, passcode, sensorid
+    accountid, passcode, sensorid,
+    sleeptime, items
     )
 {
+    if ((port != null) && (port != 80)) {
+        hostname = hostname + ":" + port;
+    }
+
+    // openpuxclient.js
+    result = opclient.updateSensorTargetState(
+        scheme,
+        hostname,
+        username,
+        password,
+        processUpdateSensorResponse,
+        accountid,
+        passcode,
+        sensorid,
+        sleeptime,
+        items
+        );
+
+    if (result != null) {
+      alert("Local Error Status: " + result);
+    }
+}
+
+function processUpdateSensorResponse(responseDocument) {
+      if (responseDocument == null) {
+          responseDocument = "null";
+      }
+
+      var obj = JSON.parse(responseDocument);
+
+      var status = obj.status;
+      if (status != "200 OK") {
+          console.log("Error " + status);
+          return;
+      }
+
+      console.log(obj);
 }
 
 function performSendReadings(
     scheme, hostname, port, username, password,
-    accountid, passcode, sensorid
+    items
     )
 {
+    if ((port != null) && (port != 80)) {
+        hostname = hostname + ":" + port;
+    }
+
+    // openpuxclient.js
+    result = opclient.addSensorReadingShortForm(
+        scheme,
+        hostname,
+        username,
+        password,
+        processAddSensorReadingResponse,
+        items
+        );
+
+    if (result != null) {
+      alert("Local Error Status: " + result);
+    }
+}
+
+function processAddSensorReadingResponse(responseDocument) {
+      if (responseDocument == null) {
+          responseDocument = "null";
+      }
+
+      var obj = JSON.parse(responseDocument);
+
+      var status = obj.status;
+      if (status != "200 OK") {
+          console.log("Error " + status);
+          return;
+      }
+
+      console.log(obj);
 }
 
 function performQuerySensorReadings(
@@ -183,7 +337,7 @@ function performQuerySensorReadings(
         hostname,
         username,
         password,
-        processSensorQueryFormResponse,
+        processSensorQueryResponse,
         accountid,
         passcode,
         sensorid,
@@ -202,12 +356,10 @@ function performQuerySensorReadings(
 //
 // The document may be an error response, or the data requested.
 //
-function processSensorQueryFormResponse(responseDocument) {
+function processSensorQueryResponse(responseDocument) {
       if (responseDocument == null) {
           responseDocument = "null";
       }
-
-      //showSensorQueryResponseForm();
 
       var obj = JSON.parse(responseDocument);
 

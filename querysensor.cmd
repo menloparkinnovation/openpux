@@ -1,1 +1,1 @@
-node client.js QUERYSENSOR
+node client.js QUERYSENSOR localhost
