@@ -1,12 +1,6 @@
 
 //
-// TODO:
-//
-// 07/26/2014 8:46AM
-//
-//  - Write/finish node.js client for automated testing
-//
-// Finish testing external storage module
+// http://127.0.0.1:8080/
 //
 // 07/24/2014
 // IE is broken.
@@ -18,6 +12,7 @@
 //        early, then streaming additional content in which
 //        Chrome seems more tolerant of.
 //
+//  ->  Nope. Serve them together and IE is still broken.
 //        ?Fiddler?
 //
 
@@ -1016,13 +1011,14 @@ var processQueryString = function (queryString) {
 
 var processRESTString = function (restString) {
 
-    // Minimum entries are /REST/account/passcode/sensorid/command
-    var MinimumRestEntries = 5;
-    var MaximumRestEntries = 10;
+    var minimumRestEntries = 5;
+    var maximumRestEntries = 10;
 
-    var tokens = restString.substring(1, restString.length).split("/", MaximumRestEntries);
+    // String format: /rest_command/entry1/entry2/...
+    // String format: /rest_command/entry1/entry2?value=1&value=2
+    var tokens = restString.substring(1, restString.length).split("/", maximumRestEntries);
 
-    if (tokens.length < MinimumRestEntries) {
+    if (tokens.length < minimumRestEntries) {
         return null;
     }
 
