@@ -1,0 +1,177 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+03/15/2015
+
+Application Model Framework for a Dweet Application:
+
+Note: This application is not a toy or a demonstration, but
+the code to a working real world product. It provides a
+comprehensive implementation of a real world product you
+would ship on a KickStarter, from a Startup Weekend, etc.
+
+The pattern laid out here can be a starting point for your
+custom scenario.
+
+Application Scenario:
+
+The application controls a lighthouse with configurable
+light timing sequences, color and speciality parameters
+such as ramp up/ramp down times.
+
+In addition the lighthouse provides environmental monitoring
+for ambient temperature, solar radiation intensity, sea level/moisture.
+
+The lighthouse provides for command and control operation over
+multiple communication links.
+
+Command and control can be used to monitor the lighthouse, receive
+environmental updates, change transient lighthouse parameters, or
+update the lighthouses persistent power on configuration.
+
+A low power packet radio is supported as one of the communications
+links. This lower power packet radio can communicate with a WiFi or
+ethernet gateway to the internet/Cloud, or be replaced/supplemented
+with a cellular/GSM modem.
+
+The lighthouse supports a serial communication link that can be used to
+integrate with a larger system, or for field configuration/diagnosis and
+repair. This serial link conforms to NMEA 0183 protocol sentence
+structure.
+
+The lighthouse is intended to be solar powered with a rechargable
+battery. Battery and solar state is made available for remote monitoring.
+
+Application Code Structure:
+
+Lighthouse.ino
+
+ - Arduino "sketch" that configures the hardware pins, and
+   loads the Menlo Framework.
+
+ - This "sketch" acts as a "Bill Of Materials" (BOM) for the
+   Menlo components used to provide the application.
+
+ - Customization for different micro-controllers and environments
+   happen from the "sketch".
+
+ - Non-Arduino environments would replace this with a main.cpp.
+
+DweetLightHouse.h, DweetLightHouse.cpp
+
+ - This handles the Dweet vocabulary commands. It acts very
+   much like an RPC marshaller/unmarshaller.
+
+ - It decodes commands for proper Dweet format extracting an
+   application specific operation string and passing it to the
+   application for intepretation.
+
+ - The intention is for this layer to not encode details of
+   the application, other than the valid Dweet commands.
+
+ - This layer also allows setting and retrieving persistent
+   application configuration state and restores it on power on
+   and reset.
+
+   Note: Many base configuration commands such as device name,
+   serial number, radio parameters are provided by the default
+   Dweet configuration handler, so the application only has to
+   focus on its specific functions.
+
+ - This is table driven which saves code space and makes it
+   easy to add new commands and features to the application.
+
+LightHouseApp.h, LightHouseApp.cpp
+
+ - This is the code that handles the given application commands.
+
+ - It's input and output to Dweet is a string that was communicated
+   in the Dweet command.
+
+ - It its responsible for interpreting this string, and any
+   semantics, value ranges, overflows, etc.
+
+ - This layer uses the Menlo component class MenloLightHouse to implement
+   lighthouse timing sequences from the core MenloTimer and runtime.
+
+   It uses the Menlo event driven programming model to allow it to
+   interleave with other application and Dweet activities on the device.
+
+ - This layer calls upon an application hardware class that provides
+   control of the hardware.
+
+   - The hardware manipulation code is not encoded in the main application
+     to allow implementations of the same application model on different
+     hardware. This leverages the fact that a given IoT application has
+     meaning across many different hardware platforms and implementations.
+
+     - Even on the same platform there may be differences in sensors,
+       board revisions, etc.
+
+../MenloLightHouse/MenloLightHouse.h, ../MenloLightHouse/MenloLightHouse.cpp
+
+ - This is an event driven general purpose application module that
+   provides Lighthouse or Sea Navigational Buoy operations.
+
+ - It operates using the MenloTimer and MenloDispatch model to provide
+   configuraable lighthouse time sequences and raise MenloLightHouse events
+   when a change in light state is required.
+
+ - It's used by the LightHouseApp above to provide a Dweet controlled
+   lighthouse.
+
+Why all this?
+
+ - Because I am sick and tired of "one page" Arduino applications that
+   are difficult to understand, port, and re-use.
+
+ - Almost all Arduino samples are not real products, but just a narrow
+   demonstration of a scenario. They are missing configuration, identity,
+   command and control, power/battery management, configurable power
+   on/reset state, etc.
+
+ - The Menlo Framework allows construction of IoT applications from
+   component blocks in a compose-able manner. This also allows these
+   applications to be ported to many different IoT platforms such
+   as Arduino, Spark, RFDuino, LightBlue Bean, etc. with minimal changes
+   to the application code.
+
+   - Of course the Menlo Frameowrk itself must be ported to each
+     microcontroller and environnment, but that is what Frameworks
+     are for.
+
+Where did Menlo Come from?
+
+The inspiration is from Thomas Edison's Menlo Park laboratory in
+which ideas and inspirations may be quickly turned into working devices
+and applications using pre-built components.
+
+We don't have the luxury of his team of skilled craftsmen to turn
+his ideas into reality, but the next best thing is to leverage pre-built
+components using software engineering practices. These patterns tend
+to be missing from many "maker" type products.
+
+Success can be determined if the framework can be used to build
+a working product in a three day "Startup Weekend" scenario.
+
+In support of the above, the Menlo Framework for microcontrollers
+is only part of a system which includes the Dweet command processor,
+gateway, libraries, and Cloud services implemented on the Node.js
+platform.

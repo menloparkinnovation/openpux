@@ -1,0 +1,9 @@
+
+06/15/2014
+
+Version 5 lays out 100%, and passes DRC with Stop Mask Layer 29 disabled.
+
+Todo:
+
+  - Power supply SMT layout
+

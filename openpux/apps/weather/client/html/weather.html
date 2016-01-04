@@ -1,0 +1,52 @@
+<!DOCTYPE html>
+<!--
+From https://github.com/esquiloio/lib/blob/master/demos/weather/angular/weather.html
+10/19/2015
+
+Weather Station Demo (AngularJS version)
+See README.md for more information.
+This work is released under the Creative Commons Zero (CC0) license.
+See http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html ng-app="app">
+<head>
+  <meta charset="utf-8">
+  <title>Weather Station</title>
+  <link rel="stylesheet" href="/weather/weather.css">
+  <script src="/weather/angular.js"></script>
+  <script src="/openpuxclient.js"></script>
+  <script src="/weather/weather.js"></script>
+  <script>
+    function getOpenpuxConfig() {
+        return {cloud_token: "12345678", cloud_account: "1", cloud_sensor_id: "1"};
+    }
+  </script>
+  <script src="/weather/openpuxservices.js"></script>
+</head>
+
+<body ng-controller="MainController">
+<h1>Weather Station</h1>
+
+<div class="column">
+  <gauge title="Wind Speed" value="values.windspeed" label="MPH" min="0" max="90">
+  </gauge>
+</div>
+<div class="column">
+  <gauge title="Wind Direction" value="values.winddirection" label="&deg;True" min="0" max="359">
+  </gauge>
+</div>
+<div class="column">
+  <gauge title="Temperature" value="values.temp" label="&deg;F" min="0" max="110">
+  </gauge>
+</div>
+<div class="column">
+  <gauge title="Humidity" value="values.humidity" label="%" min="0" max="130">
+  </gauge>
+</div>
+<div class="column">
+  <gauge title="Pressure" value="values.pressure" label="kPa" min="50" max="150">
+  </gauge>
+</div>
+
+</body>
+</html>

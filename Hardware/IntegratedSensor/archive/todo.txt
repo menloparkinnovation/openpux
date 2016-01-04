@@ -1,0 +1,44 @@
+
+01/22/2013
+
+Version 1
+
+- AD4 (SDA)
+- AD5 (SCL)
+- Need to add AD4, AD5 to a connector
+  - AD5 to BAT for checking battery state
+
+- Provision for ICSP (6 pin)
+  ?? Use radio connector with adapter ??
+
+- Work up BOM and costs
+
+#- Check clearance on the power supply
+
+#- Check clearance on the radio
+
+#- LED should be 3/8" (0.375") from the edge of the board.
+  - 0.35" which is fine as the board can set back if needed.
+
+#- Need to change from SMD capacitors to through hole
+    https://www.sparkfun.com/products/8375? $0.25 0.1" lead spacing
+    Sparkfun library: Name: CAPPTH Description: CAP-PTH-SMALL    
+
+    // Ada reference
+    0.1uf bypass capacitors
+    Gate: (C-US)
+    Device: C-US025-025X050 (C-US)
+    Package: C025-025X050
+    Library: minimidi
+    Value: 0.1uf
+    Capacitor, American symbol
+
+#- Need to change from SMD resonator to through hole
+    Gate: (CAPOSC)
+    Device: CERMOSCILL
+    Package: CERM_OSC
+    Library: digg
+
+
+
+

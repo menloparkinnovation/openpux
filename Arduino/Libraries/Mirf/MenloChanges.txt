@@ -1,0 +1,62 @@
+
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+This is a list of changes to OS libraries by MenloPark Innovation LLC
+
+This is basically to track what updates are required when updated
+open source libraries as downloaded, and to track the Menlo updates
+contributed to the open source libraries
+
+11/28/2013
+
+------------------------------------------------------------------------------
+Mirf - Nordic 24L01 radio library
+
+---
+OSLibraries\Mirf\Mirf.h
+
+Added presence detection and test/debug loop function
+
+// MenloPark Innovation LLC 11/28/2013
+                bool IsPresent(bool loop);
+// MenloPark Innovation LLC 11/28/2013
+
+OSLibraries\Mirf\Mirf.cpp
+bool Nrf24l::IsPresent(bool loop){
+}
+
+---
+Added support for the Menlo OS_SoftSPI:
+
+OSLibraries\Mirf\MirfSoftwareSpiDriver.h
+OSLibraries\Mirf\MirfSoftwareSpiDriver.cpp
+---
+OSLibraries\Mirf\MirfHardwareSpiDriver.h
+
+Commented out default hardware SPI static class construction
+
+// MenloPark Innovation LLC 11/28/2013
+// I don't like this, caller determines allocation
+//extern MirfHardwareSpiDriver MirfHardwareSpi;
+// MenloPark Innovation LLC 11/28/2013
+---
+
+------------------------------------------------------------------------------

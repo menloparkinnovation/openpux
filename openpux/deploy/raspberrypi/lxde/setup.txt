@@ -1,0 +1,31 @@
+
+If you have a RaspberryPi display or monitor hooked up and want to
+run the Kiosk mode application, configure the following which will
+autorun the application when startx is done.
+
+If you want startx to run at boot, use raspi-config to boot into X.
+
+Note: Update the URL based on your specific application.
+
+sudo nano /etc/xdg/lxsession/LXDE-pi/autostart
+
+@midori -e FullScreen -a http://localhost:8080/lighthouse.html
+
+#
+# Note: You may want to disable the screen saver. If so add:
+#
+
+# configure to keep the screen on, no screen saver, no power down
+@xset s off
+@xset -dpms
+@xset s noblank
+
+--- Full example file ----
+#/etc/xdg/lxsession/LXDE-pi/autostart
+
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver 
+@midori -e FullScreen -a http://localhost:8080/lighthouse.html
+
+--- Full example file ----

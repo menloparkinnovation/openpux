@@ -1,0 +1,74 @@
+
+MenloFramework (TM)
+
+MenloFramework is a TradeMark (TM) of MenloPark Innovation LLC.
+
+This software is Copyright (C) 2015 MenloPark Innnovation LLC.
+menloparkinnovation@gmail.com
+
+This software is available under an Open Source or Commercial
+licensing model.
+
+Open Source
+
+The Open Source license is The GNU General Public License V3.0 (GPLv3)
+which is available from http://www.gnu.org/copyleft/gpl.html
+
+GPLv3 requires the source code to the MenloFramework and any changes be
+made available to end users. This includes any code for an application
+which links with the library.
+
+MenloParkInnovation LLC includes the following additional restrictions
+to the license.
+
+1) The attribution mark "Using MenloFramework" must be included
+with the device, its documentation, utilities, signon and promotions.
+
+2) The end user must have the ability to update the firmware of the
+device from the provided source code that includes the MenloFramework,
+any modifications and additions to the MenloFramework, and the embedded
+application. This must be the full featured application as delivered
+commercially to the customer and not a reduced function version.
+
+3) Measures may not be taken such as programming software protection
+fuses, using encryption services, cutting off pins, or otherwise
+disabling the re-programability of the device. If you are using
+one-time programmable devices please see the Commercial License
+section.
+
+The reasons for these restrictions is that MenloParkInnovation LLC
+desires to build a community of Open Source IoT and "Maker" devices.
+
+MenloParkInnovation LLC encourages manufacturers of consumer IoT and
+"Maker" devices to use the MenloFramework (TM) source code in their
+devices in an open source manner.
+
+In order to ensure the purchaser of any products using the MenloFramework
+may continue to enhance the devices, or provide support for no longer
+supported products the user must have the ability to update the firmware
+on the device. This means protection fuses, cutting off of programming pins,
+etc. are not allowed, thus enabling the end users the ability to
+reprogram the device.
+
+It is ok to require users to have to acquire industry standard low cost
+programmers if that is required based on the selected microcontroller.
+
+The easier users can update their device, the easier it is for product
+support and updates as well.
+
+It is the belief of MenloParkInnovation LLC that consumer and "Maker"
+IoT devices built upon an open framework will have a broader market potential
+and appeal as they are adapted to specific end user scenarios. The
+availability of open, consumer ready devices built upon open frameworks
+will help accelerate the adoption of IoT.
+
+Commercial
+
+Commercial licenses are available from MenloParkInnovation LLC at
+menloparkinnovation@gmail.com. Note that any community contributions
+to the open source forks may not be available under commercial licensing
+unless the contributor has made it available commercially. The original,
+core MenloFramework is available under a commercial license.
+
+menloparkinnovation@gmail.com
+May 2015

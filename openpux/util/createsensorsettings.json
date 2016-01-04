@@ -1,0 +1,11 @@
+{
+    "Ticket": "12345678",
+    "AccountID": "1",
+    "SensorID": "1",
+    "SleepTime": "30",
+    "Command": "0",
+    "TargetMask0": "0",
+    "TargetMask1": "0001",
+    "TargetMask2": "0002",
+    "TargetMask3": "003"
+}

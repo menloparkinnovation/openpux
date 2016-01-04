@@ -1,0 +1,23 @@
+
+Minimal, no-dependencies implementation.
+
+Lets not forget this in the rush to consider meteor, express, etc.
+
+A project using those frameworks is a different target.
+
+Keep updates to following accepted node.js patterns, best practices,
+modules that can be used the other more complex projects.
+
+Goal is to run this on IoT gateways such as RaspberryPI's,
+Tesslel.Io, etc.
+
+Allow it to load optional modules such as different data storage
+providers such as Amazon AWS SimpleDB, Azure Table Store, Google
+Row/Column store, etc.
+
+Also allow it to high level communicate with third party IoT
+data service providers as well, providing a common "maker"
+framework.
+
+08/21/2015
+

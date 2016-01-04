@@ -1,0 +1,14 @@
+[
+{"level":"info","time":"2016-01-04T01:11:02.400Z","module":"openpux","message":"logger session started"},
+{"level":"info","name":"openpux","message":"using configuration file config/awssimpledb_config.json"},
+{"level":"info","name":"openpux","message":"Storage: BackingStore Amazon AWS SimpleDB configured"},
+{"level":"info","name":"openpux","message":"Openpux: processHeadersAndDispatch:"},
+{"level":"info","name":"openpux","message":"Openpux: req.url=/api/v2/accounts/1/sensors/2/settings"},
+{"level":"info","name":"openpux","message":"openpux: processOpenpuxApiRequest: req.headers[]="},
+{"level":"info","name":"openpux","message":"openpux: [object Object]"},
+{"level":"info","name":"openpux","message":"openpux: parsedUrl="},
+{"level":"info","name":"openpux","message":"openpux: [object Object]"},
+{"level":"info","name":"openpux","message":"openpux: requestObject="},
+{"level":"info","name":"openpux","message":"openpux: [object Object]"},
+{"level":"info","time":"2016-01-04T01:11:52.911Z","module":"openpux","message":"logger session ended"}
+]

@@ -1,0 +1,7 @@
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver 
+@xset s off
+@xset -dpms
+@xset s noblank
+@midori -e FullScreen -a http://localhost:8080/weather/weatherpi.html

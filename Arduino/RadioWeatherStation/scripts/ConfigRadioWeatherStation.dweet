@@ -1,0 +1,47 @@
+
+#
+# WeatherStation on SparkFun Red Board Arduino Uno clone
+# with SparkFun WeatherShield.
+#
+
+#
+# Setup manufacturing information
+#
+setconfig name=WeatherStation
+
+setconfig model=WeatherShield
+
+setconfig serial=00000001
+
+# 30 seconds
+dweet SETCONFIG=UPDATEINTERVAL:7530
+
+# Sensor averages 1 second samples
+dweet SETCONFIG=SAMPLEINTERVAL:3E8
+
+# Disable NMEA streaming
+dweet SETCONFIG=NMEASTREAM:0
+
+# Enable GPS power
+dweet SETCONFIG=GPSPOWER:01
+
+# Set status light 1
+dweet SETCONFIG=LIGHT1:1
+
+# Set status light 2
+dweet SETCONFIG=LIGHT2:1
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=UPDATEINTERVAL
+dweet GETCONFIG=SAMPLEINTERVAL
+dweet GETCONFIG=NMEASTREAM
+dweet GETCONFIG=GPSPOWER
+dweet GETCONFIG=LIGHT1
+dweet GETCONFIG=LIGHT2
+
+quit

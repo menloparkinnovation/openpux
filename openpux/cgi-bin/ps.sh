@@ -1,0 +1,2 @@
+echo args $*
+ps -edlf 

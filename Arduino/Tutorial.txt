@@ -1,0 +1,203 @@
+
+MenloFramework can be introduced by examining and working with
+the follow projects. Each project is complete, and may be used
+to build an application scenario that matches the requirements
+of what features it supports.
+
+                 *** MenloBlink ***
+
+                Classic "Blink" example
+
+This application blinks an LED at a built in interval.
+
+The MenloFramework version of the classic Blink example introduces
+initializing the core framework and using its MenloTimer class to
+timer and event driven programming.
+
+It provides an example of the "boilerplate" setup for an Arduino "Sketch"
+project that is similar to all MenloFramework applications.
+
+It provides an example of the Menloframework's organization in which the
+Arduino Sketch contains application configuration data, and the main logic
+is built from MenloFramework classes.
+
+A C++ class is created in the project to represent the unique application
+state.
+
+Since this leverages the MenloFramework debug print, watchdog,
+power management and timers are available for even this simple application.
+
+
+                 *** MenloDweetBlink ***
+
+          Addition of MenloDweet to the MenloBlink example
+
+This application blinks an LED at a configurable interval.
+
+By adding MenloDweet the blink interval is now configurable over the
+Arduino serial (USB) port. It uses a NMEA 0183 based command set called
+"MenloDweet" to provide configuration and state commands.
+
+NMEA 0183 is a serial line protocol originally developed for marine
+navigation, and has become the standard protocol for GPS's everywhere.
+
+The configured interval is saved to EEPROM, and automatically loaded
+at power on, reset.
+
+Since the additional MenloDweet support framework classes are used
+additional product level commands are available such as managing power
+management settings, setting and retrieving model number, serial number,
+and manufacturer data, etc. In addition debug classes may be enabled to
+allow remove low level query/modification of the embedded systems
+state.
+
+The application and debug streams are separated allowing an application
+to sort output based on its NMEA 0183 prefix.
+
+MenloDweetBlink introduces the table driven pattern which binds application
+defined commands to properties of the application class. These properties
+automatically have configured storage in EEPROM and their settings are
+restored on power on/reset ensuring the device is always operating in
+the correctly configured state.
+
+MenloDweetBlink also introduces Menlo Application Framework classes
+in which class DweetSerialApp provides the template for fully featured
+application using Dweet over serial lines. The applications class remains
+focused just on the applications properties, commands, and logic.
+
+Introducing MenloDweet over a serial/USB line brings your application
+into the Internet Of Things (IoT) by using the Menlo Dweet Node.js
+gateway on a RaspberryPi, Mac, PC, or Linux computer. Plugging your
+device into the USB of any computer capable of running Node.js and
+USB serial port enables local, or remote Cloud communication and
+control for your device/project.
+
+Introduces the DweetSerialApp framework.
+
+                 *** MenloRadioDweetBlink ***
+
+          Remote control DweetBlink over a low power radio
+
+This adds support for remote Menlo Dweet commands over a low power
+radio (Nordic nRF24L01).
+
+This also demonstrates how the new set of Radio control Dweets
+are automatically added as a result of including the DweetRadio
+component in the application. DweetRadio not only adds the DweetRadio
+commands, but also handles the radio's power on/reset configuration.
+
+
+Introduces the DweetRadioSerialApp framework.
+
+                 *** Sensor *** 
+                 *** IoT Sensor *** 
+
+  A cloud connected sensor network application over a low power radio.
+
+This is a complete "sensor network" application which utilizes an inexpensive
+low power consumption radio (Nordic nRF24L01, $1.89, 13ma) to connect to the
+cloud through a gateway.
+
+The gateway is another instance of the sensor connected over USB serial
+to a computer running the Menlo Dweet Node.js gateway software. As with
+DweetSerial this computer may be any computer that runs Node.js with
+USB serial support. This includes RaspberryPi, Mac, PC, or Linux computer.
+
+The gateway hardware could also be a low cost board such as an Arduino Uno,
+Nano, ProMini, etc. with a Nordic nRF24L01 radio module and connected to
+USB serial.
+
+The sensor can be "factory configured" by connecting it to a USB port
+on a computer and running a Node.js based setup application. Once factory
+configured, it can be managed remotely over the radio through the gateway.
+
+The gateway provides configurable local logging, connection to various
+device cloud providers (Cosm, Azure, etc.), and the ability to create,
+configure, and run local "rules" for IoT integration scenarios, home
+automation, etc.
+
+The project is configured to allow the class providing the hardware
+functions to be separated from the main project allowing re-use of
+the standard application pattern across diverse hardware sensors
+from commonly available ones to custom designs.
+
+Introduces the MenloRadioSensorApp framework.
+
+                 *** LightHouse *** 
+
+        A cloud environmental monitoring lighthouse
+
+This is a real world application in which a lighthouse or navigational
+buoy is configured for a programmed light sequence. This sequence is stored
+in the EEPROM and automatically retrieved at power on, reset.
+
+Built in logic turns the light on at night, and off during the day maximizing
+battery charge.
+
+The light sequence, light turn on threshold, and other operating modes
+of the lighthouse are real time configurable through MenloDweet's and
+saved in EEPROM for power on start/reset.
+
+The lighthouse is connected by a low power radio (Nordic nRF24L01) to a gateway
+in addition to the available Dweet serial port for remote configuration,
+control, and monitoring.
+
+The lighthouse is solar powered with an on board rechargeable battery so it
+leverages the MenloPower CPU energy saving modes in edition to MenloRadio's
+power management to schedule periodic updates mostly saving the battery.
+
+The periodic update rate is configurable through MenloDweet and saved
+in EEPROM.
+
+Monitoring of the battery voltage, solar panel voltage, ambient light,
+sea level/moisture, and temperature is done.
+
+The lighthouse can be remote controlled through the gateway and
+the radio using MenloDweet.
+
+The lighthouse is used to build multiple "real world" products:
+
+1) Ornamental Lighthouse which can flash a users favorite lighthouse
+or sea buoy pattern. Colors, rates, period are configurable.
+
+Basic environmental monitoring of temperature, light is provided in
+addition to battery condition.
+
+2) Garden monitoring Lighthouse that can determine when grass or
+plants require watering through a soil moisture sensor, in addition
+to light and temperature conditions.
+
+The light can be used in a Lighthouse fashion, or as a garden/walkway
+light with selectable colors and brightness.
+
+3) Lighthouse Weather Station. Additional sensors are provided
+for wind speed, wind direction, rainfall, and optional GPS location.
+
+This information is provided in addition to the light and temperature
+functions. The lighthouse light function can continue to function
+as a lighthouse, or garden light.
+
+This product operates using a larger external solar panel and
+wind/rain measuring equipment.
+
+All of the above products connect to the Cloud through a gateway
+as an IoT (Internet of Things) application.
+
+Uses the MenloRadioSensorApp framework and introduces the de-composition
+of a more complex application into multiple parts:
+
+DweetLightHouse - Dweet commands handler for LightHouse
+
+MenloLightHouse - Event driven lighthouse signal/light sequence generator
+                  Raises events to change light state.
+
+LightHouseApp   - LightHouse application framework
+
+LightHouseHardware - Abstract the hardware for controlling the light
+                  and reading the environmental monitoring sensors.
+
+Note that this application is at the "hairy edge" of capacity of
+an AtMega328 with 32k flash and 2k RAM. Current flash consumption
+is 29,608 bytes and memory is carefully balanced between stack
+initialized data, and minimal runtime heap space.
+

@@ -1,0 +1,33 @@
+
+06/14/2014
+
+*** MY HEADER APPEARS REVERSED COMPARED TO ADA BOARDDUINO!!!! ***
+*** LOOK AT ARDUINO UNO AS WELL ***
+- Add FTDI header
+  - Add DTR reset circuit
+
+
+
+- Add ICSP programming header
+
+- Add battery voltage monitoring
+
+- Convert LED to common anode
+  - More common, cheaper
+  - Validate in Sparkfun parts list, Ada Fruit as well
+   https://www.sparkfun.com/products/105
+    - $1.95 common cathode
+
+    https://www.sparkfun.com/products/10820
+    - $1.95 common anode
+
+  // 25 for $19.95 ($.80 each)
+  http://www.adafruit.com/products/302
+
+   - So this appears to be an adafruit thing for a discount on her
+     25 pack since its used by led drivers which sink rather than
+     source their LED driver current.
+
+- Correct LED layout
+   - I have my own library part
+

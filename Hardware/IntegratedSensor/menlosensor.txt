@@ -1,0 +1,479 @@
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: code
+KEYWORDS: downloading and running
+KEYWORDS: Build
+KEYWORDS: Building
+11/23/2015
+
+Version 7 PCB layout:
+
+  - open Arduino 1.0.6
+
+     - Note: 1.6.4 is not configured properly yet...
+
+  - Click LaunchPad (rocket) on Mac, then scroll left to next desktop screen,
+    then click Arduino
+
+  - File, Open Smartpux/Arduino/LightHouse/LightHouse.ino
+
+  - Set Tools, Board, MenloSensor 8Mhz, 3.3V
+
+  - Click build (checkmark)
+
+  - Select serial port /dev/tty.usbserial-AH02LR7X
+
+  - It won't fit, so it must be burn't in using ICSP as the chip was prepared
+    for no boot loader.
+
+----------------
+
+Smartpux/Arduino/FencePostLight/FencePostLight.ino
+
+  - Note: Non-dweet, may not build against current MenloFrameowrk
+
+  - Old radio protocol, will not register with new gateway model.
+
+------------------------------------------------------------------------------
+KEYWORDS: MenloSensor
+KEYWORDS: IntegratedSensor
+KEYWORDS: FencePostLight
+KEYWORDS: FTDI hookup
+11/24/2015
+
+FTDI Chip faces to the left <====
+
+Backside of FTDI adapter board with black connector faces right ==>
+
+               +---- ---+
+               | Nordic |
+               |  Ant   |
+               |        |
+             +-------------------+
+             |                   |
+    FTDI     |                   |
+             |           +-----+ |
+   +----+    |           |  A  | |
+-  |GND |-   | o GND     |  T  | |
+C  |CTS |-   | o CTS     |  M  | |
+H  |VCC |-   | o VCC     |  E  | |
+I  |TXO |-   | o RXD     |  G  | |
+P  |RXI |-   | o TXD     |  A  | |
+-  |DTR |-   | o RTS     |     | |
+   +----+    |           |  3  | |
+             |           |  2  | |
+             |           |  8  | |
+             |           |     | |
+             |           +-----+ |
+             |                   |
+             |                   |
+             |             +-+   | <= Notch
+             |             | |   |
+             |            o o o  | ICSP Header
+             |            o o o  |
+             +-------------------+
+
+                           R
+                           E   M
+                           S S I
+                           E C S
+                           T K O
+                           +---+
+                           |   |  notch on cable for Olimex
+                         +--   --+
+                         | o o o |
+                         | o o o |
+                         +-------+
+                           G M V
+                           N O C
+                           D S C
+                             I
+
+-----------------------------------------------------------------------------
+KEYWORDS: schottky diode
+04/06/2015
+
+(.7v drop)   (.45v drop)
+1N4001     to 1N5817 20v 1A Schottky diode
+
+-----------------------------------------------------------------------------
+KEYWORDS: lab data
+KEYWORDS: MenloSensor1
+04/05/2015
+
+Marked as #1
+
+Version 7 board.
+
+  - also in LightHouseHardware.cpp
+
+        //
+        // MenloSensor1
+        //
+        // light from a CDS cell through a 10k resistor. (4.7k?)
+        //
+        // 10 bit A/D. Brighter light is a lower reading.
+        //
+        // Light is 0x27B (635) dark 0x01B (27) light
+        //
+        // So we subtract from the A/D range (0-1023) to
+        // get a value that increases with light intensity.
+        //
+
+        //
+        // MenloSensor1
+        //
+        // battery:
+        //
+        // currently read 0x1B3 (435) on a fairly full Alkaline battery
+        //
+        // (435/1023) == 0.4252 ratio of a 3.3v reference == 1.403 volts
+        //
+
+        //
+        // MenloSensor1
+        //
+        // solar:
+        //
+        // currently read 0x1B5 (437) on a disconnected solar cell and
+        // a fairly full Alkaline battery installed.
+        //
+        // Even though there is a blocking diode we could be reading
+        // back leakage since there is no load.
+        //
+
+        //
+        // MenloSensor1
+        //
+        // Moisture
+        //
+        // Currently read 0x015C () while disconnected (open ended)
+        //
+
+-----------------------------------------------------------------------------
+KEYWORDS: lab data
+KEYWORDS: MenloSensor2
+04/06/2015
+
+Marked as #2
+
+Experiments:
+
+ Placed a 600 ma/H 1.2v NiCD AA cell into it. This AA cell did not have
+ much charge as it came from a fencepost light on the inside window sill
+ at noon before the sun got on it.
+
+ This ran the sensor with the following reading until it died about 4-5
+ mins due to lack of sufficient charge.
+
+ Placed it outside and no response from its radio updates for about 1/2
+ hour. Cloudy at the time. Bright sun came out, and it woke up and is
+ now Dweeting. (1:13PM sun).
+
+ Got the following response to the dweet GETSTATE=SENSORS over the radio:
+
+ Note: There is a known issue with this units light sensor stuck high
+  ?solder joint?
+
+ lite bat  slr  mois temp
+ 03ED.01BE.0217.01B9.0000
+ xxxx 446  535 xxxx  xxxx  (decimal)
+
+Note: I need to get the node.js side wired up to auto convert these!
+
+  (446/1023) * 3.3 == 1.438v
+
+  (535/1023) * 3.3 == 1.725v
+
+   difference of 0.287v, closer to schottky junction
+
+Sun went down a little (cloud went over) and got:
+
+ lite bat  slr  mois temp
+ 03E3.0183.01D1.013F.0000
+
+The voltages went down a bit as expected
+
+Seems to be alive, responding to sunlight to generate its operating
+power and has the microcontroller and radio always power on.
+
+The light sequence is off since the day/night program prevents
+the light from flashing during daylight.
+
+ (And on this unit the light sensor is saying high daylight anyway)
+
+Remains to be seen what kind of on board battery charge I would get
+and how long it will last.
+
+Need a current measurement from the battery.
+
+Read an 85 ma startup current. It settles to 71ma
+after a while. Maybe due to light going off, though
+it was only flashing. Maybe the battery discharing off
+the curve as well.
+Yes, its dead after only a couple of minutes on the battery,
+not much charge.
+
+With new Alkaline cell:
+
+51ma, with peaks to 60ma on green light flash.
+ - voltage 1.565v
+
+ lite bat  slr  mois temp
+ 03B8.01DD.005E.0040.0000
+      477   94        (decimal)
+
+(477/1023) * 3.3 == 1.538v (pretty close to the meter reading!)
+
+------------
+
+    //
+    // MenloSensor2 returns with 1.2v NiCD battery almost dead
+    // and solar cell facing down/blocked.
+    //
+    // lite bat  slr  mois temp
+    // 03B1.015B.016C.0120.0000
+    // xxxx 347  364  xxxx  (decimal)
+    //
+    // bat (347/1023) == 0.339 -> 0.339 * 3.3 == 1.119 volts (make sense for NiCD)
+    //
+    // slr (364/1023) == 0.356 -> 0.356 * 3.3 == 1.174 volts
+    // solar voltage should be shotky diode drop higher (1.174 - 1.119) == 0.055
+    // which seems kind of small. Expect about .45v or so.
+    //
+    // http://www.mouser.com/ProductDetail/Fairchild-Semiconductor/1N5817/?qs=Ro3gc6G1sTm8wr1Du93jFw%3D%3D    // 
+
+    //
+    // To test sensor hardware send the following Dweet:
+    //
+    // dweet GETSTATE=SENSORS
+    //
+    //                        lite bat  slr  mois temp
+    // GETSTATE_REPLY=SENSORS:0000.0000.0000.0000.0000
+    //
+
+//
+// A/D configuration:
+//
+Version 7 board.
+
+  - also in LightHouseHardware.cpp
+
+    //
+    // The analog voltage reference is 3.3v from the NCP1402
+    // single cell battery to 3.3v power converter.
+    //
+    // Its a 10 bit A/D with a range from 0 - 1023.
+    //
+
+-----------------------------------------------------------------------------
+KEYWORDS: Started menlosensor.txt from previous hardware.txt
+04/06/2015
+
+-----------------------------------------------------------------------------
+KEYWORDS: previous from hardware.txt
+03/14/2015
+
+FTDI:
+/dev/cu.usbserial-A101320T on mac book air on right side USB port
+
+07/21/2014
+
+FTDI - DTR/Green is towards power supply
+
+     - GND/Black is towards edge of board, radio
+
+ICSP - Pin 1 (MISO) is towards inside of board near battery wires on edge
+       Near top of 328p chip pin 1.
+         notch faces inward on the board *verify*
+
+Needs power from FTDI for programming.
+
+//
+// - Validate colors and pins on LED's used
+//    - If not what I see in the software, figure out what
+//      it getting crossed.
+//
+
+const uint8_t LedRed = 9; // redled
+
+//
+// Note: Even though these are wired on the PCB
+// for Green == DIO5, Blue == DIO3, the LED I am
+// using has green and blue reversed.
+//
+//const uint8_t LedGreen = 5;
+//const uint8_t LedBlue = 3;
+
+const uint8_t LedGreen = 3;
+const uint8_t LedBlue = 5;
+
+-----------------------------------------------------------------------------
+KEYWORDS: FTDI Cable
+KEYWORDS: FTDI Header
+KEYWORDS: FTDI connector
+KEYWORDS: USB to Serial Converter chip
+07/06/2014
+
+// Drivers, schematics, etc.
+jr\embedded\FTDI\ftdi.txt
+
+       -----
+GND    |   | 1 BLACK
+CTS    |   | 2 BROWN
+VCC    |   | 3 RED
+TXO    |   | 4 ORANGE
+RXI    |   | 5 YELLOW
+DTR    |   | 6 GREEN
+       -----
+
+--------------
+11/17/2010
+
+FTDI FT232RL 
+
+This chip converts from USB to the TTL serial TX/RX of the
+ATmega chip on its I/O pins 0 + 1
+
+http://www.ftdichip.com/Products/ICs/FT232R.htm
+
+Information have been saved in the FT232 subdirectory
+
+// datasheet
+DS_FT232R.pdf
+
+//
+// Virtual COM Port (VCP) drivers to make it appear as a standard
+// COM port on the PC to software
+//
+http://www.ftdichip.com/Drivers/VCP.htm
+
+//
+// Direct Access Drivers (D2XX) allows direct programming of the USB
+// through a library DLL
+//
+http://www.ftdichip.com/Drivers/D2XX.htm
+
+------------------------------------------------------------------------------
+KEYWORDS: ICSP
+KEYWORDS: Olimex 6 pin connector from AVR-ISP500.pdf
+07/06/2014
+
+This is the connector on the Olimex device itself
+
+   2   4   6
+ +-----------+
+ | o   o   o |
+ |           |
+ | o   o   o |
+ +---|   |---+
+     Notch
+   1   3   5
+
+The notch has pin 1 at the left, and is facing inwards on the Arduino Uno board.
+
+    +-------+
+1   | o  o  | 2
+   -        |
+3     o  o  | 4
+   -        |
+5   | o  o  | 6
+    +-------+
+
+1 - MISO
+2 - +5v
+3 - SCK
+4 - MOSI
+5 - RST
+6 - GND
+
+-----------------------------------------------------------------------------
+KEYWORDS: ICSP
+KEYWORDS: ICSP header
+04/23/2014
+
+From Arduino Uno schematic and eagle brd file:
+
+MISO  1 o  o 2  +5V
+SCK   3 o  o 4  MOSI
+RST   5 o  o 6  GND
+
+1 - MISO
+2 - +5v
+3 - SCK
+4 - MOSI
+5 - RST
+6 - GND
+
+In Circuit Serial Programming
+
+Allowing it to be programmed with firmware while in circuit rather
+than having to do it with an external programmer.
+
+Particularly important with surface mount devices, which are harder
+to place into a programmer, and then into the final circuit.
+
+This is how the Arduino boot loader is placed into the chip, and
+is the mechanism for initializing the "raw" microcontroller.
+
+http://www.atmel.com/dyn/products/tools_card.asp?tool_id=2726
+
+http://ww1.microchip.com/downloads/en/DeviceDoc/30277d.pdf
+
+(The link is for PIC's, but its the same)
+
+The pins are for the 6 pin version:
+
+Orientation on the Arduino Uno from the top of the board:
+
+---------------------------------------\
+                                        \
+                                         \
+--------                                  \
+       |                                  |
+USB    |                                  |
+       |                                  |
+--------                                  |
+                                          |
+                                1 o  o 2  | 1 usually has a small dot
+                                3 o  o 4  |
+                                5 o  o 6  |
+                                          |
+                                          |
+                                          |
+------                                    |
+PWR  |                                    |
+------                                    |
+                                          |
+-------------------------------------------
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+

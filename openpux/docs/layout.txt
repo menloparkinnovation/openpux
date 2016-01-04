@@ -1,0 +1,70 @@
+
+Project layout follows conventions similar to Express.JS and Meteor.JS.
+
+openpux.js  - application file
+client/     - files served to client for client views
+server/     - server implementation files
+config/     - local server configuration files
+bin/        - local server launcher files
+logs/       - local server log files
+test/       - tests
+util/       - utilities used for setup of data providers, etc.
+docs/       - documentation
+public/     - publically available files
+
+node_modules - This is created by npm when installing data providers.
+               Not part of distribution, but brought in by npm install <package>
+
+Note:
+
+      Files in the following directories are available to clients to
+      support self distribution and installation from a client when
+      accessed from the prefix "/install/...".
+
+      server/..
+      docs/..
+      bin/..
+      test/..
+      util/..
+      
+      The files in the following directories are normally available to
+      clients from the "/client/.." and "/public/..." prefixes and are
+      also available from the "/install/client/.." and /install/public/.."
+      prefixes for installation program clarity.
+
+      client/..
+      public/..
+
+      For security reasons, files in the following directories are not served
+      to clients, but have default templates in public/.. served instead
+      for self distribution and installation purposes.
+
+      config/..
+      logs/...
+
+      This policy is implemented to avoid copies of files in /install/..
+      for self install.
+
+      See the mapping table in openpux.js, FileServerConfiguration[] for
+      these controls.
+
+Note: The default distribution of openpux does not require Express.JS or
+Meteor.JS, but can be integrated with them. Seamless support for this is a
+future workitem.
+
+Detailed File Breakdown:
+
+ openpux.js - node.js server for openpux
+
+ client/openpuxclient.js - generic client used from web browser or node.js
+
+ client/client.js - node.js front end to openpuxclient.js
+
+
+ client/menlohttprequest.js - Menlo implementation of XMLHttpRequest to allow
+                       same client side/browser libraries to be used
+                       in node.js clients.
+
+ client/*specialization.js - Specific to a given application scenario
+                      Customizes UI
+

@@ -1,0 +1,423 @@
+
+04/05/2015
+
+ - Add support for data updates on radio
+
+ - Create an npm package for Dweet
+
+   - Roll up all my own dependencies
+
+   - ?multiple packages for library classes?
+
+04/04/2015
+
+- "dweet LIGHTGQ" causes an exception in javascript since there is no argument
+
+ - Fixed issue with available() that was dependent on debug macro
+   and returned uninitialized variable without.
+
+   This showed up as a radio drop out on rebuild.
+
+04/01/2015
+
+ - fix radio serial reliability
+
+03/31/2015
+
+ - Got radio working both ways. The loss of messages to the
+   gateway was the delay 100ms.
+
+ - Now having some issues with syncing of the radioserial on the
+   node.js side with frequence out of sequence messages.
+   ?Is it ever accepting proper sequence toggler? bit math error?
+
+ - Maybe be an issue in which the light house sequence is
+   programmed and the sensor node appears non--responsive.
+
+   - ?problems with the delay(10) loop effecting the scheduler?
+
+   - Uninitilized class issue similar to one with the radio?
+
+03/30/2015
+
+ - 8:30PM
+
+ - Need to add the manual sync command.
+
+ - Still working link robusness
+
+   - dweetclient.js, line 289 dealing with the sending of radio packets
+     with the T= command.
+
+ - Link robustness
+
+  #- Add code to node nmea0183.js to throw on > 82 chars
+
+  #- Remove debug code from T and R commands as may be
+    causing drops on these long commands.
+
+    - Be careful of timing and processing for > 64 character
+      commands as this is the default Arduino interrupt
+      drive serial buffer.
+
+  #- Use short timeouts on direct serial link by default and
+    long time outs on longer radioserial link by default.
+
+    #- Should be a "bias" time in addition to the command
+      expected time configured in dweetcmds.js table entries.
+
+  - Radio level sync packet
+
+    - Maybe send two on new connections or timeouts to
+      deal with out of sequence.
+
+03/19/2015
+
+ - Need to convert RadioSerial
+
+03/18/2015
+
+ #- Converted over VirtualSerial/RadioSerial to use Buffer type
+   and convert string's passed to .write() as SerialPort does.
+
+   #- This breaks the testdevice since it is still depending on strings
+     and needs to convert from Buffer to string same as the real
+     SerialPort handler does.
+
+     - Decide if this is a nmea0183.js function, or in the
+       class providing data to it.
+
+       - Likely that nmea0183.js remains text/strings while
+         the I/O streams around it are responsible for any
+         character conversions and encoding as this tends to
+         be stream/transport specific.
+
+         - nmea0183.js could be smart like SerialPort and test
+           the data buffer for being Buffer or not.
+
+03/17/2015
+
+ - radioserial.js sendPacket is accessing unicode from string
+   and assigning as byte to buffer and getting 0's.
+
+   Look at Buffer, and what npm SerialPort uses throughout.
+
+   - Need to make sure data passed around VirtualSerial and RadioSerial
+     are not string data, but type Buffer.
+
+ - Add environmental support to lighthouse firmware.
+
+ - Add battery management support to lighthouse firmware.
+
+ - Measure actual current draw for lighthouse device.
+    - Radio on/radio off
+    - light on/light off
+    - Neet a setstate dweet to force on with color, force off.
+      - Pauses the sequence flash, but does not erase it.
+
+ #- radiogateway results are not printed when run from script vs
+   interactive.
+
+   #- The new model of displaying the result of the callback is not
+     being output by the script processor vs. the console processor.
+
+ - Think about using the line buffer interface for output of command
+   processing actions to make it easier to remote commands and scripts.
+
+   - Rather than rely on a pure stream.
+
+03/15/2015
+
+ - Need to add link management calls to RadioSerial.
+
+ - Attention packet/indication that allows a mostly sleeping sensor
+   to wakeup and poll the gateway.
+
+ - Also support small packet binary data for sensor updates.
+
+ - Setting attention will give an amount of time the radio should remain
+   on so that RadioSerial command and control packets may follow.
+
+   - Go back to sleep after a configured time period.
+
+ - The gateway poll packet can give a sleep time.
+
+ - This allows the very low power scenario to be brought back online.
+
+03/14/2015
+
+ - Setting configuration for lighthouse color and sequence
+   is still not being restored after reset.
+
+   // Both are still needed
+   dweet LIGHTSQ=10:0100
+   dweet SETSTATE=LIGHTCOLOR:00.FF.00
+
+ - Add environmental dweets
+
+ - Wire up RadioSerial to dweets
+
+03/06/2015
+
+ #- Get VirtualSerial wired up as a replacement for Dweet Test Device.
+
+ - Refactor DweetTestDevice to be:
+
+   A) Based on a general DweetDevice.js library
+ 
+   #B) Use standard node npm SerialPort contacts over NMEA0183
+
+   #C) Options to open virtual serial, etc.
+
+ #- Add support to command console to open and interact with
+   multiple Dweet device targets.
+
+   #- Allow open devicename
+
+   #- Allow switching between them
+
+   - Allow command input streams to continue, but be clearly marked
+     in the output as to which dweet device/stream they came from.
+
+ - Wire in RadioSerial and its gateway support.
+
+ - Test radios.
+
+03/01/2015
+
+ - Finish debugging save/restore configuration of light color
+
+ - Add input script of command lines to allow easy configuration and testing
+
+   - Basically readline's into the console command processing loop till the end of file.
+
+   - Option could leave at Dweet console prompt, or exit.
+
+   - Will be part of infrastructure for Dweet services as well.
+
+ #- Add option for different serial ports
+
+02/13/2015
+
+ - Dig into whether Node.js EventEmitter .emit can determine if any
+   listeners received a given message.
+
+   - If no listeners may want to report the NMEA 0183 sentence or
+     Dweet command to the console.
+
+   - This is needed for general nmea sentence send command in order
+     to view any responses, or a raw stream in general.
+
+   - Build on the show NMEA functionality.
+
+     - See what is done for the debug stream.
+      - Debug stream is a normal Dweet stream with PRINT=message
+
+02/12/2015
+
+ - Clarify interfaces between the layers
+
+ - Fix "dweet SETCONFIG=NAME:foo" which works, but displays errors about response pattern.
+
+ - Fix ==> <== do print DWEET==> DWEET<== NMEA==> NMEA<==
+
+ - Add raw input Dweet and NMEA 0183 commands.
+   #- Dweet implemented, except for bug above.
+   - Need to add NMEA 0183
+
+ - Logging/tracing through dweetconsole.js so that it can be
+   used remotely without console.log.
+
+   - This means adding it to the tracerror, trace paths automatically.
+
+   - Pattern should be established across my modules.
+
+   - write logger module, use it everywhere.
+
+     - default is in memory only to support web server scenarios
+     - design to support file loggging extension
+     - Update to access a level number
+     - Update to allow print or not
+     - tracelog, traceerror
+     - setTrace, setTraceError
+     - setConsoleTrace, setConsoleTraceError -> output on console.log
+     - getTraceLog() -> array
+     - getTraceErrorLog() -> array
+     - setTraceLogFile(), setTraceErrorLogFile()
+     - Is there someway to delegate function calls?
+        - Return Logger object may be the way
+        - More extensible anyway
+        - Transition to it. Makes sense to convert module that will be
+          used in web services first.
+
+   - Simple array of strings, cat to the end.
+
+ - Start building out the modules/add-in's model.
+
+02/09/2015
+
+ - Add write length commands/support up to 4 byte words.
+
+ #- Update github
+
+ - Update basic license headers
+
+   #- github published ones
+
+ - Dig up full license for openpux
+
+02/08/2015
+
+ - Start digging up Morse + lighthouse applications
+
+- Add console commands to set/unset debug tracing in console
+  for debugging console itself.
+
+  - At a minimum turn on/off Dweet wire protocol sends and receives
+    display for debugging without all of the other verbose noise.
+
+- Add commands to the Arduino to turn on/off deeper tracing
+  and debugging.
+
+- Add commands to Dweet and console to dump the Arduino memory
+  statistics on command.
+
+ #- dumphex + native in DweetConsole readFunction shows to many "3"'s
+   and buffer does not need right.
+
+   #- Make sure Arduino returning correctly.
+
+    23 33 33 33 33 33 33 33
+
+   #- Debug dumphex, other infrastructure
+
+02/02/2015
+
+ - setstate name="value1" returns SETSTATE_UNSUP as it should, but does
+   not show error properly in the command console.
+
+   Plumb it through.
+
+ - Finish general setstate function to be used for all sets.
+
+ - Same for get.
+
+ - Move existing implemenetations to:
+
+   getstate name
+   setstate name="value"
+
+   getconfig name
+   setconfig name="value"
+
+   readmemory address
+   writememory address=value
+
+   readeeprom address
+   writeeprom address=value
+
+   readflash address
+   writeflash is unavailable.
+
+   readregister address
+   writeregister address=value
+
+   dumpXXX is a hexodec
+
+   dumpmemory address
+   dumpflash address
+   dumpeeprom address
+   dumpregisters address
+
+   whether its a get or set function, it should be general
+   and parameterized with a stub wrapper function in the function
+   table. This common worker model keeps code duplication down.   
+
+   // Arduino UNO
+
+   digitalread port
+   digitalwrite port=value
+
+   analogread port
+   analogwrite port=value
+
+   analogref value
+
+  // Extra stuff that would be nice:
+
+  // show all ports
+  portstatus
+
+ - Issues with "" and spaces in command line processing. Confuses parser
+   and .split(" "), etc.
+
+01/31/2015
+
+- Pull sanitized power on state from configuratin store in the application
+  and initialize hardware state to it.
+
+- Add -traceerror, -tracelog as options to dweet command line.
+  - Add  TRACELEVEL SETSTATE commands to cmdconsole.
+
+- Fix and unify error handling in Arduino code + Node.js code.
+  #- Arduino done
+  - Need to do Node.js work
+
+#- Implement debugger trace commands.
+
+#- Make them part of GETSTATE/SETSTATE
+
+#- Finish new error handling model.
+
+Add board/process to standard configuration query regardless
+of application settings. Make it easier to know what
+Arduino/Debug commands would be valid.
+
+Add processor/board module support for GETCONFIG
+BOARD, PROCESSOR, ARCH.
+
+01/30/2015
+
+#Unify error responses in the Arduino code.
+  - Save space by using common routine in MenloDweet.
+  - Make it easy to programmatically parse error returns
+  - Maybe _ERROR instead of _REPLY?
+  - How to better indicate object in error
+  - But don't want to be long than the string itself or
+    may not fit into a NMEA 0183 sentence on response if the command
+    was maximum sentence size.
+
+#Make SETCONFIG commands send replies. In practice this would be expected.
+
+#Send error replies when a command format is recognized and correct
+#(checksum, etc.) but its argument(s) are invalid or out of range.
+#  For example memory read of invalid address.
+
+#The above two replies are replied on the $PDWT stream as the
+#request came in on.
+
+#Implement settrace, setdebug modes config/debug commands.
+#When set errors such as unrecognized, but valid (good structure, good checksum)
+#commands would report on the $DBG stream.
+
+pre 01/29/2015
+
+Add arguments to Dweet, Use argument framework.
+
+This will allow tracing, etc. to be configured.
+
+Send single command sentences paced by a timer delay until
+the end to end is fully debugged and reliable.
+
+Make Dweet an npm utility
+
+12/30/2014
+
+ - Finish device  model for DweetTestDevice
+
+ - Finish exchange protocol.
+
+ - Develop device to device gateway for "smart dust" sensors.
+
+
+

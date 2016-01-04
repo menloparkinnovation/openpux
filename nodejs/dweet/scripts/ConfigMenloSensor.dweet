@@ -1,0 +1,85 @@
+#
+# MenloSensor
+#
+# 04/20/2015
+#
+
+# Setup manufacturing information
+setconfig name=MenloSensor
+
+setconfig model=IntegratedSensor7
+
+setconfig serial=00000003
+
+#
+# Setup the radio parameters
+# Note: This uses low level direct "dweet xxx" commands until
+# the radio package is created which will allow "setconfig radiochannel=xx"
+#
+
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIORXADDR:73656E7330
+dweet SETSTATE=RADIORXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIOTXADDR:6761746530
+dweet SETSTATE=RADIOTXADDR:6761746530
+
+# Default RADIOGATEWAY to off
+dweet SETCONFIG=RADIOGATEWAY:OFF
+dweet SETSTATE=RADIOGATEWAY:OFF
+
+# Configure Radio Power Timer for 250ms idle shutdown
+dweet SETSTATE=RADIOPOWERTIMER:FA
+dweet SETCONFIG=RADIOPOWERTIMER:FA
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+# set a lighthouse sequence
+
+# Default to light always on
+#dweet SETCONFIG=LIGHTONLEVEL:FFFF
+#dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+# Set light to come on below 0200 reading on the light sensor
+dweet SETCONFIG=LIGHTONLEVEL:0200
+dweet SETSTATE=LIGHTONLEVEL:0200
+
+# Default to green buoy light
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+# Set LIGHTTICK to 250 ms which is 0x00FA
+dweet SETSTATE=LIGHTTICK:00FA
+dweet SETCONFIG=LIGHTTICK:00FA
+
+# Set light Period to 0
+dweet SETSTATE=LIGHTPERIOD:0000
+dweet SETCONFIG=LIGHTPERIOD:0000
+
+# Light ramp of zero (instant on/instant off)
+dweet SETSTATE=LIGHTRAMP:0000.0000
+dweet SETCONFIG=LIGHTRAMP:0000.0000
+
+# 1/4 second flash every 4 seconds
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+# Configure sensor update at a SENSORRATE of 30 seconds
+dweet SETCONFIG=SENSORRATE:001E
+dweet SETSTATE=SENSORRATE:001E
+
+quit

@@ -1,0 +1,88 @@
+
+MenloFramework(TM)
+
+menloparkinnovation.com
+
+06/07/2015
+
+Custom built (model) lighthouse weather station using the following:
+
+ - SparkFun WeatherShield + Redboard (Arduino clone) programmed using
+   MenloFramework (TM) and its WeatherStation application module to stream
+   NMEA 0183 weather data.
+
+ - MenloSensor (TM) custom built low power wireless LightHouse/Buoy controller
+   using MenloFramework (TM) and its LightHouse application module.
+
+ - Lighthouse provides light station function, light intensity, and low
+   power 2.4Ghz wireless radio connection.
+
+ - Lighthouse receives NMEA 0183 weather data and re-transmits it
+   on the low power 2.4Ghz radio to the gateway.
+
+ - Indoor gateway consisting of a USB connected Arduino Pro Mini +
+   low power 2.4Ghz radio on a custom built MenloNRFMini radio shield.
+   This is programmed with the MenloFramework (TM) and its Gateway application
+   module.
+
+ - The indoor gateway module is small and may be placed at the end of
+   a longer USB cable away from the RaspberryPi or Macbook Air. This is
+   to allow for better positioning of the antenna where required.
+
+ - Other Gateway hardware options are the SparkFun Pro Micro with embedded USB
+   or Teensy 3.1 ARM based microcontroller. In addition a standard Arduino
+   Uno, Mega, or Due may be used as well with the MenloNRFShield(TM). All are
+   supported by the MenloFramework(TM) and its Gateway application module.
+
+ - Indoor RaspberryPi, or MacBook Air running the MenloDweet server application
+   portion of the MenloFramework(TM) programmed using Node.js over the USB
+   connection to the gateway.
+
+ - RaspberryPi can be placed on a convenient window sill near a power outlet
+   and wirelessly connect to the LightHouse WeatherStation and WiFi.
+
+ - Bridge to the internet is through WiFi on the RaspberryPi or Macbook Air
+   through a standard commercial WiFi access point and internet service provider.
+
+ - Since the gateway/internet/cloud software is based on Node.js it can operate
+   on any platform that supports node and the npm package nodeserial USB serial
+   port access module.
+
+   Tested platforms include:
+
+     - Macbook Air
+     - Linux
+     - RaspberryPi Linux (Raspian)
+     - Microsoft Windows
+
+Hardware:
+
+ - Lighthouse is a modified garden lighthouse statue from Sportsmans Guide.
+
+ - Wind/Rain information is from Argent Data Systems and available through
+   sparkfun.com and directly interface to the SparkFun weather shield.
+
+ - GPS option is included in the SparkFun weather shield and supported
+   by the MenloFramework(TM) WeatherStation application module.
+
+ - Solar power is provided by a Harbor Freight 1.5W 12V battery charger/booster
+   solar panel into a standard 5 A/H 12V AGM alarm backup battery. Power for
+   the Weatherstation is provided through a low cost automobile 12V to USB
+   cell phone charger connected to the battery.
+
+Other Details:
+
+ - The model lighthouse provides full lighthouse/buoy functions with
+   programmable light sequence, color, rate.
+
+ - Automatically handles day/night through the light sensor.
+
+ - Can also be used as a continous walkway/garden light as well.
+
+ - Can change color and sequence remotely over the internet (cloud) to suit the
+   season.
+ 
+ - Can use cloud service to program on/off times, etc.
+
+ - Lighthouse light can be programmed to indicate weather station status
+   as well.

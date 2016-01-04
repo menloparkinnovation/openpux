@@ -1,0 +1,48 @@
+#!/bin/bash
+# /etc/init.d/dweet
+
+### BEGIN INIT INFO
+# Provides:          dweet
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: dweet /etc/init.d script
+# Description:       This service provides an IoT gateway service
+### END INIT INFO
+
+
+case "$1" in 
+    start)
+        echo "Starting dweet"
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/startdweet.sh
+        ;;
+    stop)
+        echo "Stopping dweet"
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/stopdweet.sh
+        ;;
+    restart)
+        echo "Restarting dweet, stop..."
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/stopdweet.sh
+        echo "Restarting dweet, start"
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/startdweet.sh
+        ;;
+    reload)
+        echo "reload Restarting dweet, stop..."
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/stopdweet.sh
+        echo "reload Restarting dweet, start"
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/startdweet.sh
+        ;;
+    force-reload)
+        echo "force-reload Restarting dweet, stop..."
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/stopdweet.sh
+        echo "force-reload Restarting dweet, start"
+        /home/pi/Smartpux/openpux/deploy/raspberrypi/dweet/startdweet.sh
+        ;;
+    *)
+        echo "Usage: /etc/init.d/dweet start|stop|restart|reload|force-reload"
+        exit 1
+        ;;
+esac
+
+exit 0

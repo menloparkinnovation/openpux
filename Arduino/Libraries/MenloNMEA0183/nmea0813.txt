@@ -1,0 +1,201 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+//
+// 12/13/2014
+//
+// See Node.js implementation for most up to date information.
+//
+
+//
+// NMEA 0183 Protocol Handler
+//
+// This handles the basic NMEA 0183 protocol and is
+// a conforming implementation.
+//
+// Menlo specific usages such as the DWEET and internet gateway
+// protocols are layered on top.
+//
+
+//
+// Smartpux Sentences
+//
+// $ - sentence start
+// P - proprietary sentance identifier
+// SPX - Smartpux three letter manufacturer id
+//
+// Standard NMEA 0183 style with each data item broken out as a NMEA 0183 word
+//
+// Smartpux Vendor (SPX) NMEA 0183 words:
+//
+// S0 - S999  sensors
+// D0 - D999  data items, readings
+// M0 - M999  control items, readings
+// C0 - C999  commands
+// U  - Update Time
+// Z0=xxx -   start of message sequence of count xxx including start
+// Z0 - Z999  Message sequence if present
+//
+// $PSPX,S=00,D0=0000,D1=0000,D2=0000,D3=0000,M0=0000,M1=0000,M2=0000*00<CR><LF>
+//
+// Embedded Web URL for low decode/encode overhead. Notice the Smartpux data
+// string is a single "word" in NMEA 0183.
+//
+// $PSPX,S=00&D0=0000&D1=0000&D2=0000&D3=0000&M0=0000&M1=0000&M2=0000*00<CR><LF>
+//
+// If no Zxx sequence specifier is present the message is standalone.
+//
+// Depending on the device, multiple readings/commands don't have to be
+// sent as an immutable sequence, but can consist of a series on indempotent
+// messages with additional readings and/or commands/masks. This is the
+// preferred method of operation.
+//
+//  First readings:
+// $PSPX,S=00&D0=0000&D1=0000&M0=0000&M1=0000*00<CR><LF>
+//
+// Additional readings indempotent:
+// $PSPX,S=00&D2=0000&D3=0000&M2=0000&M3=0000*00<CR><LF>
+//
+// Note additional indempotent readings can mix, updated previous values
+// $PSPX,S=00&D0=0000&D3=0000&M0=0000&M3=0000*00<CR><LF>
+//
+// Ordered message blocks. Not normally recommended, but some higher
+// level complex operations such as a firmware upload may require
+// an "all or nothing" in order data transfer.
+//
+// $PSPX,Z0=3,S=00&D0=0000&D1=0000&M0=0000&M1=0000*00<CR><LF>
+// $PSPX,Z1,D2=0000&D3=0000&M2=0000&M3=0000*00<CR><LF>
+// $PSPX,Z2,D4=0000&D5=0000&M4=0000&M5=0000*00<CR><LF>
+//
+
+//
+// Message strings use web URL escaping
+//
+// Single string
+//
+// $PSPX,A=Web%20URL%20Encoding*00<CR><LF>
+//
+// Sequence string which concats the strings together
+//
+// $PSPX,Z0=3,A=Web*00<CR><LF>
+// $PSPX,Z1,A=%20URL*00<CR><LF>
+// $PSPX,Z2,A=20Encoding*00<CR><LF>
+//
+
+//
+// Hex data as a series of bytes
+//
+// Each two ASCII characters is a hex representation
+// of a byte.
+//
+// This is four bytes 0x01, 0x02, 0x03, 0x04
+//
+// $PSPX,X=01020304*00<CR><LF>
+//
+// A large block of hex data can be sent using message
+// sequences
+//
+// This is 12 bytes:
+//
+//  0x01, 0x02, 0x03, 0x04
+//  0x01, 0x02, 0x03, 0x04
+//  0x01, 0x02, 0x03, 0x04
+//
+// $PSPX,Z0=3,X=01020304*00<CR><LF>
+// $PSPX,Z1,X=01020304*00<CR><LF>
+// $PSPX,Z2,X=01020304*00<CR><LF>
+//
+
+//
+// Line limit is 80 printable characters not including the line
+// terminators <CR><LF>
+//
+// This means a full buffer is 82 characters, 83 with null.
+// 
+// Maximum Payload calculation:
+//
+// $PSPX,  - 6 characters
+//
+//  ...   - Payload up to 71 characters
+//
+// *00     - 3 characters
+// <CR>    - Not counted
+// <LR>    - ""
+//
+
+//
+// NMEA 0183 uses an XOR of all characters after the sentence start character
+// "$" and does not include the check sum indicator character "*".
+//
+// Note: The caller is responsible for pointing to the first message
+// character and not at sentence start "$". In addition the checksum
+// follows character "*" is not included.
+//
+unsigned char
+checksum(char *s)
+{
+    unsigned char sum = 0;
+ 
+    //
+    // Note: Checksum is sent as a byte (two hex digits)
+    // so the accumulator is an unsigned char.
+    //
+
+    while(*s) {
+        sum ^= *s++;
+    }
+ 
+    return sum;
+}
+
+int
+send_data_char(char c)
+{
+  return 1;
+}
+
+int
+send_data_string(char *str)
+{
+  return 1;
+}
+
+//
+// Send a NMEA 0183 message
+//
+void
+send_message(char *message)
+{
+  unsigned checksum;
+
+  checksum = checksum(message);
+
+  // Send sentence start
+  send_data_char('$');
+  
+  // Send data
+  send_data_string(message);
+
+  // Send checksum present character
+  send_data_char('*');
+  
+  // Send checksum
+  printf("%02X", checksum);
+}

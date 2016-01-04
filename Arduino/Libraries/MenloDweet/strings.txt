@@ -1,0 +1,347 @@
+02/22/2015 generated from MenloSensorLightHouse which is 29k out of 30k
+
+cd /Applications/Arduino.app/Contents/Resources/Java/hardware/tools/avr/bin
+./avr-strings $HOME/tmp/MenloSensorLightHouse.cpp.elf
+
+sens0
+gate0
+$PDBG,PRINT=
+$PDWT
+0123456789ABCDEF
+LIGHTSTATUS=ON
+LIGHTSTATUS=OFF
+o"h&
+[*&*
+	r">1
+LightHouse: 02/16/2015
+__malloc_margin 0x
+ __malloc_heap_start 0x
+__heap_end 0x
+ &__heap_end 0x
+&__heap_start 0x
+__brkval 0x
+(.data+.bss)totalDataSize 0x
+ bssSize 0x
+ &__bss_end 0x
+(.bss)&__bss_start 0x
+ dataSize 0x
+ &__data_end 0x
+(.data)&__data_start 0x
+ Current HeapSize: 0x
+current heap_end: __brkval 0x
+ _heap_limit 0x
+&__heap_start 0x
+ stack allocated: stackSize 0x
+current_SP: 0x
+ (lower stack limit)_stack_limit 
+(stack upper limit)RAMEND 
+ ramSize 0x
+ RAMEND: 0x
+Ram range: &__data_start 0x
+ DebugValue(Program Line Number) 
+****!!!! MemoryOverflow Type 
+GuardRegion
+HeapOverflow
+StackOverflow
+StackCanary
+Configuration
+!!! MemoryOverflow OverflowType 
+Maximum Stack Used 
+Current StackSize 
+Current HeapSize 
+Unused Memory 0x
+ out of 0x
+Total Memory Commitment 0x
++++++
+.bss size: 0x
+.data size: 0x
+.data+.bss size: 0x
++++++
+*****
+.bss size: 0x
+.data size: 0x
+.data+.bss size: 0x
+*****
+ LINE: 
+FILE: 
+Assertion Failed!
+ErrorCode: 0x
+nRF24L01: --- PRESENT ---
+nRF24L01: --- NOT PRESENT ---
+ data=
+MIRF: Read Test RX_ADDR_PO SB 0x55 failure index=
+ data=
+MIRF: Read Test RX_ADDR_PO SB 0xAA failure index=
+OS_nRF24L01::Write Timeout waiting for send complete
+Write: Previous send not complete!
+OS_nRF24L01::WaitForSendComplete: Timeout waiting for send complete
+Timeout on response from server!
+AWRITE
+AWRITE
+AWRITE
+AWRITE
+AREAD
+AREAD
+AREF
+AREF
+EXTERNAL
+INTERNAL
+DEFAULT
+AREF
+DWRITE
+DWRITE
+DWRITE
+DWRITE
+DREAD
+DREAD
+PINMODE
+PINMODE
+INPUT_PULLUP
+OUTPUT
+INPUT
+PINMODE
+PINMODE
+LED_BUILTIN
+SETCONFIG
+SETCONFIG
+SETCONFIG
+FIRMWAREVERSION
+SETCONFIG
+SETCONFIG
+SETCONFIG
+VERSION
+SETCONFIG
+SETCONFIG
+SETCONFIG
+SERIAL
+SETCONFIG
+SETCONFIG
+SETCONFIG
+NAME
+SETCONFIG
+SETCONFIG
+SETCONFIG
+MODEL
+SETCONFIG
+GETCONFIG
+FIRMWAREVERSION
+GETCONFIG
+VERSION
+GETCONFIG
+SERIAL
+GETCONFIG
+NAME
+GETCONFIG
+MODEL
+GETCONFIG
+FLASHREAD
+FLASHREAD
+FLASHREAD
+FLASHREAD
+REGWRITE
+REGWRITE
+REGWRITE
+REGWRITE
+REGREAD
+REGREAD
+REGREAD
+REGREAD
+EEPROMWRITE
+EEPROMWRITE
+EEPROMWRITE
+EEPROMWRITE
+EEPROMWRITE
+EEPROMREAD
+EEPROMREAD
+EEPROMREAD
+EEPROMREAD
+MEMWRITE
+MEMWRITE
+MEMWRITE
+MEMWRITE
+MEMWRITE
+MEMREAD
+MEMREAD
+MEMREAD
+MEMREAD
+MEMSTATS
+MEMSTATS
+SETTRACELEVEL
+SETTRACELEVEL
+SETTRACELEVEL
+SETSTATE
+SETSTATE
+SETSTATE
+TRACELEVEL
+SETSTATE
+GETSTATE
+TRACELEVEL
+GETSTATE
+_REPLY=
+_ERROR=
+_UNSUP=
+error generating NMEA0183 sentence
+SETSTATE
+SETCONFIG
+SETSTATE
+SETCONFIG
+SETSTATE
+SETCONFIG
+SETSTATE
+SETCONFIG
+GETCONFIG
+GETCONFIG
+GETCONFIG
+GETCONFIG
+LIGHTSQ
+LIGHTSP
+SETSTATE
+SETSTATE
+LIGHTRAMP
+LIGHTCOLOR
+LIGHTTICK
+LIGHTPERIOD
+SETSTATE
+LIGHT
+SETSTATE
+LIGHTRAMP
+LIGHTCOLOR
+LIGHTTICK
+LIGHTPERIOD
+GETSTATE
+LIGHT
+GETSTATE
+LIGHTSP
+LIGHTSQ
+SETCONFIG
+SETCONFIG
+LIGHTRAMP
+LIGHTCOLOR
+LIGHTTICK
+LIGHTPERIOD
+SETCONFIG
+LIGHT
+SETCONFIG
+LIGHTRAMP
+LIGHTCOLOR
+LIGHTTICK
+LIGHTPERIOD
+GETCONFIG
+LIGHT
+GETCONFIG
+?OOO_Og
+APP@
+APP@0
+APP@
+APP@
+!/0/O-^-
+2w 	
+!P0@(
+#/3'"
+)/3'/p0p
+/p0p
+a/w'g
+!/0/
+/_?O1
+/_?O$
+O__O!
+O__O!
+._?O
+~(+,
+ r0p
+/_?O
+O__O
+-_?O
+O__O
+-_?O
+O__O
+-_?O
+O__O
+-_?O
+ //_
+O__O
+-_?O
+ //_
+O__O
+-_?O
+ //_
+O__O
+-_?O
+ //_
+O__O
+-_?O
+ //_
+I__O
+%_?O
+!_?O
+I__O 
+I__O
+%_?O
+A__O
+/_?O
+!_?O
+I__O 
+k.q,l
+I__O
+%_?O
+/_?OOO_O/
+!_?O
+I__O
+%_?O
+I__O
+%_?O
+!_?O
+O__OoO
+O__O
+-_?O
+O__O
+-_?O
+!P0@(
+/_?O
+APP@R
+/_?O8
+a/p/
+O__O
+#/'p
+p?_X
+O__O
+."#)
+O__O
+-_?O
+*//_
+."#)
+O__O
+-_?O
+*//_
+j-K-
+."#)
+N__O
+,_?O
+*//_
+."#)
+N__O
+,_?O
+*//_
+/_?O
+O__O
+-_?O
+K__O!
+O__O
+-_?O
+N__O
+/_?O 21
+,.-/_
+N__O
+._?O9
+._?O
+N__O
+BPP@P
+g/j_m70
+!P0@@@P@hQ|O!
+(+9+
+NUTO
+NUTO
+nUtO
+/_?O/s0p
+8!P0@@@P@V
+@/_?O/s0p

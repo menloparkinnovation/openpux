@@ -1,0 +1,33 @@
+
+Run Arduino, upload code, open Tools, Serial Monitor
+  - Select "Both NL & CR" in lower right menu
+
+# Turn off checksums
+$PDWT,SETSTATE=NOCHECKSUM:01*24
+
+Success Reply:
+$PDWT,SETSTATE_REPLY=NOCHECKSUM:01*29
+
+# Test NMEA messages
+
+# Wind
+$WIMWV,270,T,3.5,M,A*00
+
+# TemperatureF
+$WIXDR,T,75.1,F,TEMPERATURE*00
+
+# Barometer
+$WIXDR,P,101,K,BAROMETER*00
+
+# HUMIDITY
+$WIXDR,H,50.2,P,HUMIDITY*00
+
+# RainFall
+$WIXDR,R,1.11,I,RAIN*00
+
+# Battery
+$WIXDR,B,1.25,V,BATTERY*00
+
+# Solar
+$WIXDR,S,1.35,V,SOLAR*00
+

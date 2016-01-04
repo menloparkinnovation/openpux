@@ -1,0 +1,186 @@
+
+Power analysis
+04/20/2015
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: USB Phone Charger Power consumption data
+KEYWORDS: USB power adapter
+KEYWORDS: 12V to USB power converter
+KEYWORDS: other consumption data
+10/31/2015
+
+see embedded.txt, "KEYWORDS: USB Phone Charger Power consumption data"
+
+-----------------------------------------------------------------------------
+KEYWORDS: MenloSensor power consumption
+
+1.25v 600mah NiCD cell on a 3.3v boost converter.
+
+See arduino.txt, "KEYWORDS: Power"
+
+Power Consumption
+
+  70-85ma with radio powered on from previous testing
+   microcontroller
+   radio
+   LED flashing on and off (most likely off due to meter response time)
+
+-----------------------------------------------------------------------------
+KEYWORDS: NCP1402 boost converter scale factor
+04/20/2015
+
+A 1.25 -> 3.3v boost converter is used. Assume an 80%
+effciency
+
+This is an NCP1402 part.
+
+3.3 / 1.25 == 2.64
+ + 20%     == 3.168 factor
+
+-----------------------------------------------------------------------------
+KEYWORDS: Power Calculations
+04/20/2015
+
+Power calculations for Menlo Smartpux Fencepost light.
+
+3.2x factor is used according to NCP1402 data from
+"KEYWORDS: NCP1402 boost converter scale factor"
+
+8Mhz resonator on AtMega328
+
+3.3v, 8Mhz - 3.0 - 3.1 ma based on char on page 399
+  3.1 ma * (3.2) == 9.92ma from the battery
+
+  2600 / 9.92 == 262 hours
+  10 days.
+
+  600 / 9.92 == 60 hours
+
+----
+Led flashes at 20ma for 1/4 second every 4 seconds.
+
+20 * (3.2) == 64mq
+
+This is 1/16 of the period. 64ma / 16 == 4ma from the battery
+
+----
+
+13.5ma for nRF24L01 receive at 2Mbs
+
+11.3ma for transmit
+
+13.5 * (3.2) == 43.2ma
+
+----
+Totals
+
+Radio always on:
+
+   9.92ma microcontroller
+   4.0ma LED
+  43.2ma radio  
+  -------
+  57.12ma
+
+2600 mah / 57.12 == 45.51 hours
+
+2.x days
+
+600 mah / 57.12 == 10.5 hours
+
+Radio at 250ms per 30 seconds
+
+This is a 1/120 duty cycle.
+
+Radio 43.2ma / 20 == 2.16ma
+
+   9.92 ma microcontroller
+   4.00 ma LED at 1/4 sec every 4
+   2.16 ma radio at 1/4 sec every 30
+  -------
+  16.08 ma
+
+600 / 16.08 ma == 37 hours
+
+But the real benefit is being able to get enough energy
+into the battery during daylight hours, esp. on short
+and cloudy days and not direct lighting.
+
+2600 / 16.08 ma == 161 hours
+
+6.7 days
+
+----
+Put the microcontroller on a 1/4 sec every 5 second duty cycle
+
+This is 1/20 factor
+
+9.92 / 20 == 0.496 ma
+
+   0.496 ma microcontroller at 1/4 sec every 5 sec
+   4.000 ma LED at 1/4 sec every 4
+   2.160 ma radio at 1/4 sec every 30
+  -------
+   6.656 ma
+
+600 / 6.565 == 90 hours
+
+3.75 days
+
+2600 / 6.565 == 396 hours
+16.5 days
+
+----
+microcontroller alone
+
+2600 / 0.496 == 5241 hours
+
+218 days
+
+Likely double that with 1/8 second duty cycle on
+watchdog/sleep/wakeup sample cycle.
+
+Would only need to power on radio maybe once an hour
+for check in, unless some status changes.
+
+So 2 (AA) batteries could monitor an engine room for
+a year with only an hourly status ping, unless there
+has been a change outside a range that is a report early.
+
+----
+
+http://en.wikipedia.org/wiki/AA_battery
+2600 mah for an AA alkaline battery
+
+600 mah for an AA NiCD battery (on label)
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+
+-----------------------------------------------------------------------------
+KEYWORDS: 
+

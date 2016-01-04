@@ -1,0 +1,43 @@
+
+#
+# Run dweet
+#
+# Launch scripts are in scripts/...
+#
+
+dweet
+
+dweet -verbose -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet -verbose -traceerror -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet -verbose -traceerror -tracelog -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+# *** WARNING ***
+#
+# Do not edit files in lib\*.js that are copied by
+# copybom.sh below. They will be overwritten.
+#
+# Edit them in their original source locations.
+#
+# These are library/infrastructure files re-used among
+# multiple projects.
+#
+# *** WARNING ***
+
+# Pull from libraries into the release
+scripts/copybom.sh
+
+# Refresh after development to place it in /usr/local/bin/dweet
+sudo npm install . -g
+
+# Get node serialport npm first time
+sudo npm install serialport -g
+
+# Debugging
+dweet -verbose -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+# See roadmap.txt for various notes and code paths
+
+
+

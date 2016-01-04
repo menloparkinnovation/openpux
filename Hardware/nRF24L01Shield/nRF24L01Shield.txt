@@ -1,0 +1,362 @@
+
+Notes on nRF24L01Shield design
+
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+Log:
+
+05/28/2015
+
+ - Pin 9 works on Mega for Radio CSN.
+
+ - *** Check continuity of D10 to radio CS jumper block ***
+   - Does not work on Mega
+   - Actually works "sometimes" on Mega
+     - See some initial packets corrupted with C2 instead of 00
+       - then works.
+   - ?But does not Uno?
+
+ - Validated that 11, 12, 13 *do not* hookup to MOSI, MISO, SCK on ICSP
+   and radio sockets.
+
+   This is so there are no shorts on pins D11, D12, D13 on Arduino Mega
+   and Arduino Due.
+
+05/27/2015
+
+ - Fixed discrepency between board and schematic
+   - Don't delete "Value" of connector.
+   - "Smash" it, then delete value on silkscreen.
+
+ - Verified 10uf and 0.1uf capacitors are present
+
+ - Validated that IRQ2 is hooked up to hardware SPI sockets.
+   - Double duty as MOSI on soft SPI, so soft SPI has no interrupts.
+
+------------------------------------------------------------------------------
+KEYWORDS: pinout
+KEYWORDS: pin assignments
+05/10/2015
+
+RADIO_CSN jumber block
+  pin D4
+  pin D10 - Same as My SparkCore/RFDuino/Nordic combo shield
+
+Port assignment punch list
+Pin assignment punch list
+10/25/2014
+
+D0 - RX
+D1 - TX
+D2 - D2_RADIO_IRQ_S_MOSI - Dual use IRQL for hardware, MOSI for SoftwareSPI
+D3 - WIFI_EN
+D4 - CSN#1 - Secondary SPI CSN (used by Arduino WiFi for SD card, Nordic on Due)
+D5 - D5_S_MISO
+D6 - D6_S_CSN
+D7 - WIFI_INT (Arduino + CC3000)
+D8 - D8_S_SCK
+D9 - D9_RADIO_CE (used for both soft and hardware SPI on Radio) (same as my SparkCore shield)
+D10 - CSN#0 - Primary SPI CSN (WiFi, or radio if no WiFi)
+D11 - MOSI - Reserved, even though used off of ICSP header
+D12 - MISO - ""
+D13 - SCK -  ""
+
+------------------------------------------------------------------------------
+05/10/2015
+
+Trying to get schematic and board to be in sync
+ - showing DRC errors on jumper headers name/values
+
+------------------------------------------------------------------------------
+10/25/2014
+
+// WiFi module
+1.83 x 1.03 x 0.14 in (46.4 x 26.2 x 3.6 mm)
+
+// Nordic Radio module
+Radio dimenions are 1.3" x 0.7"
+
+   Sparkfun + Arduino WiFi is on right
+
+   AdaFruit WiFi is on left
+
+   ---
+
+   Need to validate the pin assignments used by the CC3000
+   WiFi driver.
+
+   Make sure they can be re-assigned to the Arduino WiFi assignments
+   that have been wired in the board design.
+
+   ---
+
+   Trouble with the copper keep out settings at the upper left
+   radio antenna area.
+
+   It's the brestrict/trestrict layers. keep out layers are
+   for component outlines.
+
+   ---
+
+   Figure out routing settings to not do a ground plane/copper first
+   routing, but a traditional "wire" trace routing.
+
+------------------------------------------------------------------------------
+SparkFun CC3000 WiFi Breakout
+10/25/2014
+
+Default software wiring:
+
+https://learn.sparkfun.com/tutorials/cc3000-hookup-guide
+
+GND → GND
+VCC → 5V
+MOSI → 11
+MISO → 12
+CS → 10
+INT → 2
+SCK → 13
+EN → 7
+
+1.83 x 1.03 x 0.14 in (46.4 x 26.2 x 3.6 mm)
+
+    -----
+1   | o | EN
+2   | o | SCK
+3   | o | INT
+4   | o | CS
+5   | o | MISO
+6   | o | MOSI
+7   | o | 3.3V
+8   | o | VCC
+9   | o | GND
+    -----
+
+   ---
+
+   see embedded/cc3000/cc3000.txt for more details.
+
+   The 3.3v signal is either an output voltage from its onboard regulator
+   if the 5V input is supplied. 
+
+   *** BOTH OF THESE SHOULD NOT BE HOOKED UP TO AN ARDUINO ***
+   It may allow use with a 3.3v only supply, but must research its
+   level converter and whether its "just works" with a 3.3v supply.
+   
+   Level shifter is a 74HC4050
+
+   http://www.nxp.com/documents/data_sheet/74HC4050.pdf
+   http://www.nxp.com/products/logic/level_shifters_translators/series/74HC4050.html
+
+   Supplied 3.3V supply.
+
+   The 3.3v output signals from the CC3000 chip are directly
+   connected to the header and the design relies on the fact
+   that Arduino 5v AtMega 328's will accept the 3.3v logic
+   high/low correctly even though they are a 5v input.
+
+   All input signals from the connector to the CC3000 are
+   through the 74HC4050 buffer and get converted to a maximum
+   3.3v output. It relies on the fact that the 74HC4050 can
+   accept 5v or 3.3v logic inputs even when powered at
+   3.3v.
+
+   This combination allows operation with either
+   3.3v or 5v depending on which power connection is
+   used to power the module.
+
+   ---
+
+// Dimensions
+1.83 x 1.03 x 0.14 in (46.4 x 26.2 x 3.6 mm)
+
+https://www.sparkfun.com/products/12072
+
+------------------------------------------------------------------------------
+KEYWORDS: Arduino Uno Hookup
+KEYWORDS: nRF24L01 Arduino Uno Hookup
+10/19/2014
+
+When a 10 pin colored ribbon cable is placed on it with pin 1 at the black
+end (ribbon cable is black, white, gray, purple, blue, green, yellow,
+orange, red, brown) with brown, red unused.
+
+// Ribbon cable wire color
+black  - VCC  (pin 3.3v)
+white  - GND  (pin GND)
+gray   - CSN  (pin D10)
+purple - CE   (pin D9)
+blue   - MOSI (ICSP pin 4)
+green  - SCK  (ICSP pin 3)
+yellow - IRQ  (NC)
+orange - MISO (ICSP pin 1)
+
+      A
+      R G
+      E N 1 1 1 1
+      F D 3 2 1 0 9 8  7 6 5 4 3 2 1 0
+-----------------------------------------
+| o o o o o o o o o o  o o o o o o o o  |
+|                                       |
+|                  UNO                  |
+---                                      \        Special Use Pins
+U  |                                      \            0 - RX
+S  |                                     O |           1 - TX
+B  |                         ICSP          |           3 - PWM
+---                         -------        |           5 - PWM
+|                  MISO   1 |o   o| 2 +5   |           6 - PWM
+|                  SCK    3 |o   o| 4 MOSI |          10 - CS
+|                  RESET  5 |o   o| 6 GND  |          11 - MOSI, PWM
+|                           -------        |          12 - MISO, PWM
+|                                          |          13 - SCK
+|                                          |
+|                                          |
+|                                          |
+-----                                      |
+PWR |                                    O |
+-----    o o o o o o o o   o o o o o o     |
+--------------------------------------------
+           I R 3 5 G G V   A A A A A A
+           O E . V N N i   0 1 2 3 4 5
+           R S 3   D D N
+           E E V
+           F T
+
+           Nordic
+
+--------------------------------
+|                              |
+|             Top of board     |
+|  A                           |
+|  N                   ---------
+|  T          (8) IRQ  | o   o |  MISO (7)
+|             (6) MOSI | o   o |  SCK  (5)
+|             (4) CSN  | o   o |  CE   (3)
+|             (2) VCC  | o  |o |  GND  (1)
+|                      ---------
+--------------------------------
+
+Radio dimenions are 1.3" x 0.7"
+
+-----------------------------------------------------------------------------
+KEYWORDS: ICSP Programming Header 6 pin
+06/17/2014
+
+         -------
+MISO   1 |o   o| 2 +5
+SCK    3 |o   o| 4 MOSI
+RESET  5 |o   o| 6 GND
+         -------
+
+1 MISO
+2 +5
+3 SCK
+4 MOSI
+5 RESET
+6 GND
+
+------------------------------------------------------------------------------
+NordicPinOuts.txt - embedded\NordicRadios
+
+-----------------------------------
+KEYWORDS: Eagle Schematic Pinouts
+10/15/2014
+
+Radio dimenions are 1.3" x 0.7"
+
+Drawn as the following in Eagle
+
+          -----
+  GND  1 |     | 2 3V3
+  CE   3 |     | 4 CSN
+  SCK  5 |     | 6 MOSI
+  MISO 7 |     | 8 IRQ
+          -----
+
+  M04X2PTH
+
+Module
+
+--------------------------------
+|                              |
+|             Top of board     |
+|  A                           |
+|  N                   ---------
+|  T          (8) IRQ  | o   o |  MISO (7)
+|             (6) MOSI | o   o |  SCK  (5)
+|             (4) CSN  | o   o |  CE   (3)
+|             (2) VCC  | o  |o |  GND  (1)
+|                      ---------
+--------------------------------
+
+------------------------------------------------------------------------------
+WiFi Shields
+
+These pointers show where the WiFi antenna is placed on the
+following popular shields.
+
+https://www.sparkfun.com/products/12071
+  Sparkfun cc3000 WiFi Shield antenna is near ICSP header (on right)
+  Same as Arduino WiFi.
+
+http://www.adafruit.com/product/1491
+  AdaFruit cc3000 WiFi Shield antenna is near power connector (on left)
+
+------------------------------------------------------------------------------
+Pin Assignments
+10/23/2014
+
+This provides the software configuration for existing Nordic radio
+and WiFi shields hookup.
+
+---------
+MenloGateway.ino
+
+SoftwareSPI
+
+// Software SPI assignments
+const uint8_t nRF24L01_Mosi = 2;
+const uint8_t nRF24L01_Miso = 3; // (PWM)
+const uint8_t nRF24L01_Sck = 8;
+
+const uint8_t nRF24L01_CE = 5;  // (PWM)
+const uint8_t nRF24L01_CSN = 6; // (PWM)
+
+---------
+ArduinoMenloSensor.ino
+
+// Control assignments
+const uint8_t nRF24L01_CE = 9;
+const uint8_t nRF24L01_CSN = 10;
+const uint8_t nRF24LO1_IRQ = 0xFF;
+
+MISO, MOSI, SCK on ICSP header
+
+---------
+------------------------------------------------------------------------------
+Done items
+10/25/2014
+
+   #Need to add a 3 way jumper to select 3.3v or 5v input to the WiFi.
+
+   The 3.3v signal is either an output voltage from its onboard regulator
+   if the 5V input is supplied. 
+
+   *** BOTH OF THESE SHOULD NOT BE HOOKED UP TO AN ARDUINO ***
+   It may allow use with a 3.3v only supply, but must research its
+   level converter and whether its "just works" with a 3.3v supply.
+   
+   http://www.nxp.com/documents/data_sheet/74HC4050.pdf
+   http://www.nxp.com/products/logic/level_shifters_translators/series/74HC4050.html
+
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+------------------------------------------------------------------------------
+

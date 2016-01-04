@@ -1,0 +1,20 @@
+{
+  "name": "dweet",
+  "version": "1.0.0",
+  "description": "MenloFramework Dweet Device Control Utility",
+  "main": "dweet.js",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+
+  "author": "http://menloparkinnovation.com",
+  "license": "MIT",
+
+  "bin": {
+    "dweet": "./bin/dweet"
+  },
+  "main": "./lib/dweet",
+  "directories": {
+    "lib": "./lib"
+  }
+}

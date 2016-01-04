@@ -1,0 +1,50 @@
+
+Also see pinout_master.txt
+
+  Smartpux/Hardware/pinout_master.txt
+
+------------------------------------------------------------------------------
+KEYWORDS: MenloSensor
+KEYWORDS: IntegratedSensor
+KEYWORDS: FencePostLight
+KEYWORDS: FTDI hookup
+11/24/2015
+
+FTDI Chip faces to the left <====
+
+Backside of FTDI adapter board with black connector faces right ==>
+
+
+             +---- ---+
+             | Nordic |
+             |  Ant   |
+             |        |
+          +-------------------+
+          |                   |
+ FTDI     |                   |
+          |           +-----+ |
++----+    |           |  A  | |
+|GND |-   | o GND     |  T  | |
+|CTS |-   | o CTS     |  M  | |
+|VCC |-   | o VCC     |  E  | |
+|TXO |-   | o RXD     |  G  | |
+|RXI |-   | o TXD     |  A  | |
+|DTR |-   | o RTS     |     | |
++----+    |           |  3  | |
+          |           |  2  | |
+          |           |  8  | |
+          |           |     | |
+          |           +-----+ |
+          |            o o o  | ICSP Header
+          |            o o o  |
+          +-------------------+
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+

@@ -1,0 +1,45 @@
+
+Manually start/stop openpux after setup:
+
+sudo sh
+/etc/init.d/openpux start
+/etc/init.d/openpux stop
+/etc/init.d/openpux restart
+
+check status with:
+sudo sh
+export HOME=/
+
+forever list
+forever logs
+
+#
+# Setup openpux
+#
+
+#install node.js (see nodejs directory)
+
+# install aws-sdk support
+npm install aws-sdk
+
+# install forever
+npm install forever -g
+
+# provision aws credentials
+mkdir /home/pi/.aws
+cp /home/pi/Smartpux/private/aws/* $HOME/.aws
+
+# root as well for services
+mkdir /root/.aws
+cp /home/pi/Smartpux/private/aws/* /root/.aws
+
+mkdir /.aws
+cp /home/pi/Smartpux/private/aws/* /.aws
+
+# setup /etc/init.d
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/raspberrypi2/openpux/openpux /etc/init.d
+
+update-rc.d openpux defaults
+

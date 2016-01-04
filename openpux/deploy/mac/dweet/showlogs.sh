@@ -1,0 +1,1 @@
+forever logs dweet.sh

@@ -1,0 +1,110 @@
+
+04/15/2015
+
+Dweet Model
+
+The Dweet Modules provide the configuration settings and state management for
+an embedded application object.
+
+An application object such as MenloRadio provides the ability to set parameters
+such as channel, receive address, power timer, etc. The Menlo Dweet module provides
+a table drive configuration set for each of these settings.
+
+The object exports a simple set of methods use to get/set the parameters
+at runtime. Its a single method per parameter with a boolean for isSet. This
+saves code space on small embeded microcontrollers.
+
+The Dweet module is responsible for updating the EEPROM configuration store in
+response to dweet SETCONFIG commands, retrieving these values as requested
+by a remote client (GETCONFIG command). Power on defaults are loaded from the
+previous configurations seen from SETCONFIG commands.
+
+Runtime settings are forwarded to the exported methods in response to the
+GETSTATE (isSet == false) and SETSTATE (isSet == true).
+
+The power on configuration handler will use the SETSTATE operation
+to provide initial power on configuration.
+
+Conceptually this operates as the command and control module for
+a given object whose properties are exported remotely. It does the job
+of an RPC dispatcher, and configuration management subsystem.
+
+
+04/17/2015
+
+Documentation of table driven handlers.
+
+//
+// Table driven handlers for GETCONFIG/SETCONFIG and
+// GETSTATE/SETSTATE use these parmeters structures.
+//
+//
+// The values are supplied by the application subsystem
+// to configure the settings and reponses.
+//
+// This is designed so that these tables may be in read-only
+// flash program memory, or constant read-only data space
+// of processors that support it. This is very important
+// for AtMega family processors with small ram spaces, but
+// more moderately sized code spaces. The portable routines
+// used deal with any special instructions and compiler typing
+// required for access to the tables in code space/constant
+// memory space.
+//
+// Input Parameters:
+//
+// stringTable
+//
+//   Table of pointers to strings (in constant/program memory) that represent
+//   the individual commands. This is arranged so that only one copy of
+//   any given string is used in a given firmware load saving space.
+//
+// functionTable
+//
+//   Table of function pointers with the following signature that are
+//   invoked for GETSTATE/SETSTATE actions. These functions represent
+//   property methods on an application object. This is typically re-defined
+//   to the type of the class exporting properties.
+//
+//    typedef int (MenloObject::*StateMethod)(char* buf, int size, bool isSet);
+//
+//      buf - buffer that supplies a value to set, or to return a value
+//
+//      size - maximum size of the buffer including any '\0' character
+//
+//      isSet - true if this is a SETSTATE operation, false is a GETSTATE operation.
+//
+//     object - The object whose function is invoked
+//
+//     indexTable - Table of configurating data indexes. This is configuration
+//              data stored as '\0' terminated strings in EEPROM space, or
+//              it emulation.
+//
+//              If an index is 0 it means the given entry has not persistent
+//              configuration storage in EEPROM.
+//     
+//     sizeTable - Table of configuration data sizes which include any terminating
+//              '\0'.
+//     
+//              Each size entry determines the maximum size of any get/set properties
+//              calls.
+//     
+//     tableEntries - Number of entries in the tables. All tables must be the
+//              same size and their index match for each object.
+//     
+//     workingBuffer - Caller supplied buffer that must represent the maximum
+//              of any value in the sizeTable, including any '\0' terminator.
+//     
+//     checksumIndex - If not equal 0 is the EEPROM configuration address
+//              for a two byte checksum that represents a configuration range.
+//     
+//     checksumBlockStart - Starting address in EEPROM of a checksum block
+//              for the parameters. This is used to re-calculate the checksum
+//              on SETCONFIG, and validate the settings on power on reset.
+//     
+//     checksumBlockSize - Size of the range that the checksum block represents.
+//     
+//     name - Runtime name being presented for an operation such as GETCONFIG, etc.
+//     
+//     value - The value of the object/property name being set, such as "RADIOCHANNEL".
+//     

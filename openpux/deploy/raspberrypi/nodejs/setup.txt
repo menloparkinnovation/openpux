@@ -1,0 +1,15 @@
+
+Setup Node.js using the following scripts. apt-get nodejs does not work currently
+at least on Model B's as of 11/29/2015.
+
+cd /home/pi
+wget http://nodejs.org/download/release/v0.10.16/node-v0.10.16-linux-arm-pi.tar.gz
+tar xvfz node-v0.10.16-linux-arm-pi.tar.gz
+sudo mv node-v0.10.16-linux-arm-pi /opt/node
+
+*OR*
+
+Smartpux/openpux/deploy/raspberrypi/nodejs/get_node_js.sh
+Smartpux/openpux/deploy/raspberrypi/nodejs/extract_node_js.sh
+
+sudo mv node-v0.10.16-linux-arm-pi /opt/node

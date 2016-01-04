@@ -1,0 +1,90 @@
+#
+# Startup RadioGateway on Arduino Due and enter Dweet command console prompt.
+#
+# Note: Full radio configuration must be setup here since currently
+# the Due has no EEPROM storage.
+#
+#
+
+# Setup manufacturing information
+setconfig name=RadioGatewayDue
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000010
+
+#
+# Setup the radio parameters
+#
+# Note: This uses low level direct "dweet xxx" commands until
+# the radio package is created which will allow "setconfig radiochannel=xx"
+#
+
+# Sometimes initial commands get dropped
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETCONFIG=RADIOCHANNEL:01
+
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIOTXADDR:73656E7330
+dweet SETSTATE=RADIOTXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIORXADDR:6761746530
+dweet SETSTATE=RADIORXADDR:6761746530
+
+# Configure Radio Power Timer to off (radio always on) for gateway
+dweet SETCONFIG=RADIOPOWERTIMER:00
+dweet SETSTATE=RADIOPOWERTIMER:00
+
+# Default Options to 0
+#dweet SETCONFIG=RADIOOPTIONS:00
+#dweet SETSTATE=RADIOOPTIONS:00
+
+# Default RADIOGATEWAY to on
+dweet SETCONFIG=RADIOGATEWAY:ON
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# Open the target so we can monitor it through the Dweet console
+# If this is commented out the Arduino IDE serial monitor is used or
+# the device is being operated remotely soley through the radio serial gatewway.
+#open /dev/tty.usbmodem1411 sens0
+
+# Open the gateway
+# Note: Already open at launch from the command line. This is for when no
+# port is specified on the command line.
+#open /dev/tty.usbmodem1421 gate0
+
+# See if configured
+# this can timeout on first connection due to board initialization so its
+# done twice.
+getconfig name
+
+getconfig name
+
+getconfig model
+getconfig serial
+
+# Display active radio settings
+#dweet GETSTATE=RADIOCHANNEL
+#dweet GETSTATE=RADIOTXADDR
+#dweet GETSTATE=RADIORXADDR
+dweet GETSTATE=RADIOGATEWAY
+
+# DEBUG: Set detailed tracing on the gateway channel
+#settrace 10
+
+# Turn on radio gateway
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# DEBUG: Show details of Dweet + NMEA 0183 exchanges
+#showdweet
+#shownmea
+
+# Configure gateway routine for Dweet command console
+# This makes radio0 currently selected.
+radiogateway radio0 /dev/tty.usbmodem1421
+
+# DEBUG: Set detailed tracing on the radio serial channel
+#settrace 10

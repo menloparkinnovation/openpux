@@ -1,0 +1,216 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ *
+ */
+
+05/18/2015
+
+Power Consumption of WeatherStation Analysis
+
+When I think of a WeatherStation I picture some remote location, such
+as a rocky island monitoring weather conditions and reporting back
+over some radio link. Even if your back porch or rooftop is not
+so esoteric, it can be inconvenient to get A/C power to the location.
+
+In addition, being a home built product, not connecting to the A/C mains
+has its peace of mind advantages as well, even if connecting through
+a low cost "wall wart" A/C adapter.
+
+So it makes sense to power the WeatherStation from some sort of
+rechargable battery. In addition, to provide "maintenance free" operation
+it is desirable to charge the battery with solar power as well. So a
+solar powered weatherstation is just the ticket here, and even has
+"green" credentials by leveraging harvested energy from the sun.
+
+A custom solar power system can be built consisting of a storage
+battery, solar panel(s), a power converter, and a charging system
+controller. Such systems are projects in themselves, and can certainly
+be utilized by this project provided the proper 5V is made available to the
+system.
+
+But one of the things I like about hacking and home built equipment
+is looking for what can be leveraged. In this case existing low cost
+batteries, solar panels and power converters in the consumer market
+can be re-purposed.
+
+So for the Menlo WeatherStation the following configuration has been
+setup:
+
+1) A 5 Amp/Hour Sealed Home alarm storage battery (Amazon $14.99)
+
+2) A Harbor Freight 1.5W 12V battery "charge maintainer" solar panel ($15.99)
+
+3) A low cost 12V USB car adapter (Amazon $12.99 heavy duty 3 port, $6.99 single)
+
+The battery is housed inside a "LightHouse" garden sculpture and the solar
+panel is mounted on a porch railing or other convenient place.
+
+The electronics may be placed inside a clear "otter box", or in my case
+the garden LightHouse casting.
+
+Solar Panel Output:
+
+In order to get an idea of what we are working with the output of
+the solar panel connected to a partially discharged battery on
+a bright sunny day was measured as 90ma at 12.4v.
+
+This is 1.116 watts vs. its 1.5 rating. In this case the panel was
+laying down flat on a railing, and with better positioning and less
+battery charge we may see closer to its rated 1.5W output. This was
+a May day, but at a high latitude in the Pacific Northwest.
+
+
+Power Consumption:
+
+All power consumption is measured at the battery end at 12V
+and represents what is actually drawn through the power converter
+to the Arduino/WeatherShield.
+
+All meaurements were done with a Fluke Model 179 Multimeter.
+
+The WeatherShield is paired with the SparkFun "RedBoard" Arduino Uno
+clone and has the optional GPS installed and functional.
+
+The USB cable is plugged into the Redboard/Arduino as usual
+and is powered from the 12V to USB adapter. Both the low cost
+($6.99) single port and higher cost ($12.99) triple port
+adapters were tested.
+
+The theory here is that the DC to DC converter inside the
+12V to USB adapter is more efficient than the linear voltage
+regulator on the Arduino which just burns off the extra 7v
+(more than half our power!) as heat.
+
+Measurements were taken with the GPS unit off, and then on.
+
+The MenloFramework makes this easy to set as a persistent EEPROM
+setting for testing. Runtime control of the GPS power is provided
+in the WeatherStation application using the Menlo Dweet protocol,
+which utilizes NMEA 0183 sentence structure.
+
+The following NMEA 0183 commands may be entered at the Arduino IDE's
+Serial Monitor. Remember to select the "CR + LF" in the drop down
+in the right lower corner. When you hit <enter> or "send" it
+will add \r\n to the end of the sentences which is required.
+
+GPS always off:
+  $PDWT,SETCONFIG=GPSPOWER:0*5F
+
+GPS always on
+  $PDWT,SETCONFIG=GPSPOWER:1*5E
+
+From dweet Node.js console:
+
+  dweet SETCONFIG=GPSPOWER:0
+  dweet SETCONFIG=GPSPOWER:1
+
+The three measurements are:
+ 1) idle current with no load
+ 2) Current with GPS off
+ 3) Current with GPS on
+
+Low cost single port (1A) 12V to USB adapter
+
+   1) 4.33 ma (has an always on blue LED)
+   2) 18.05 ma (GPS off)
+   3) 55 ma  (GPS on)
+
+Heavy duty three port (5A) 12V to USB adapter
+
+   1) 1.99 ma
+   2) 13 ma (GPS off)
+   3) 45 ma (GPS on)
+
+On board linear regulator through 12V barrel jack
+
+   1) not applicable
+   2) 25 ma (GPS off)
+   3) 96 ma (GPS on)
+
+Surprisingly the heavier duty one 12V to USB adapter with
+(3) USB outlets and rated for 5 total amps is more efficient
+and has a lower no load idle current. It is lacking the power draining
+always on LED's of the cheaper one.
+
+As expected the on board linear voltage regulator is a poor
+choice when powering from 12V and energy conservation is a must.
+It requires twice the current of the more efficient DC to DC
+converter. Even the cheap DC to DC converter significantly cuts
+current consumption.
+
+Analysis:
+
+Being conservative and assuming 8 hours a day at moderate solar panel
+output (90ma) the WeatherStation with GPS off can be continuously powered
+on at 13ma. This leaves plenty of room for charging losses, cloudy
+days, less than ideal panel positioning, etc.
+
+The GPS can be placed on a schedule to operate periodically
+to keep the average power consumption down. Situations which
+desire/require constant GPS monitoring can use a larger solar
+panel, better positioning, or be lucky enough to be in Hawaii
+or South Florida :-)
+
+Other Considerations:
+
+The current version of WeatherStation sends its readings as
+NMEA 0183 data out the main Arduino serial port. Getting this
+data into a computer and then relayed to the Cloud requires
+additional power for a radio such as a Nordic nRF24L01
+(13 ma at 3.3v when transmitting), WiFi (300ma at 5V when transmitting),
+or Cellular (up to 500ma when transmitting).
+
+Other radios such as an XBee require 45-50ma at 3.3v.
+
+Remember to convert the above voltage and current requirements
+to what they would draw at 12V through an 80% efficient DC to DC
+converter. For example the XBee at 50ma and 3.3v would add
+an additional ~16.5ma at 12v.
+
+Connecting to a small computer such as RaspberryPI would draw even more
+current (1A or more) so its recommended to use one of the radio
+solutions outlined above to relay the data to a computer powered
+by a more convenient A/C power source indoors. A headless RaspberryPi
+sitting on an indoor window sill near an outlet with a USB WiFi stick
+is ideal for this and can run the MenloFrameworks accompanying Node.js
+based IoT Cloud gateway applications.
+
+Improving the situation:
+
+1) Arduino's have linear regulators and on board LED's.
+
+   A controller designed for long term battery operation with
+   no on board power supplies and LED's would have less parasitic
+   losses. (LED's are OK provided they are under software control).
+
+2) A more efficient DC to DC converter may be sourced, but
+the low cost 12V to USB converters seem to do a fair job.
+
+3) The biggest win is keeping the GPS mostly off, and only
+turning it for samples a few times a day. Most WeatherStations
+don't move :-)
+
+4) Sleep modes on the processor may be used. This has not
+been explored in this situation since the desire is an "always on"
+NMEA 0183 streaming WeatherStation. As such a larger 1.5W solar
+panel has been specified vs. a much smaller one, or longer term
+battery only operation.
+
+menloparkinnovation@menloparkinnovation.com
+

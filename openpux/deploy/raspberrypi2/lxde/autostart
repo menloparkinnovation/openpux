@@ -1,0 +1,7 @@
+@lxpanel --profile LXDE-pi
+@pcmanfm --desktop --profile LXDE-pi
+@xscreensaver -no-splash
+@xset s off
+@xset -dpms
+@xset s noblank
+@epiphany-browser --profile=/home/pi -a http://localhost:8080/weather/weatherpi.html

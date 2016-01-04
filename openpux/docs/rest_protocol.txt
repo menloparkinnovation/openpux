@@ -1,0 +1,305 @@
+
+11/03/2015
+
+            callback("ItemAlreadyExists", error);
+            callback("ItemDoesNotExist", null);
+
+
+10/02/2015
+
+Error handling responses:
+
+When the server has an an error its set as the HTTP status code.
+
+If the error is a result of the servers processing of the request,
+a response entity (return document) is sent according to the format
+accepted by the HTTP client. For openpux this is JSON except for
+the short form sensor data updates which is url encoded.
+
+The format of this JSON document is a java script object with
+the following format:
+
+{
+  "status": http status,
+  "error": "server/application error string"
+}
+
+"status" is required of every response.
+"error" is required if status != 200.
+
+Optional error returns:
+"errorentity": HTTP response document that can not be processed.
+               status gets set to "415" by library.
+
+"message": Optional Detailed message about the error to aid in diagnosis.
+           Examples would be if the server has trouble reaching the backing store.
+
+"developer": Optional developer message about errors in programming/protocol
+             usage.
+             Examples are an improperly formatted REST URL or JSON document
+             entity in the request.
+
+javascript callbacks from openpuxlibrary.js
+
+ Operations to the library are presented as Javascript objects, and
+ results are returned as Javascript objects.
+
+ The standard Javascript/node.js callback pattern of
+ callback(error, result) is used.
+
+ If error != null, it contains an error message string describing the
+ condition. This is returned for early errors which have not been able
+ to communicate a transaction. These errors are rare. result == null in this
+ case.
+
+ The result is a Javascript object which follows the pattern described
+ above as to status, error, etc. It's from a document returned from the remote
+ server, or generated internally by the library when processing an HTTP
+ request.
+
+09/21/2015
+
+//
+// All operations are application/json and exchange JSON documents.
+//
+// /api/<version>/accounts/<AccountID>
+// /api/<version>/accounts/<AccountID>/sensors/<SensorID>
+// /api/<version>/accounts/<AccountID>/sensors/<SensorID>/settings
+// /api/<version>/accounts/<AccountID>/sensors/<SensorID>/readings
+//
+// /api/v1/accounts/1
+//   GET  - return account attributes
+//   POST - set account attributes
+// 
+// /api/v1/accounts/1/sensors/1
+//   GET  - return sensor attributes
+//   POST - set sensor attributes
+//
+// /api/v1/accounts/1/sensors/1/settings
+//   GET  - return sensor operational settings attributes
+//   POST - set sensor settings attributes
+//
+// /api/v1/accounts/1/sensors/1/readings
+//   POST - add a new sensor reading attribute set
+//
+// /api/v1/accounts/1/sensors/1/readings?latestcount=1
+//   GET  - return latest sensor reading attribute set
+//
+// /api/v1/accounts/1/sensors/1/readings/<ReadingID>
+//   GET  - return specified sensor reading attributes
+//
+// Request JSON Document Template:
+//
+// {
+//  "account": "1",
+//  "passcode": "12345678",
+//  "command": "addaccount",
+//  "ticket": "some_really_long_crypto_string--------",
+//  "items": {
+//    "NewAccountID": "2",
+//    "NewAccountPassCode": "12345678"
+//   }
+// }
+//
+// Response JSON Document Template:
+//
+// {
+//   "status": "200 OK",
+//   "error": "error message",
+//   "items:" {
+//       "SensorReading0": "0",
+//       "TargetMask0": "1"
+//   }
+// }
+//
+
+//
+// 09/08/2015
+//
+// TODO: Additional thoughts, "North Star"
+//
+// Everything is a basic object with attributes.
+//
+// Attributes are simple names and string data values.
+//
+// You get and post objects consisting of a series of these attributes.
+// Some basic attributes are pre-defined for certain objects such as
+// (AccountID, PassCode, SensorID, TimeStamp) while the rest are open ended.
+//
+// As far as openpux is concerned any attributes sent on set are passed to the
+// persistent storage layer. Any validation or constraints are the
+// responsibility of the persistent storage layer.
+//
+// If the persistent storage layer accepts an object and its attributes
+// the object and attributes are available for retrieval by get.
+//
+// Current objects supported by openpux:
+//
+// Account - supports many accounts
+//   Sensor - supports many sensors per account
+//     SensorSettings - supports one set of settings per sensor
+//     SensorReading - supports many readings per sensor (bulk of data)
+//
+// TODO: standardize URL's!
+//
+//  - get object, return attribute list
+//  - set object, attribute list
+//
+// "/smartpuxdata/data" - query string format entry
+//  GET "/smartpuxdata/data?A=1&P=12345678&S=1" - get settings
+//
+// Content-Type: "application/x-www-form-urlencoded"
+//
+//  GET "/smartpuxdata/REST/account - account object
+//  GET "/smartpuxdata/REST/account/sensor - sensor object
+//  GET "/smartpuxdata/REST/account/sensor/settings - sensor settings object
+//  GET "/smartpuxdata/REST/account/sensor/readings - sensor readings object
+//
+//  GET "/smartpuxdata/REST/account?P=12345678 - get account information
+//  GET "/smartpuxdata/REST/account/sensor?P=12345678 - get sensor information
+//  GET "/smartpuxdata/REST/account/sensor/settings?P=12345678 - get sensor settings
+//  GET "/smartpuxdata/REST/account/sensor/readings?P=12345678 - get sensor readings
+//
+//  Allow both to be done by GET query, POST document
+//
+//  Allow translation of shortform for query string format
+//
+// TODO: Allow non-matching shortform attributes to pass through un-translated
+//
+// TODO: Add support for open ended attributes
+//
+// TODO: Add support for JSON document send/receive
+//
+// TODO: Add support for everything possible through GET for curl.
+//   - document that only send readings is for short form.
+//
+// TODO: Add automated browser UI testing.
+//
+
+------------------------------------------------------------------------------
+KEYWORDS: Protocol and Data Schema
+09/08/2015
+
+//
+// Openpux supports generic IoT protocols.
+//
+// At a base level it represents sending an object with attributes
+// to the server, and receiving one in response.
+//
+// The attributes can be any simple string without special characters.
+// Allowed characters for attributes are a-z, A-Z, 0-9.
+//
+// A few well known attributes are required to represent an AccountID,
+// SensorID, and a PassCode.
+//
+// IoT applications use these objects to represent sensor readings,
+// and sensor settings or target states. Its expected that sensor readings
+// include not only environmental readings from a sensor, but also
+// communicate internal state information about the sensor such as
+// current settings. This way sensors become "eventually consistent"
+// with servers even if messages are lost.
+//
+// The general protocol supports the submission and return of JSON
+// documents which are easily converted to/from Javascript objects
+// in browsers, node.js, or even by native code libraries.
+//
+// For memory constrained devices an alternative form is available
+// in which an object may be represented in query string form
+// such as "AccountID=1&PassCode=12345678&SensorID=1". This is also useful
+// for testing with tools such as curl.
+//
+// Content-Type: "application/x-www-form-urlencoded"
+//
+// For very small devices and/or low bandwidth networks such as
+// SMS/text messaging a limited number of generic well known attributes
+// may be represented in a shorthand form consisting of one or two characters.
+// The short hand form is only supported with the querystring string option
+// above and are not available when exchanging JSON documents.
+//
+// These well known attributes are choosen to be generic to IoT devices and
+// can be mapped readily to specific IoT applications. The client side web
+// interface supports specialization files to perform this mapping for a
+// specific IoT application using generic attributes.
+//
+// Only the following shortform mappings are supported:
+//
+// (see openpuxclient.js, g_shortFormTable for latest)
+//
+//    "AccountID":      "A",
+//    "PassCode":       "P",
+//    "SensorID":       "S",
+//    "Command":        "C",
+//    "SleepTime":      "T",
+//    "TargetMask0":    "M0",
+//           ..
+//    "TargetMask9":    "M9",
+//    "SensorReading0": "D0",
+//           ..
+//    "SensorReading9": "D9",
+//
+// Example querystring: "A=1&P=12345678&S=1&M0=1234&S0=0001"
+//
+
+------------------------------------------------------------------------------
+KEYWORDS: REST URL'S
+09/08/2015
+
+//
+// REST URL's
+//
+// -- querySensorSettings
+// GET "/smartpuxdata/dataapp/REST/account/passcode/sensorid
+// GET Content-Type: "application/x-www-form-urlencoded"
+// Note: no other information than basic sensorid description string
+//
+// -- updateSensorSettings
+// POST URL:
+// "/smartpuxdata/dataapp/REST/account/passcode/sensorid/settargetmask?SleepTime=30&TargetMask0=0"
+// POST Content-Type: "application/x-www-form-urlencoded"
+// POST Document: null
+//
+// -- querySensorReadings
+// GET "/smartpuxdata/dataapp/REST/account/passcode/sensorid/querydata?latestcount=1"
+// GET "/smartpuxdata/dataapp/REST/account/passcode/sensorid/querydata?startDate=xxx&endDate=xxx"
+// GET Content-Type: "application/x-www-form-urlencoded"
+//
+// Date format example:
+// /querydata?startDate=2013:01:01:00:00:00&endDate=2022:01:01:00:00:01
+//
+// -- addSensorReading
+// POST URL: "/smartpuxdata/data"
+// POST Content-Type: "application/x-www-form-urlencoded"
+// POST Document: "A=1&P=12345678&S=1&T=30&D0=1&M0=1"
+//
+// Note: all information is provided in the shortform post document.
+//
+//   No REST, or other data access verbs in URL.
+//
+//   This is intended for small memory sensors as a most basic
+//   path that fits inside of an Arduino WiFi sketch on a
+//   32k Flash/2k ram AtMega328.
+//
+//   The messages are also short enough to transport over
+//   SMS/text message gateways for low cost cellular connected
+//   sensors, and/or their gateways. So this form is useful for
+//   even higher powered sensors, but connected over limited
+//   bandwidth networks.
+//
+// The following short form mappings are supported:
+//
+//    "AccountID":      "A",
+//    "PassCode":       "P",
+//    "SensorID":       "S",
+//    "Command":        "C",
+//    "SleepTime":      "T",
+//    "TargetMask0":    "M0",
+//           ..
+//    "TargetMask9":    "M9",
+//    "SensorReading0": "D0",
+//           ..
+//    "SensorReading9": "D9",
+//
+// see openpuxclient.js, g_shortFormTable for the suported short form mappings.
+//
+
+

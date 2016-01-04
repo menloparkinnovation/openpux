@@ -1,0 +1,57 @@
+
+/*
+  * From https://github.com/esquiloio/lib/blob/master/demos/weather/angular/weather.css
+  * 10/19/2015
+  *
+  * Weather Station Demo (AngularJS version)
+  *
+  * See README.md for more information.
+  *
+  * This work is released under the Creative Commons Zero (CC0) license.
+  * See http://creativecommons.org/publicdomain/zero/1.0/
+  */
+
+head,h1 {
+  font-size: 20px;
+}
+
+body {
+  margin: 0;
+  padding: 10px;
+  font-family: "Helvetica Neue",Helvetica,Arial,sans-serif;
+  font-size: 14px;
+  line-height: 0;
+  color: #333;
+  background-color: #FFF;
+}
+
+.column {
+   width: 200px;
+   height: 200px;
+   display: inline-block;
+   text-align: center;
+}
+
+.gauge {
+  width: 200px;
+  height: 145px;
+}
+
+.gauge-base {
+  stroke: #edebeb;
+  fill: none;
+}
+
+.gauge-progress {
+  stroke: #039deb;
+  fill: none;
+}
+
+.gauge-value {
+  font-weight: 700;
+  font-size: 1.3em;
+}
+
+.gauge-min, .gauge-max {
+  fill: #b3bb3;
+}

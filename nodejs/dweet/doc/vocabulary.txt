@@ -1,0 +1,430 @@
+01/31/2015
+
+Quick Start/Overview
+
+// Get/Set state of the device. 
+GETSTATE=item
+GETSTATE_REPLY=item:value
+GETSTATE_ERROR=item
+GETSTATE_UNSUP=item
+
+SETSTATE=item:value
+SETSTATE_REPLY=item:value
+SETSTATE_ERROR=item:value
+SETSTATE_UNSUP=item:value
+
+// Get/Set the non-volatile configuration of the device
+GETCONFIG=item
+GETCONFIG_REPLY=item:value
+GETCONFIG_ERROR=item
+GETCONFIG_UNSUP=item
+
+SETCONFIG=item:value
+SETCONFIG_REPLY=item:value
+SETCONFIG_ERROR=item:value
+SETCONFIG_UNSUP=item:value
+
+// Debugger support
+MEMREAD=item
+MEMREAD_REPLY=item:value
+MEMREAD_ERROR=item
+MEMREAD_UNSUP=item
+
+MEMWRITE=item:value
+MEMWRITE_REPLY=item:value
+MEMWRITE_ERROR=item:value
+MEMWRITE_UNSUP=item:value
+
+TODO: Add FLASH, EEPROM, REG
+...
+
+
+// Arduino Uno Support
+...
+
+Deeper Background/Design
+
+Dweet Vocabulary
+
+John Richardson 01/31/2015
+
+By design Dweet is an extensible prototocol to allow application specific
+messages to be defined. As it layers on top of NMEA 0183, technically any valid
+NMEA 0183 message does that does not collide with existing usage is valid.
+
+Dweet prevents NMEA 0183 existing vocabulary usage collisions by using its
+own prefix $PDWT which comes from the NMEA 0183 vendor proprietary vocabulary.
+
+In addition Dweet uses NMEA 0183 prefix $PDBG for debugging.
+
+NMEA 0183 itself has its origins as a marine instructment, GPS, and devices
+backend communication protocol and not interacted with by typical humans. It's
+typically "spoken" by embedded firmware in the devices. As such commands
+are represented as 1-3 letter verbs and their data. These verbs are
+documented in common usage for the NMEA 0183 protocol and used for
+interoperation.
+
+For Maker IoT scenarios developers are generating, consuming, and inventing
+new commands to support their IoT device and applications. As such a readable
+structure with basic rules is desired. As such this vocabulary maybe more
+verbose, but is easier to prototype, build, and deploy IoT scenarios
+rapidly. With script based rapid development tools such as NodeJS becoming
+popular in Maker IoT scenarios, having a simple text based vocabulary with
+meanlingfull words "reads better" in such scripts which are intended to
+be modified by the developer for their scenario.
+
+With a simple word like vocabulary advanced users can communicate and
+control their devices with a very simple SMS gateway. This allows a new
+device to be tried out manually from a phone or command console, and
+then integrated into the programs/scripts of their IoT scenario.
+
+Shorter forms of common communication methods for a specific IoT scenario
+is of course supported, within the NMEA 0183 rules and they don't collide
+with existing Dweet messages in common usage.
+
+Sentence Structure
+
+The sentence structure consists of a NMEA 0183 compatible sentence
+with command=options format. As per NMEA 0183 "," is the
+separator.
+
+Single or multiple command=options may be in a NMEA 0183 sentence
+provided there is room. Implementations are likely to try and pack
+as many commands in a sentence at a time for efficiency depending
+on the underlying transport protoco.
+
+Larger series of operations are sent as multiple sentences. It is
+up to the application to deal with any issues with sentences being
+missed.
+
+There are two main types of commands, commands that expect
+replies, and commands that do not. In the case of commands
+that expect replies, the COMMAND=OPTIONS is replaced with
+COMMAND_REPLY=OPTIONS by the responder. When designing a new
+command maximum sentence size must be taking into account so
+that the reply will fit given its extra 6 characters for
+the "_REPLY" modifier.
+
+To allow symmetry commands that don't expect replies should limit
+themselves to a maximum of 65 characters to allow the debug
+stream to represent the command in a debug message.
+
+Errors
+
+When a device receives a Dweet message in error, there are
+multiple ways of handling it. As devices typically have
+limited firmware space providing for extensive debugging is
+a trade off between space on the device, and ease of diagnosis
+when bringing a new scenario online. As such errors are
+categorized as per optional vs. development/integration level
+to allow firmware options to select which is more appropriate.
+
+For example a debug/tracing version of a firmware release may
+be made available at the expensive of some of the larger functions
+in order to support debugging during development, and then
+a release version would just contain basic debugging messages.
+
+That said, its strongly desired if you have the firmware space
+to have only one firmware version in which debugging can be
+turned on and off. This will aid you in debugging and supporting
+field deployments.
+
+To communicate an error to a Dweet client that expects a
+reply, replace the "_REPLY" modifier with the "_ERROR"
+modifier. Example: COMMAND_REPLY=OPTIONS == OK,
+COMMAND_ERROR=OPTIONS == ERROR.
+
+Note: _ERROR has been carefully choosen to match the same
+size as _REPLY to not upset total sentence size calculations.
+
+In most simple cases, the =OPTIONS in the original request
+are just directly reflected back so that the developer knows
+specifically which command(s) of a command stream failed.
+
+Any further debugging information to help isolate and locate
+the error can be determined by the category. Typically
+detailed error investigation leverages the separate
+debug stream.
+
+Debug Stream, Prefix $PDBG
+
+Dweet has an always present debug stream which uses the
+$PDBG prefix to separate it from the production stream.
+
+This stream may be turned off, or limited to essential/panic
+device states depending on the firmware implementation.
+
+The completeness of the debug stream depends on firmware
+space on very small devices such as the AtMega 328 on
+the Arduino Uno and its derivatives and clones. A production
+firmware would provide basic debug stream messages about
+invalid commands to support debugging of systems integration
+scenarios, but may lack detailed validation/tracing messages
+useful in a pure development environment.
+
+Development/debugging versions of firmware may trade off
+features for ease of development, or choose more expensive
+microcontrollers with more program memory space for debugging
+purposes. Additional techniques such as taking advantage
+of off microcontroller storage flash ROM's, SD cards, etc.
+may be options for debugging.
+
+Error Class Programming:
+
+These errors are a result of a programming error such as
+specifying bad command syntax for a command that is
+recognized. These also occur when a request is out of range
+on a value in which the caller should know the valid range,
+such as low level debugging of a particular target device.
+
+In production programming style errors can just send the
+basic error response with the original request options
+to be sorted out by the developer/programmer using the
+debug stream.
+
+Command:
+  $PDWT,COMMAND=OPTIONS*00\r\n
+
+Error response:
+  $PDWT,COMMAND_ERROR=OPTIONS*00\r\n
+
+Error Class Integration:
+
+An integration error class is due to valid messages but
+with improper command parameters or state.
+
+Error Class Runtime:
+
+Run time errors are expected errors. They can be due
+to failures, mis-configuration, or integration of
+new/unknown devices and clients.
+
+For example a valid sentence with an unknown command maybe
+the result of a shared bus with another device, or a newer
+client communicating with an older device.
+
+These errors are ignored at runtime as if the command
+was not intended for the device.
+
+If the debug stream is configured to report unrecognized
+commands, an indication may be placed in the debug stream.
+
+The debug stream would send on the stream "_UNSUP" as the
+response. _ERROR is not used since this is not an error, just
+a command that is not supported.
+
+The format is:
+
+COMMAND_UNSUP=OPTIONS
+
+Example Sentences
+
+All commands and their replies must fit within the NMEA 0183
+sentence limits of 82 total characters. Since NMEA 0183
+requires "$PDWT,*00\r\n" for every sentence, this is 71 usable
+characters of data payload.
+
+// Single command with reply
+$PDWT,COMMAND=OPTIONS*00\r\n
+
+$PDWT,COMMAND_REPLY=OPTIONS*00\r\n
+
+// Multiple commands in one sentence with replies
+$PDWT,COMMAND1=OPTIONS,COMMAND2=OPTIONS*00\r\n
+
+$PDWT,COMMAND1_REPLY=OPTIONS,COMMAND2_REPLY=OPTIONS*00\r\n
+
+// Multiple commands, only one command has a reply
+$PDWT,COMMAND1=OPTIONS,COMMAND2=OPTIONS*00\r\n
+
+$PDWT,COMMAND2_REPLY=OPTIONS*00\r\n
+
+// Error response
+$PDWT,COMMAND=OPTIONS*00\r\n
+
+// Command is recognized, but its options are wrong.
+// This could be related to device state.
+$PDWT,COMMAND_ERROR=OPTIONS*00\r\n
+
+// Command is not recognized
+// This appears only on the $PDBG stream when enabled.
+$PDBG,COMMAND_UNSUP=OPTIONS*00\r\n
+
+Vocabulary
+
+This is broken down into the major categories.
+
+Unsupported/Unknown commands:
+
+These are sent on the debug stream $PDBG when enabled.
+
+COMMAND=OPTIONS
+COMMAND_UNSUP=OPTIONS
+
+Device State
+
+Device state commands allow the current device state to be
+queried and set. Typically these device states are volatile
+(lost on reset) and represent runtime conditions of
+the device and its environment.
+
+The configuration API's affect the longer term non-volatile
+state of a device such as its configuration after a power on
+or reset event.
+
+GETSTATE=item
+GETSTATE_REPLY=item:value
+GETSTATE_ERROR=item
+GETSTATE_UNSUP=item
+
+SETSTATE=item:value
+SETSTATE_REPLY=item:value
+SETSTATE_ERROR=item:value
+SETSTATE_UNSUP=item:value
+
+Configuration:
+
+Configuration commands allow the getting and setting of values
+from non-volatile storage of the device. Typicallys is an on
+board EEPROM which allows configuration of the power on/reset
+state of the device.
+
+Configuration commands break down the OPTIONS field
+to an item:value field using ":' as a separator.
+
+item is typically a name such as MODEL, SERIALNUMBER, etc.
+with item being the data value.
+
+GETCONFIG=item
+GETCONFIG_REPLY=item:value
+GETCONFIG_ERROR=item
+
+SETCONFIG=item:value
+SETCONFIG_REPLY=item:value
+SETCONFIG_ERROR=item:value
+
+These are common built in configuration commands:
+
+GETCONFIG=BOARD
+GETCONFIG=PROCESSOR
+GETCONFIG=ARCH
+GETCONFIG=MODEL
+GETCONFIG=NAME
+GETCONFIG=SERIAL
+GETCONFIG=VERSION
+GETCONFIG=FIRMWAREVERSION
+
+Low Level Debug:
+
+Debug commands that read/write registers and memory break down the
+OPTIONS field to an addr:data field using ":' as a separator.
+
+The size of the fields depends on the operations being performed
+which is firmware specific. The protocol allows byte "00", word "0000",
+32 bit "00000000", or 64 bit "00000000`00000000" values. Floating
+point and double values are allowed if they fit within the maximum
+65 characters of the payload.
+
+Note the extra separate "'" used in the 64 bit address field which
+is a common separator to make the addresses more human readable.
+
+MEMREAD=0000
+MEMREAD_REPLY=0000:0000
+MEMREAD_ERROR=0000
+
+MEMWRITE=0000:0000
+MEMWRITE_REPLY=0000:0000
+MEMWRITE_ERROR=0000:0000
+
+EEPROMREAD=0000
+EEPROMREAD_REPLY=0000:0000
+EEPROMREAD_ERROR=0000
+
+EEPROMWRITE=0000:0000
+EEPROMWRITE_REPLY=0000:0000
+EEPROMWRITE_ERROR=0000:0000
+
+REGREAD=0000
+REGREAD_REPLY=0000:0000
+REGREAD_ERROR=0000
+
+REGWRITE=0000:0000
+REGWRITE_REPLY=0000:0000
+REGWRITE_ERROR=0000:0000
+
+FLASHREAD=0000
+FLASHREAD_REPLY=0000:0000
+FLASHREAD_ERROR=0000
+
+FLASHWRITE=0000:0000
+FLASHWRITE_REPLY=0000:0000
+FLASHWRITE_ERROR=0000:0000
+
+Arduino:
+
+These are Arduino specific commands based the popular
+Arduino libraries.
+
+There are AtMega series specific options present as well since
+these are common for many boards. Use the GETCONFIG command
+set to determined the specific Arduino version you are communicating
+with since some commands are unsupported on boards without
+the feature. For example Arduino Due and clones are ARM based
+and does not have AVR specific commands, which an Arduino MEGA
+has a wider address range than the Arduino UNO.
+
+Valid Ranges:
+
+For Arduino UNO the valid port ranges are:
+
+D0-D13
+A0-A7
+LED_BUILTIN alias for D13.
+
+Valid Memory ranges are in hex values:
+RAM 0-7FF      // 2K on board RAM
+FLASH 0 - 8000 // 32k on board flash
+EEPROM 0 - 3FF // 1k on board EEPROM
+PINMODE INPUT, OUTPUT, INPUT_PULLUP
+AREF DEFAULT, INTERNAL, EXTERNAL
+
+Note: The AWRITE commands on the Arduino's based on AtMega 328
+are actually PWM writes. These are used for motor control and
+generating an analog output signal with the proper RC circuit.
+
+Note: Firmware may not validate and wrap around to keep the
+code space low. As these are low level debugging messages its
+up to the client (program or human) to know the model of
+the device being communicated with.
+
+"Wrap around" of values could cause unintended results, so be careful.
+Note: This is useful for exploring, or supporting extended modes
+on newer versions of the chip before updating the firmware.
+
+PINMODE=PIN:MODE
+PINMODE_REPLY=PIN:MODE
+PINMODE_ERROR=PIN:MODE
+
+Note: Read/write commands follow the address:data format for
+debug commands.
+
+DREAD=PIN
+DREAD_REPLY=PIN:0
+DREAD_ERROR=PIN
+
+DWRITE=PIN:0
+DWRITE_REPLY=PIN:0
+DWRITE_ERROR=PIN:0
+
+AREF=MODE
+AREF_REPLY=MODE
+AREF_ERROR=MODE
+
+AREAD=PIN
+AREAD_REPLY=PIN:0000
+AREAD_ERROR=PIN
+
+AWRITE=PIN:00
+AWRITE_REPLY=PIN:00
+AWRITE_ERROR=PIN:00
+

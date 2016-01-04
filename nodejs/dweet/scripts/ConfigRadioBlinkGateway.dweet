@@ -1,0 +1,52 @@
+
+#
+# RadioGateway on Arduino UNO
+#
+
+# Setup manufacturing information
+setconfig name=BlinkGateway
+setconfig name=BlinkGateway
+
+setconfig model=MenloRadioShield
+
+setconfig serial=00000001
+
+#
+# Setup the radio parameters
+#
+# Note: This uses low level direct "dweet xxx" commands until
+# the radio package is created which will allow "setconfig radiochannel=xx"
+#
+
+dweet SETCONFIG=RADIOCHANNEL:01
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIORXADDR:6761746530
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIOTXADDR:73656E7330
+
+# Configure Radio Power Timer to off (radio always on) for gateway
+dweet SETCONFIG=RADIOPOWERTIMER:00
+
+# Default RADIOGATEWAY to on
+dweet SETCONFIG=RADIOGATEWAY:ON
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+# Set Application interval to 5 seconds
+# Note: Values are in hex. 0x1288 == 5000 milliseconds, or 5 seconds
+dweet SETCONFIG=BLINKINTERVAL:1288
+dweet GETCONFIG=BLINKINTERVAL
+
+quit

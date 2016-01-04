@@ -1,0 +1,179 @@
+
+-----------------------------
+DS18B20
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 2.78
+
+http://www.digikey.com/product-detail/en/DS18B20%2B/DS18B20%2B-ND/956983
+
+-----------------------------
+2n2222a
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 0.42
+
+http://www.digikey.com/product-detail/en/P2N2222AG/P2N2222AGOS-ND/920244
+
+-----------------------------
+8mhz resonator through hole
+
+Manufacturer Part Number: ZTT-8.00MT
+
+Manufacturer: ECS Inc
+
+Description: CER RESONATOR 8.00MHZ
+
+Price: 0.70
+
+http://www.digikey.com/product-detail/en/ZTT-8.00MT/X905-ND/124508
+-----------------------------
+AtMega 328p 28 pin DIP
+
+Manufacturer Part Number: ATMEGA328P-PU
+
+Manufacturer: Atmel
+
+Description: IC MCU 8BIT 32KB FLASH 28DIP
+
+Price: 3.74
+
+http://www.digikey.com/product-detail/en/ATMEGA328P-PU/ATMEGA328P-PU-ND/1914589
+-----------------------------
+0.1uf 50v ceramic capacitor through hole
+
+Manufacturer Part Number: K104K10X7RF5UH5
+
+Manufacturer: Vishay BC Components
+
+Description: CAP CER 0.1UF 50V 10% RADIAL
+
+Price: 0.37
+
+http://www.digikey.com/product-detail/en/K104K10X7RF5UH5/BC2665CT-ND/2356879
+
+-----------------------------
+1N5817 Schottky 20v 1A through hole
+
+Manufacturer Part Number: 1N5817
+
+Manufacturer: Fairchild Semiconductor
+
+Description: DIODE SCHOTTKY 20V 1A DO41
+
+Price: 0.50
+
+http://www.digikey.com/product-detail/en/1N5817/1N5817FSCT-ND/1532776
+
+-----------------------------
+RGB LED diffused common cathode
+
+Manufacturer Part Number: WP154A4SUREQBFZGW
+
+Manufacturer: Kingbright Company LLC
+
+Description: LED RED/GREEN/BLUE DIFF 4LEAD
+
+Price: 1.65
+
+http://www.digikey.com/product-detail/en/WP154A4SUREQBFZGW/754-1492-ND/2261457
+
+-----------------------------
+10k 1/8w through hole resistor
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: $2.71/100
+
+http://www.digikey.com/product-detail/en/CF18JT10K0/CF18JT10K0CT-ND/2022766
+-----------------------------
+4.7k 1/8w through hole resistor
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+
+http://www.digikey.com/product-detail/en/CF18JT4K70/CF18JT4K70CT-ND/2022758
+
+-----------------------------
+91 ohm 1/8w resistor
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+
+http://www.digikey.com/product-detail/en/CF18JT91R0/CF18JT91R0CT-ND/2022717
+-----------------------------
+150 ohm 1/8w resistor
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+
+http://www.digikey.com/product-detail/en/CF18JT150R/CF18JT150RCT-ND/2022722
+
+-----------------------------
+100 ohm 1/8w resistor
+
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+
+http://www.digikey.com/product-detail/en/CF18JT100R/CF18JT100RCT-ND/2022718
+-----------------------------
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+
+-----------------------------
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+
+-----------------------------
+Manufacturer Part Number: 
+
+Manufacturer: 
+
+Description: 
+
+Price: 
+

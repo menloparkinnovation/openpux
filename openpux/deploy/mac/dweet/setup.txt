@@ -1,0 +1,6 @@
+
+npm install serialport -g
+
+cd /home/pi/Smartpux/openpux/nodejs/dweet
+
+sudo npm install . -g

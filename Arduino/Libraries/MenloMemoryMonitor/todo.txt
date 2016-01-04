@@ -1,0 +1,9 @@
+
+03/22/2015
+
+Part of debug dweets allow a memory execution report
+to be queried.
+
+Such as maximum stack and heap used during a run by looking
+at canaries.
+

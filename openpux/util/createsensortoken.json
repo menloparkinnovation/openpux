@@ -1,0 +1,9 @@
+{
+    "Ticket": "0123456789",
+    "id": null,
+    "object": "/api/v2/accounts/1/sensors/1/readings",
+    "allow_sub_path": false,
+    "access": [
+        "addreading"
+    ]
+}

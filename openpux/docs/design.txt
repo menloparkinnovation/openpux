@@ -1,0 +1,192 @@
+
+//
+//   Copyright (C) 2015 Menlo Park Innovation LLC
+//
+//   menloparkinnovation.com
+//   menloparkinnovation@gmail.com
+//
+//   Licensed under the Apache License, Version 2.0 (the "License");
+//   you may not use this file except in compliance with the License.
+//   You may obtain a copy of the License at
+//
+//       http://www.apache.org/licenses/LICENSE-2.0
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+
+//
+//   design.txt
+//
+//   Openpux Internet Of Things (IOT) Framework.
+//
+//   Copyright (C) 2015 Menlo Park Innovation LLC
+//
+//   menloparkinnovation.com
+//   menloparkinnovation@gmail.com
+//
+//   Snapshot License
+//
+//   This license is for a specific snapshot of a base work of
+//   Menlo Park Innovation LLC on a non-exclusive basis with no warranty
+//   or obligation for future updates. This work, any portion, or derivative
+//   of it may be made available under other license terms by
+//   Menlo Park Innovation LLC without notice or obligation to this license.
+//
+//   There is no warranty, statement of fitness, statement of
+//   fitness for any purpose, and no statements as to infringements
+//   on any patents.
+//
+//   Menlo Park Innovation has no obligation to offer support, updates,
+//   future revisions and improvements, source code, source code downloads,
+//   media, etc.
+//
+//   This specific snapshot is made available under the terms of
+//   the Apache License Version 2.0 of January 2004
+//   http://www.apache.org/licenses/
+//
+
+//
+// Design Notes.
+//
+// This keeps them out of the main source code.
+//
+
+//
+// 12/20/2015
+//
+// Tickets and Ticket object paths
+//
+// Inside of the openpux server a Ticket represents and authenticated
+// REST object path and rights. It's typically retrieved from a token id,
+// but could use other authentication methods as well.
+//
+// The object path represents the REST path at the web server for
+// objects that may be accessed. For example:
+//
+// "/api/v2/accounts" provides access to all accounts, while
+// "/api/v2/accounts/1" only provides access to account 1.
+//
+// If allow_sub_path is true, then any object under the path
+// in the ticket is allowed.
+//
+// The array access allows applications to configure custom rights.
+//
+// The well known right "Full" allows all access and is generally granted
+// to the "owner" account of an object.
+//
+// Given this logic, the super user, root, or administrator ticket is
+// represented as object = "/", allow_sub_path = true, access["Full"].
+//
+// Of course this is a very power ticket giving all rights to the server
+// and all its applications, management functions, etc. So they should
+// be carefully controlled. Typically such an administrator ticket is
+// used to provision an openpux application, then disabled before going
+// online.
+//
+// One question is whether to include the API entry and version
+// in the ticket, rather than just the path after it. After much
+// consideration it was decided to include the full URL entry
+// path on the server. This is to allow applications to control which
+// version of tickets may be used against their API's. If an application
+// remains compatible with already issued tickets of an earlier version
+// of the API, it can validate a presented ticket against the new and
+// older version paths, potentially giving the older version downgraded
+// rights. Since this is application defined, it would be difficult to
+// place these "rules" into the general ticket processing infrastructure.
+//
+// Example: An application makes major API changes and upgrades from
+// "/api/v2/app" to "/api/v3/app". In many cases rights have been changed,
+// and/or enhanced, security locked down, etc. Tickets issued against v2
+// may not be compatible with the new API's. But the application can decide
+// that more complex management applications, which are typically web
+// deployed can be forced to upgrade to v3 authentication tickets, while
+// still accepting v2 tickets for limited operations such as sensors
+// adding readings. This balances the difficulty of upgrading the firmware
+// of sensors deployed in the field which have limited rights anyway,
+// and complex application management infrastructures which need to
+// ensure their edges are property protected in a fast moving environment.
+//
+// Delegated tickets:
+//
+// Any ticket holder may create a delegated ticket of equal, or less
+// rights. This is a powerful mechanism which allows applications to
+// implement the principle of least privilege. In this case
+// a holder of a ticket would create a new one with access to a specific
+// object, with specific rights. This is leveraged by the Smartpux
+// application to give sensors only "addreading" rights to their specific
+// sensor object, so that the ticket can be relatively safely be
+// programmed into firmware.
+//
+// Summary of delegated rights:
+//
+// object path - Delegated tickets may be created with the exact same,
+//               or deeper object paths.
+//
+//               Example: "/accounts/1" may create "/accounts/1/sensors/1" for
+//               a sensor ticket.
+//
+//               It may not create "/accounts/2/sensors/1" since that would
+//               grant access outside of its own object path.
+//
+// allow_sub_path - The delegate may have this set only if the parent ticket
+//              allows it. You can not upgrade it.
+//
+// access - Only the same, or less access may be granted to the delegate.
+//
+//          Note: Full in the parent means any custom access right name
+//          may be granted.
+//
+// Examples of Tickets:
+//
+//
+// The most powerful administrator, root, power user ticket:
+//
+// {
+//     "object": "/",
+//     "allow_sub_path": true,
+//     "access": [
+//         "Full"
+//     ]
+// }
+//
+// A restrictive, sensor specific single function "addreading" ticket:
+//
+// {
+//     "object": "/api/v2/accounts/1/sensors/1/readings",
+//     "allow_sub_path": false,
+//     "access": [
+//         "addreading"
+//     ]
+// }
+//
+
+//
+// 08/27/2015
+//
+// Caching:
+//
+// A simple, synchronous in memory cache is used to implement "working memory"
+// of the server. This is intended to be a small, per openpux/node.js
+// instance for caching frequently accessed accounts/sensors.
+//
+// Support for server based caches such as memcache are async due to
+// network I/O. These are not supported directly by the caching
+// module, but as a data store provider. This allows hierarchical
+// deployments of Openpux servers at intermediate stages using
+// a "pipelined" approach.
+//
+// This is very useful to extend from a local "Cloud Edge Beneath" model
+// to a scaleable IoT public cloud deployment.
+//
+// An example series of Openpux servers from local IoT gateway to
+// a scaleable public cloud:
+//
+// RaspberryPi (local site) ==> AWS ==> Node.js ElasticBeanstalk on memcache ==>
+// Node.js ElasticBeanstalk on SimpleDB
+//
+
+

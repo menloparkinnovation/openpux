@@ -1,0 +1,124 @@
+
+# dweetsmartpux.sh
+# /dev/cu.usbserial-A10132OT for Smartpux FencePostLight Version 7/8  on MacBookAir
+node main.js /dev/cu.usbserial-A10132OT $*
+
+// dweet_nodebug.sh
+node main.js $*
+
+// dweet.sh
+node main.js -verbose $*
+
+shownmea  // show nmea protocol exchanges
+showdweet // show dweet protocol exchanges
+
+dweet GETCONFIG=NAME  // Enter low level dweet
+
+getconfig name        // Enter high level command, results in GETCONFIG=NAME
+
+// Lighthouse light statically on or off
+dweet SETSTATE=LIGHT:ON
+dweet SETSTATE=LIGHT:OFF
+
+dweet SETCONFIG=LIGHT:ON
+dweet SETCONFIG=LIGHT:OFF
+
+//
+// Default is a 250ms light clock per bit.
+//
+// Rules: Must be whole bytes.
+//
+// The bitcount number allows less than byte sequences.
+//
+
+//
+// New Dungeness Light is quick flash every 5 seconds
+// This setting uses 1/4 second for quick flash
+//
+// 14: => 20 bits
+//
+// 1 bit light on
+// 19 bits light off
+//
+
+// volatile
+dweet LIGHTSQ=14:010000
+
+// non-volatile, save to EEPROM
+dweet LIGHTSP=14:010000
+
+// Color is white
+dweet SETSTATE=LIGHTCOLOR:FF.FF.FF
+dweet SETCONFIG=LIGHTCOLOR:FF.FF.FF
+
+//
+// Pt Partridge, Whidbey Island, WA is a 4S green flash
+//
+// 4 seconds == 16 bits
+//
+// 1 bit light on
+// 15 bits light off
+//
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+// Color is Green
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+//
+// Partridge Bank, Off Whidbey Island, WA is a 6S green flash
+//
+// 6 seconds == 24 bits
+//
+// 1 bit light on
+// 23 bits light off
+//
+dweet LIGHTSQ=18:010000
+dweet LIGHTSP=18:010000
+
+// Color is Green
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+//
+// Center channel marker for Admiralty Inlet off Pt Partridge,
+// Whidbey Island, WA is 2.5 S Yellow.
+//
+// 2.5 seconds = 10 bits
+//
+// 1 bit on
+// 9 bits off
+//
+dweet LIGHTSQ=0A:0100
+dweet LIGHTSP=0A:0100
+
+// Color is Yellow
+dweet SETSTATE=LIGHTCOLOR:FF.FF.00
+dweet SETCONFIG=LIGHTCOLOR:FF.FF.00
+
+//
+// Other example lights:
+//
+
+// 1 second on, 1 second off (3) times, then 5 seconds pause
+
+dweet LIGHTSQ=2C:F0F0F00000000
+
+// save to EEPROM
+dweet LIGHTSP=2C:F0F0F00000000
+
+// 1/2 second intervals ISO
+dweet LIGHTSQ=08:33
+
+// White Light
+dweet SETSTATE=LIGHTCOLOR:FF.FF.FF
+
+// Red Light
+dweet SETSTATE=LIGHTCOLOR:FF.00.00
+
+// Green Light
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+
+// Blue Light
+dweet SETSTATE=LIGHTCOLOR:00.00.FF

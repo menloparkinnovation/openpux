@@ -1,0 +1,85 @@
+
+install node.js and npm (platform/version specific)
+
+npm install serialport -g
+
+cd /home/pi/Smartpux/openpux/nodejs/dweet
+
+sudo npm install . -g
+
+Setup /etc/init.d
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/raspberrypi/dweet/dweet /etc/init.d
+
+/usr/sbin/update-rc.d dweet defaults
+
+To Run/Stop/Restart manually:
+sudo sh
+  /etc/init.d/dweet start
+  /etc/init.d/dweet stop
+  /etc/init.d/dweet restart
+
+Setup Utility Scripts:
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/raspberrypi/dweet/setnode.sh /root
+
+cd /root
+
+// set node paths manually when performing system administration tasks
+. /root/setnode.sh
+
+Note: To see boot time started forever status and logs, you must
+set HOME to "/" since this is the home for services. The default home
+for root is "/root" and where manually started logs/status goes.
+
+This is also true if you want to stop boot time dweet with
+
+install node.js and npm (platform/version specific)
+
+npm install serialport -g
+
+cd /home/pi/Smartpux/openpux/nodejs/dweet
+
+sudo npm install . -g
+
+Setup /etc/init.d
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/raspberrypi/dweet/dweet /etc/init.d
+
+/usr/sbin/update-rc.d dweet defaults
+
+To Run/Stop/Restart manually:
+sudo sh
+  /etc/init.d/dweet start
+  /etc/init.d/dweet stop
+  /etc/init.d/dweet restart
+
+Setup Utility Scripts:
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/raspberrypi/dweet/setnode.sh /root
+
+cd /root
+
+// set node paths manually when performing system administration tasks
+. /root/setnode.sh
+
+Note: To see boot time started forever status and logs, you must
+set HOME to "/" since this is the home for services. The default home
+for root is "/root" and where manually started logs/status goes.
+
+This is also true if you want to stop boot time dweet with
+/etc/init.d/dweet stop
+
+sudo sh
+export HOME=/
+
+forever list
+forever logs
+forever logs 0
+
+/etc/init.d/dweet stop
+

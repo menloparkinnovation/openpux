@@ -1,0 +1,56 @@
+
+Check on status:
+
+sudo sh
+
+// Get id, typically 0
+forever logs
+
+// dump the log to see the servers console output
+forever logs 0
+
+Manually start/stop openpux after setup:
+
+sudo sh
+/etc/init.d/openpux start
+/etc/init.d/openpux stop
+/etc/init.d/openpux restart
+
+Setup openpux on AWS/EC2/AMI
+
+install node.js (see nodejs directory)
+
+# install aws-sdk support
+npm install aws-sdk
+
+# install forever
+npm install forever -g
+
+# provision aws credentials
+mkdir $HOME/.aws
+cp $HOME/Smartpux/private/aws/* $HOME/.aws
+
+mkdir /root/.aws
+cp $HOME/Smartpux/private/aws/* /root/.aws
+
+mkdir /.aws
+cp $HOME/Smartpux/private/aws/* /.aws
+
+# setup /etc/init.d
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/ec2/openpux/openpux /etc/rc.d/init.d
+
+#
+# Amazon Linux which is based on CentOS/RedHat Enterprise uses a different utility
+# than the standard update-rc.d openpux defaults
+#
+chkconfig --add openpux
+
+chkconfig openpux on
+
+# If you have to refresh, perform the following:
+chkconfig --del openpux
+chkconfig --add openpux
+
+

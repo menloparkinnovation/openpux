@@ -1,0 +1,36 @@
+<!DOCTYPE html>
+<!--
+From https://github.com/esquiloio/lib/blob/master/demos/weather/angular/weather.html
+10/19/2015
+
+Weather Station Demo (AngularJS version)
+See README.md for more information.
+This work is released under the Creative Commons Zero (CC0) license.
+See http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html ng-app="app">
+<head>
+  <meta charset="utf-8">
+  <title>Weather Station (esquiloio eprc simulator)</title>
+  <link rel="stylesheet" href="/esquiloio/weather.css">
+  <script src="/esquiloio/angular.min.js"></script>
+  <script src="/esquiloio/weather.js"></script>
+</head>
+<body ng-controller="MainController">
+<h1>Weather Station (esquiloio erpc simulator)</h1>
+
+<div class="column">
+  <gauge title="Temperature" value="values.temp" label="&deg;F" min="0" max="110">
+  </gauge>
+</div>
+<div class="column">
+  <gauge title="Humidity" value="values.humidity" label="%" min="0" max="130">
+  </gauge>
+</div>
+<div class="column">
+  <gauge title="Pressure" value="values.pressure" label="in" min="29" max="32">
+  </gauge>
+</div>
+
+</body>
+</html>

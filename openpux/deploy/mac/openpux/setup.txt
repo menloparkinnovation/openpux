@@ -1,0 +1,16 @@
+
+#Setup openpux
+
+#install node.js (see nodejs directory)
+
+# install aws-sdk support
+npm install aws-sdk
+
+# install forever
+npm install forever -g
+
+# provision aws credentials
+mkdir $HOME/.aws
+cp $HOME/Smartpux/private/aws/* $HOME/.aws
+
+# No root config, only development testing

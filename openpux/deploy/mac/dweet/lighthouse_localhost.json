@@ -1,0 +1,14 @@
+{
+    "cloud_host": "localhost:8080",
+    "cloud_account": "1",
+    "cloud_passcode": "12345678",
+    "cloud_sensor_id": "1",
+
+    "DweetHandlers":  [
+        { "name": "packetradio", "module": "./packetradio.js" }
+     ],
+
+    "Applications":  [
+        { "name": "lighthouse", "module": "./lighthouseapp.js" }
+     ]
+}

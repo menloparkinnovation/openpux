@@ -1,0 +1,52 @@
+#
+# Configure DweetBlink on a radio.
+#
+# These settings are for the target.
+#
+
+# Setup manufacturing information
+setconfig name=RadioBlinkTarget
+setconfig name=RadioBlinkTarget
+
+setconfig model=MenloRadioShield
+
+setconfig serial=00000002
+
+#
+# Setup the radio parameters
+#
+
+dweet SETCONFIG=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIORXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIOTXADDR:6761746530
+
+# Default RADIOGATEWAY to off
+dweet SETCONFIG=RADIOGATEWAY:OFF
+
+# Configure Radio Power Timer for 250ms idle shutdown
+# Note: Configuring this requires sending a RADIOATT command to
+# wakeup the radio.
+#dweet SETCONFIG=RADIOPOWERTIMER:FA
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+# Set Application interval to 5 seconds
+# Note: Values are in hex. 0x1288 == 5000 milliseconds, or 5 seconds
+dweet SETCONFIG=BLINKINTERVAL:1288
+dweet GETCONFIG=BLINKINTERVAL
+
+quit

@@ -1,0 +1,69 @@
+
+//
+// 09/20/2015
+//
+// Finish add sensor, add account forms.
+//   - rest API's
+//   - client side library
+//   - server side dispatch
+//   - client side form presentation and round trip
+//   - ensure configured admin password in config.json is supplied for
+//     addAccount.
+//   - Alternate for add sensor.
+//     - users can add their own sensors from their account
+//     - admin can create sensors on behalf of user.
+//     - could use ticket to hold admin password overrides.
+//
+// Add sensor reading item button to support dynamic schema.
+//  - Allows new sensor reading items to be posted
+//  - Add to sensor settings as well.
+//
+// Include more descriptive error messages in responses.
+//  - recommended developer section.
+//
+// Look at node.js querystring processor.
+//
+// Finish REST API cleanup.
+//
+// 09/07/2015
+//
+// Add file based logging.
+//  - Include ability to fetch logs for remote debugging
+//
+// Need to support time ranges for query readings.
+//
+// Need to support large data sets with continue key.
+//
+
+//
+// openpux.js
+//
+// IE is broken.
+//
+// I debugged this in the past. Basically IE ignores HTML statements
+// in document.write(). IE works if you manipulate the DOM directly.
+//
+// Maybe there is a setting for it.
+//
+// If not, forget about it, why waste time on stuff that is not up to
+// todays web standards. Mobile or Chrome is what counts. Maybe Edge
+// fixes this.
+//
+// When using details frameworks such as Meteor it can deal
+// with IE issues.
+//
+// Older notes:
+//
+// 07/24/2014
+// IE is broken.
+//
+//  -> Use servfile.js, scriptform.html to test.
+//      - IE works in this case. Must be something with
+//        how the three file parts come together in
+//        the server. May be ending the HTTP request
+//        early, then streaming additional content in which
+//        Chrome seems more tolerant of.
+//
+//  ->  Nope. Serve them together and IE is still broken.
+//        ?Fiddler?
+//

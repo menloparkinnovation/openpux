@@ -1,0 +1,31 @@
+
+06/15/2014
+
+Version 4 lays out 100%. Ready to go, but does not have:
+
+  - Full design rules check
+
+  - Power supply SMT layout
+
+Working on Version 4.
+
+- Correct LED layout
+   - I have my own library part
+
+???- Convert LED to common anode
+  - More common, cheaper
+  - Validate in Sparkfun parts list, Ada Fruit as well
+   https://www.sparkfun.com/products/105
+    - $1.95 common cathode
+
+    https://www.sparkfun.com/products/10820
+    - $1.95 common anode
+
+  // 25 for $19.95 ($.80 each)
+  http://www.adafruit.com/products/302
+
+   - So this appears to be an adafruit thing for a discount on her
+     25 pack since its used by led drivers which sink rather than
+     source their LED driver current.
+
+

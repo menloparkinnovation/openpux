@@ -1,0 +1,11 @@
+
+#
+# WeatherStation on SparkFun Red Board Arduino Uno clone
+# with SparkFun WeatherShield.
+#
+# Show NMEA messages
+#
+
+shownmea
+
+# Does not quit, but stays in console

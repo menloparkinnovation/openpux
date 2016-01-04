@@ -1,0 +1,164 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+Radio Dweets
+
+Dweet support for low power small packet size radios.
+
+John Richardson
+
+02/14/2015
+
+Problem Space
+
+Small packet radios such as the Nordic Semiconductor nRF24L01+ provide
+energy efficient short range communication. They are oriented towards
+battery powered devices that can run for months on standard AA cells
+such as computer mice + keyboards, or indefinitely using solar recharging
+such as with Menlo SmartPux (TM) sensors.
+
+They tend to have 16-32 byte packet formats, moderate speeds, and
+moderate distances such as 50-100'. Their usage model is to spend as little
+time on the air as possible to maximize battery life. Their operating current
+draw when on the air are typically 11-16ma for both receive + transmit.
+
+These radios tend to operate in noisy environments sharing the radio
+channel with WiFi units, microwave ovens, remote controls, etc., so keeping
+messages to a single small packet has the significant advantages of
+less frequent packet loss and re-transmissions.
+
+Dweet can operate transparently over Menlo's "Radio Serial" which is a low
+overhead protocol for modeling serial port data streams over small packet
+radios. As Dweet messages are based on higher level printable ASCII
+characters they tend to to be longer in the range from 40-80 characters.
+
+This results in the transmission and successful reception of multiple small
+radio packets being required in order to deliver a single Dweet message.
+Since a single missing packet can result in retransmission of the entire
+Dweet message, overhead can be high in noisy environments.
+
+Dweet Small Message Format
+
+One solution is a Dweet Small Message format that allows compact messages
+to be sent and received that can be sent in a single radio packet.
+
+These are standard Dweet messages in every way, but they use very
+compact command encodings. They do take advantage of the fact that
+the radios are already framed, and perform CRC/ECC checking so
+the "*00\r\n" is can be left out of the packet saving 5 critical
+bytes.
+
+Dweet minimum overhead for standard serial messages:
+
+$PDWT,*00\r\n
+
+For a small radio which supports framing and CRC/ECC can use:
+$PDWT,
+
+This gives 26 bytes for command messages.
+
+With single character Dweet commands, plus the required "=",
+results in:
+
+$PDWT,A=
+
+This allows 24 bytes of parameters.
+
+To save space, replies are the lower case letter for the
+command.
+
+Example encoding:
+
+SETCONFIG=       -> A=
+SETCONFIG_REPLY= -> a=
+?? ERROR?
+?? UNSUP?
+
+- Could just standardize a lookup table for each command and
+  reply including error varients and use the entire 256 bytes
+  of coding space.
+
+- "=" not needed since command is always a single byte.
+
+A given channel encode the major Dweet channels of $PDWT, $PDBG
+in a single bit. This bit can be encoded in the radio packet type.
+
+Byte 0 - packet type
+  7  6  5  4  3  2  1  0
+
+  Bit 7 - 0 == $PDWT
+  Bit 7 - 1 == $PDBG
+
+
+Byte xx - data byte 0
+ ...
+Byte 31 - data byte n
+
+Background on Sensor Radios
+
+1) Small packet radios such as the Nordic Semiconductor nRF24L01+
+
+  - 16-32 byte packet size
+  - moderate 250k-2Mb transmission speeds
+  - 11-16ma operating current.
+  - intended for mostly sleeping, with short, bursty time on air when
+    there is something to send. (such as a key type, mouse movement)
+  - battery life for two AA cells in months
+  - Solar recharge or energy scavange indefinitely.
+
+2) Bluetooth Low Energy (BLE) a sub-set of the Bluetooth 4.0 specification
+
+  - Packet size hidden by higher level protocol
+  - 1mb - 2mb transmissions speeds
+  - Moderate 16ma operating current
+  - Intended to be low power when sleeping, but on the air for moderate
+    amounts of time when connected/paired.
+  - battery life for months on cells for short formats, or leverage
+    batteries for a device such as a phone/tablet.
+  - Higher overhead "chatty" protocol with built in serial port
+    channels (serial profile). Less emphasis on sending a small
+    single packet.
+
+3) WiFi
+
+  - Larger packet sizes.
+  - High speed transmissions, 10mb and above
+  - High operating current 250-300ma
+  - Intended to be "always on" and connected.
+  - Intended for wired connections, or moderate amounts of
+    operation on battery till the device is recharged.
+    (phone, tablet, computer)
+  - Operate full TCP/HTTP and peer to peer web protocols.
+
+4) Specialized ISM radios
+
+  - Specialized and custom.
+  - For SCADA solutions.
+  - Authors opinion they will be overtaken by low cost
+    commodity use of the radios above.
+  - Some units available for experimenters.
+  - Some customers such as government/military will remain
+    on these platforms, but will likely increasingly
+    gateway to the above radios to take advantage of commodity
+    equipment expansion. (Already happening in the military)
+
+
+
+

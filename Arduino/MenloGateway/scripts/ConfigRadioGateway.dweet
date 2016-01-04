@@ -1,0 +1,57 @@
+#
+# RadioGateway on Arduino UNO
+#
+
+# Setup manufacturing information
+setconfig name=RadioGateway1
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000001
+
+#
+# Setup the radio parameters
+#
+# Note: This uses low level direct "dweet xxx" commands until
+# the radio package is created which will allow "setconfig radiochannel=xx"
+#
+
+# Sometimes initial commands get dropped
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETCONFIG=RADIOCHANNEL:01
+
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIOTXADDR:73656E7330
+dweet SETSTATE=RADIOTXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIORXADDR:6761746530
+dweet SETSTATE=RADIORXADDR:6761746530
+
+# Configure Radio Power Timer to off (radio always on) for gateway
+dweet SETCONFIG=RADIOPOWERTIMER:00
+dweet SETSTATE=RADIOPOWERTIMER:00
+
+# Default Options to 0
+#dweet SETCONFIG=RADIOOPTIONS:00
+#dweet SETSTATE=RADIOOPTIONS:00
+
+# Default RADIOGATEWAY to on
+dweet SETCONFIG=RADIOGATEWAY:ON
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+quit

@@ -1,0 +1,75 @@
+
+Annotations for LightHouse.ino
+04/28/2015
+
+  //
+  // Note: Configuration structures are declared locally on the
+  // stack of Setup() which is currently fairly shallow leaving
+  // plenty of space for even stack constrained applications.
+  //
+  // Return from Setup() frees this memory so it does not consume
+  // runtime memory.
+  //
+
+//
+// General Notes:
+//
+// These are placed at the end in order to provide a clear flow
+// of setup and operation of the application from the top of
+// the file.
+//
+// They are included in the main program file so they do not
+// get separated as it provides detailed descriptions of the
+// environment and its constraints.
+//
+
+//
+// The PanicPin allows a flashing number code indicator
+// to be set on serious failures such as a memory overflow
+// when the device is no longer operational.
+//
+// On typical Arduino, or Arduino like boards an LED is
+// present on pin 13 from the factory which can be used
+// for this purpose.
+//
+// On AtMega based Arduinos Pin 13 is also the SPI SCK
+// signal and it should not be changed while its configured
+// for SPI usage.
+//
+// Common usage for the panic pin is when a serious
+// error occurs and in this case the SPI is no longer
+// functional and the pin may be used.
+//
+
+
+//
+// Instance data
+//
+// Note: Global data is used since it's more reliable
+// in an AVR environment due to the small amounts of RAM
+// available.
+// 
+// Overflows in global data is signaled by build/link time
+// errors, while dynamic new() allocation can cause silent
+// corruptions, esp. in the presence of interrupts, stacks,
+// etc.
+//
+// Global data does cost code space though, since the data
+// must be placed into code space first as constant data at
+// compile/link time, and its moved to the RW RAM data space
+// by special instructions in the C startup portion of the boot
+// loader. This is due to the Harvard architecture of the AVR
+// with its separate I + D spaces.
+//
+// If code space gets tight, globals can be carefully
+// moved to new() heap allocations, but be very careful
+// to calculate your available heap size, and worst
+// case heap/stack usage.
+//
+
+//
+// Note: "const" is a compile time definition that does not takeup
+// any code or data space for the variable, except for it being used
+// as an instruction literal when referenced.
+//
+

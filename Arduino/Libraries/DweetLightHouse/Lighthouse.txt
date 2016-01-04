@@ -1,0 +1,140 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+LightHouse Design Notes
+02/17/2015
+
+//
+// Lighthouse Information
+//
+// http://en.wikipedia.org/wiki/Light_characteristic//
+//
+// http://en.wikipedia.org/wiki/Aerodrome_beacon
+//
+// http://en.wikipedia.org/wiki/New_Dungeness_Light
+//
+// http://www.newdungenesslighthouse.com///
+//
+
+//
+// Application Model:
+//
+// The application implements a lighthouse or navigational buoyage
+// light sequence.
+//
+// It operates with a periodic timer which reads a bit stream that
+// indicates the on and off states for each period. In this manner
+// it operates similar to a paper tape sequencer.
+//
+// The light color, intensity and polarity are stored in separate
+// variables from the bit stream and used to provide the "on"
+// values when a bit is set during a given period.
+//
+// The period is settable to allow customization of sequence rates.
+//
+// Application configuration is received through Dweet's.
+//
+// The bit stream that represents the sequence is sent as a set
+// of ASCII hex characters representing the binary bytes for the sequence.
+//
+// Each byte starting from byte 0 provide the bits that make up the
+// sequence.
+//
+// The total bit count is sent since its not required that all
+// sequences are rounded to 8 bits.
+//
+// The power on/reset state of the above settings may be configured
+// for the non-volatile EEPROM using the Dweet LIGHTSP=item:value commands.
+//
+// The current power on/reset state of the settings may be read using the Dweet
+// LIGHTGP=item commands.
+//
+// LIGHTSQ/LIGHTGQ Dweet commands may be used to configure the volatile
+// settings.
+//
+// light - A LED on Arduino pin D13.
+//
+// bitcount:bits_packed_in_bytes
+// 71 maximum chars in Dweet/NMEA 0183 sentence (80 - $PDWT,*00)
+// 11 chars in command "LIGHTSQ=00:" (71 - 11) == 60 chars.
+// At 60 chars this is 30 bytes or 240 bits.
+// At 250ms (1/4 second) intervals 60 min sequence is covered by 240 bits.
+//
+// Bit count is given since it may not round out to a byte.
+// Lower bits first.
+// LIGHTSQ=00:0000000
+//
+// in milliseconds
+// LIGHTPERIOD=00000000
+// LIGHTTICK=0000
+//
+// RGB saturation values
+// LIGHTCOLOR=00.00.00
+//
+// LIGHTCOLOR=GREEN
+// LIGHTCOLOR=RED
+// LIGHTCOLOR=AMBER
+// LIGHTCOLOR=WHITE
+// LIGHTCOLOR=BLUE
+//
+//  milliseconds:increment
+// increment each n milliseconds till full on/off
+// Ramp up/ramp down will simulate a "warmer" glow
+// LIGHTRAMP=00:00
+//
+
+//
+// State Machine Model:
+//
+// The array of bytes in m_sequence is treated as a series of bits
+// in a bitstream. This bitstream's size is indicated by m_sequenceSize.
+//
+// The m_interval clocks the state machine which acts as a shift register
+// through the bits in sequence. A 1 bit in a given position indicates
+// light on state, while a zero bit indicates light off state.
+//
+// When m_sequenceSize is reached the shift register stops with
+// the light value remaining the last bit value seen.
+//
+// The m_period specifies the begining of a cycle when the bitstream
+// is clocked through the (virtual) shift register. It specifies
+// the total period which encompasses the time spent clocking the
+// sequence, and not the wait time at the end till the next start.
+// This makes it easier to model typical periodic sequences
+// of Lighthouses.
+//
+// Light polarity can be controlled separately so 1 is always on,
+// and 0 is always off for the core state machine.
+//
+// When the light is on or off, its values are retrieved from the
+// m_red, m_green, m_blue values to allow a multi-color LED to
+// be used with PWM to allow customization.
+//
+// Since its just a clocked bit stream, just about any sequence
+// of lights can be encoded. This includes occulating, pulsing,
+// flashing, in addition to standard morse sequences common
+// in many North American (at least US) Lighthouses.
+//
+// The applications design also accomodates modeling "buoy's"
+// which are navigational markers which typically flash a
+// red, green, or amber light as channel markers.
+//
+
+

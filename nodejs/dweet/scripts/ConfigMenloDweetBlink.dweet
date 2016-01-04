@@ -1,0 +1,24 @@
+#
+# Configure Dweet Blink
+#
+
+# Setup manufacturing information
+setconfig name=MenloDweetBlink
+
+setconfig model=ArduinoUno
+
+setconfig serial=00000001
+
+# Set interval to 5 seconds
+# Note: Values are in hex. 0x1288 == 5000 milliseconds, or 5 seconds
+dweet SETCONFIG=BLINKINTERVAL:1288
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=BLINKINTERVAL
+
+quit
