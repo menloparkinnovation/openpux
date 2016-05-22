@@ -2,9 +2,13 @@
 //
 // Simulate a button press from the IotButton device.
 //
-var g_serviceUrl = "http://192.168.1.7:8080";
+
+var g_serviceUrl = "http://iotbutton.azurewebsites.net";
 
 var g_buttonMessage = '{"device_id": "123", "button_state": "1 pressed", "battery_level": "90"}';
+
+//var g_serviceUrl = "http://192.168.1.7:8080";
+//var g_buttonMessage = '{"device_id": "123", "button_state": "1 pressed", "battery_level": "90"}';
 
 /*
  * Copyright (C) 2016 Menlo Park Innovation LLC

@@ -42,7 +42,17 @@
  *  THE SOFTWARE.
  */
 
-var g_serverPort = 8080;
+var g_serverPort = null;
+
+if (typeof(process.env.port) != "undefined") {
+    g_serverPort = process.env.port;
+    console.log("using port from process.env.port");
+}
+else {
+    console.log("using built in port");
+    g_serverPort = 8080;
+}
+
 var g_serverInterface = "0.0.0.0";
 
 //var g_serverInterface = "127.0.0.0";

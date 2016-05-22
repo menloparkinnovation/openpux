@@ -98,21 +98,18 @@ const char fingerPrint[] = "29 9F 93 FA B0 89 37 C4 BC 76 D7 EB DE 13 6E EC 82 A
 // Note: These are case sensitive for both SSID and passphrase
 //
 
-const char WiFiSSID[] = "OceanHouse";
-const char WiFiPSK[] = "thisisakey321";
-
-//const char WiFiSSID[] = "mastergardener";
-//const char WiFiPSK[] = "charlotte81098";
+const char WiFiSSID[] = "iotbutton";
+const char WiFiPSK[] = "thisisakey123";
 
 //
 // Host
 //
-const char IotHost[] = "192.168.1.7";
+const char IotHost[] = "iotbutton.azurewebsites.net";
 
 //
 // Host Port
 //
-const int IotHostPort = 8080;
+const int IotHostPort = 80;
 
 /////////////////////
 // Pin Definitions //
