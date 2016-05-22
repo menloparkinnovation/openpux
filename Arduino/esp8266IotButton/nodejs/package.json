@@ -1,0 +1,12 @@
+{
+  "name": "iotbuttonserver",
+  "version": "1.0.0",
+  "description": "http server for IoT Button.",
+  "scripts": {
+      "start": "node iotbuttonserver.js",
+      "test": "node iotbuttonpressed.js"
+  },
+  "keywords": [],
+  "author": "MenloPark Innovation LLC",
+  "license": "MIT"
+}
