@@ -1,0 +1,172 @@
+
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+
+      google.load("visualization", "1", {packages:["gauge"]});
+
+      google.setOnLoadCallback(drawChart);
+
+      //
+      // This gets run when the browser page loads
+      //
+      function drawChart() {
+
+        // Each data row create a gauge instance
+        var windspeed = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          ['MPH',     0]
+        ]);
+
+        var windspeedOptions = {
+          width: 1200, height: 360,
+          redFrom: 50, redTo: 105,
+          yellowFrom:30, yellowTo: 50,
+          minorTicks: 5,
+          min: 0,
+          max: 105
+        };
+
+        var windspeed_chart =
+            new google.visualization.Gauge(document.getElementById('windspeed_chart'));
+
+        windspeed_chart.draw(windspeed, windspeedOptions);
+
+        //
+        // Timers provide for periodic updates
+        //
+        // Wind Speed timer
+        //
+        setInterval(function() {
+          windspeed.setValue(0, 1, 40 + Math.round(60 * Math.random()));
+          windspeed_chart.draw(windspeed, windspeedOptions);
+        }, 1600);
+
+        var winddir = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          ['Degrees', 0]
+        ]);
+
+        var winddirOptions = {
+          width: 1200, height: 360,
+          //redFrom: 50, redTo: 105,
+          //yellowFrom:30, yellowTo: 50,
+          minorTicks: 5,
+          min: 0,
+          max: 359
+        };
+
+        var winddir_chart =
+            new google.visualization.Gauge(document.getElementById('winddir_chart'));
+
+        winddir_chart.draw(winddir, winddirOptions);
+
+        // Wind Dir timer
+        setInterval(function() {
+          winddir.setValue(0, 1, 40 + Math.round(60 * Math.random()));
+          winddir_chart.draw(winddir, winddirOptions);
+        }, 1600);
+
+        var temp = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          ['Temp',     0]
+        ]);
+
+        var tempOptions = {
+          width: 1200, height: 360,
+          redFrom: 100, redTo: 120,
+          yellowFrom:85, yellowTo: 100,
+          minorTicks: 5,
+          min: 0,
+          max: 120
+        };
+
+        var temp_chart =
+            new google.visualization.Gauge(document.getElementById('temp_chart'));
+
+        temp_chart.draw(temp, tempOptions);
+
+        // Temp timer
+        setInterval(function() {
+          temp.setValue(0, 1, 40 + Math.round(60 * Math.random()));
+          temp_chart.draw(temp, tempOptions);
+        }, 1600);
+
+        //
+        // This is the top row of gauges as a unit.
+        //
+
+        //
+        // Each row in the table is an independent gauge that
+        // shares common settings in options.
+        //
+        var data = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          ['MPH',     0],
+          ['Degrees', 0],
+          ['Temp',    0]
+        ]);
+
+        var options = {
+          //width: 400, height: 120,
+          //width: 800, height: 240,
+          width: 1200, height: 360,
+          redFrom: 90, redTo: 100,
+          yellowFrom:75, yellowTo: 90,
+          minorTicks: 5
+          //min: 10,
+          //max: 200
+          //majorTicks: 10
+        };
+
+        var chart = new google.visualization.Gauge(document.getElementById('chart_div'));
+
+        chart.draw(data, options);
+
+        setInterval(function() {
+          data.setValue(0, 1, 40 + Math.round(60 * Math.random()));
+          chart.draw(data, options);
+        }, 1600);
+
+        // Wind Direction
+        setInterval(function() {
+          data.setValue(1, 1, 40 + Math.round(60 * Math.random()));
+          chart.draw(data, options);
+        }, 500);
+
+        // Temperature
+        setInterval(function() {
+          data.setValue(2, 1, 60 + Math.round(20 * Math.random()));
+          chart.draw(data, options);
+        }, 5000);
+      }
+    </script>
+  </head>
+  <body>
+
+    <table>
+
+        <tr>
+          <div id="chart_div" style="width: 1200px; height: 360px;"></div>
+        </tr>
+
+        <tr>
+          <td>
+            <div id="windspeed_chart" style="width: 360px; height: 360px;"></div>
+          </td>
+
+          <td>
+            <div id="winddir_chart" style="width: 360px; height: 360px;"></div>
+          </td>
+
+          <td>
+            <div id="temp_chart" style="width: 360px; height: 360px;"></div>
+          </td>
+        </tr>
+
+    </table>
+
+  </body>
+</html>
+

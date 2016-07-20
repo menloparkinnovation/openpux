@@ -108,7 +108,7 @@ function App(config)
     this.logger = this.config.logger;
 
     // Locate the openpux app we will layer on top of
-    this.openpux_app = config.appserver.getAppInstanceByName("openpux");
+    this.openpux_app = this.config.appserver.getAppInstanceByName("openpux");
 }
 
 //

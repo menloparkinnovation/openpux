@@ -1,0 +1,55 @@
+
+/* iPhone devices */
+
+.class_gauge {
+    width: 180px;
+    height: 180px;
+}
+
+body {
+    background-image: url("lighthouse_horiz.jpg");
+    background-color: #cccccc;
+    background-repeat: no-repeat;
+    background-size: cover;
+}
+
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+body {
+    font: 13px Helvetica, Arial;
+}
+
+.scale_input {
+    border: 0;
+    padding: 10px;
+    width: 98%;
+    margin-left: 1%;
+    margin-right: 1%;
+    }
+
+.status_bar {
+    background: #000;
+    padding: 3px;
+    position:
+    fixed;
+    bottom: 0;
+    width: 100%;
+    }
+
+.status_bar_input {
+    border: 0;
+    padding: 10px;
+    width: 90%;
+    margin-right: .5%;
+    }
+
+.status_bar_button {
+    width: 9%;
+    background: rgb(130, 224, 255);
+    border: none;
+    padding: 10px;
+}

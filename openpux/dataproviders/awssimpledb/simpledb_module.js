@@ -25,8 +25,8 @@
 //
 // npm install aws-sdk
 //
-
 // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SimpleDB.html
+//
 
 var AWS = require('aws-sdk'); 
 
@@ -49,14 +49,58 @@ function SimpleDB_Module(config) {
     // Inherit the logger from config
     this.logger = this.config.logger;
 
-    //
-    // Must set the region on the AWS global object
-    // {region: 'us-west-1'} is Northern California
-    //
-    AWS.config.update({region: config.region});
+    // Options to the SimpleDB constructor
+    var options = {};
 
+    //
+    // Must set the region on the AWS global object or will get an error
+    // "Missing region in config".
+    //
+    if (config.credentials == null) {
+        AWS.config.update({region: config.defaultRegion});
+
+        //
+        // Use credentials and config in $HOME/.aws/credentials!config
+        //
+    }
+    else {
+
+        config.utility.dumpasjsonToConsole(config.credentials);
+
+        // Set the region from the credentials
+        var region = config.credentials.config.default.region;
+
+        this.tracelog("AWS region: " + region);
+
+        AWS.config.update({region: region});
+
+        options.region = region;
+
+        //
+        // AWS.Credentials
+        //
+        // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/Credentials.html
+        //
+        // var creds = new AWS.Credentials({
+        //   accessKeyId: 'akid', secretAccessKey: 'secret', sessionToken: 'session'
+        // });
+        //
+
+        var akid = config.credentials.credentials.default.aws_access_key_id;
+        var skey = config.credentials.credentials.default.aws_secret_access_key;
+
+        var creds = new AWS.Credentials({accessKeyId: akid, secretAccessKey: skey});
+
+        options.credentials = creds;
+    }
+
+    //
     // Create SimpleDB instance
-    this.simpledb = new AWS.SimpleDB();
+    //
+    // http://docs.aws.amazon.com/AWSJavaScriptSDK/latest/AWS/SimpleDB.html
+    //
+
+    this.simpledb = new AWS.SimpleDB(options);
 }
 
 //

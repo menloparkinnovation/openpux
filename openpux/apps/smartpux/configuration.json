@@ -1,0 +1,13 @@
+{
+    "enabled": "dynamic",
+    "name": "smartpux",
+    "url": "/smartpuxdata/",
+    "server": "smartpuxapp.js",
+    "storage_root": "",
+    "credentials_file": "",
+    "credentials": {},
+    "application_config": {},
+    "application_dependencies": [
+        "openpux"
+    ]
+}

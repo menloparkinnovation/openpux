@@ -1,0 +1,11 @@
+{
+    "enabled": "dynamic",
+    "name": "twilio",
+    "url": "/twilio/smartpux",
+    "app_path": "/twilio/smartpux",
+    "server": "twilioapp.js",
+    "storage_root": "/twilio",
+    "credentials_file": "twilio_credentials.json",
+    "credentials": {},
+    "application_config": {}
+}

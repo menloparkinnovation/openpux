@@ -220,5 +220,8 @@ MenloHttpRequest.prototype.sendit = function(postDocument, callback)
         self.request.write(postDocument);
     }
 
+    //
+    // Note: Request will hang until this is done
+    //
     self.request.end();
 }

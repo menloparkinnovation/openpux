@@ -141,8 +141,6 @@ MemoryCache.prototype.set = function(key, val) {
 //
 MemoryCache.prototype.get = function(key) {
     var val = this.cacheMap[key];
-    //if (val == undefined) return null;
-    if (val == undefined) return undefined;
     return val;
 }
 
@@ -386,21 +384,17 @@ MemoryCache.prototype.enumerateLastItems = function(parentName, itemCount) {
 }
 
 //
-// TODO: Make this not openpux specific!
+// Select last itemCount items
 //
-// Select last itemcount items
-//
-// domain - SimpleDB domain to query
-//
-// sensorid - fully qualified sensor name such as "Account_1.Sensor_1"
+// itemName - itemName such as "/account/1/sensor/1/readings"
 //
 // timestamp - timestamp to begin search by
 //
-MemoryCache.prototype.buildSelectLastReadingsStatement =
-    function(sensorid, timestamp, itemcount) {
+MemoryCache.prototype.buildSelectLastItemsStatement =
+    function(itemName, timestamp, itemcount) {
 
     // To support in memory query, return a JSON object with the parameters.
-    var parent = sensorid + "/readings/";
+    var parent = itemName + "/";
 
     var query = { query: "enumerate", 
                   parent: parent,

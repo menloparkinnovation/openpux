@@ -1,0 +1,17 @@
+{
+    "Applications":  [
+        { "enabled": "true",    "name": "ticket"      },
+        { "enabled": "true",    "name": "openpux"     },
+        { "enabled": "true",    "name": "admin"       },
+        { "enabled": "dynamic", "name": "smartpux"    },
+        { "enabled": "dynamic", "name": "weather"     },
+        { "enabled": "dynamic", "name": "twilio"      },
+        { "enabled": "dynamic", "name": "particle"    },
+        { "enabled": "dynamic", "name": "esquiloio"   },
+        { "enabled": "dynamic", "name": "domweather"  },
+        { "enabled": "dynamic", "name": "dweetweather"},
+        { "enabled": "false",   "name": "template"    },
+        { "enabled": "true",    "name": "default"     },
+        { "enabled": "false",   "name": "dynamicapps", "directory": "var/dynamicapps/" }
+     ]
+}

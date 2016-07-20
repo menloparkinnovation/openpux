@@ -1,0 +1,10 @@
+{
+  "name": "dweet_weather_app",
+  "version": "0.0.1",
+  "description": "Dweet Weather App",
+  "main": "./dweetweatherapp.js",
+  "author": "MenloParkInnovation LLC",
+  "license": "Apache 2.0",
+  "repository": {},
+  "dependencies": {}
+}

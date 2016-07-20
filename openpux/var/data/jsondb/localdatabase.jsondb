@@ -1,0 +1,20 @@
+{"type":"start_record","time":"2016-03-26T18:40:43.565Z","module":"jsondbprovider","message":"db session started"}
+{"type":"/Tickets/12345678","time":"2016-03-26T18:42:07.373Z","data":{"id":"12345678","object":"/api/v2/accounts/1","allow_sub_path":"true","access_Full":"Full","__ItemName":"/Tickets/12345678","__Parent":"/Tickets/"}}
+{"type":"/accounts/1","time":"2016-03-26T18:42:07.374Z","data":{"Name":"1","__ItemName":"/accounts/1","__Parent":"/accounts/"}}
+{"type":"/accounts/1/sensors/1","time":"2016-03-26T18:42:07.486Z","data":{"AccountID":"1","SensorID":"1","__ItemName":"/accounts/1/sensors/1","__Parent":"/accounts/1/sensors/"}}
+{"type":"/accounts/1/sensors/1/settings","time":"2016-03-26T18:42:07.597Z","data":{"AccountID":"1","SensorID":"1","SleepTime":"30","Command":"0","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"003","__ItemName":"/accounts/1/sensors/1/settings","__Parent":"/accounts/1/sensors/1/"}}
+{"type":"/accounts/1/sensors/1/settings","time":"2016-03-26T18:42:07.698Z","data":{"AccountID":"1","SensorID":"1","SleepTime":"30","Command":"0","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"003","__ItemName":"/accounts/1/sensors/1/settings","__Parent":"/accounts/1/sensors/1/"}}
+{"type":"/accounts/1/sensors/1/readings","time":"2016-03-26T18:42:07.796Z","data":{"AccountID":"1","SensorID":"1","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"0003","SensorReading0":"0000","SensorReading1":"0001","SensorReading2":"0002","SensorReading3":"3","TimeStamp":"2016-03-26T18:42:07.796Z","__ItemName":"/accounts/1/sensors/1/readings","__Parent":"/accounts/1/sensors/1/"}}
+{"level":"stop_record","time":"2016-03-26T18:42:16.294Z","module":"jsondbprovider","message":"db session ended"}
+
+{"type":"start_record","time":"2016-03-26T18:46:50.997Z","module":"jsondbprovider","message":"db session started"}
+{"level":"stop_record","time":"2016-03-26T18:46:58.092Z","module":"jsondbprovider","message":"db session ended"}
+
+{"type":"start_record","time":"2016-03-26T18:52:10.221Z","module":"jsondbprovider","message":"db session started"}
+{"type":"/accounts/1/sensors/1/settings","time":"2016-03-26T18:52:27.333Z","data":{"AccountID":"1","SensorID":"1","SleepTime":"30","Command":"0","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"003","__ItemName":"/accounts/1/sensors/1/settings","__Parent":"/accounts/1/sensors/1/"}}
+{"type":"/accounts/1/sensors/1/readings","time":"2016-03-26T18:52:27.545Z","data":{"AccountID":"1","SensorID":"1","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"0003","SensorReading0":"0000","SensorReading1":"0001","SensorReading2":"0002","SensorReading3":"3","TimeStamp":"2016-03-26T18:52:27.545Z","__ItemName":"/accounts/1/sensors/1/readings","__Parent":"/accounts/1/sensors/1/"}}
+{"type":"start_record","time":"2016-03-27T01:52:02.003Z","module":"jsondbprovider","message":"db session started"}
+{"type":"/accounts/1/sensors/1/settings","time":"2016-03-27T01:52:08.980Z","data":{"AccountID":"1","SensorID":"1","SleepTime":"30","Command":"0","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"003","__ItemName":"/accounts/1/sensors/1/settings","__Parent":"/accounts/1/sensors/1/"}}
+{"type":"/accounts/1/sensors/1/readings","time":"2016-03-27T01:52:09.179Z","data":{"AccountID":"1","SensorID":"1","TargetMask0":"0","TargetMask1":"0001","TargetMask2":"0002","TargetMask3":"0003","SensorReading0":"0000","SensorReading1":"0001","SensorReading2":"0002","SensorReading3":"3","TimeStamp":"2016-03-27T01:52:09.179Z","__ItemName":"/accounts/1/sensors/1/readings","__Parent":"/accounts/1/sensors/1/"}}
+{"level":"stop_record","time":"2016-03-27T01:52:14.778Z","module":"jsondbprovider","message":"db session ended"}
+

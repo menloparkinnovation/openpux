@@ -1,0 +1,50 @@
+{
+    "http_ipv4_listen_address": "0.0.0.0",
+    "http_ipv4_listen_port": 80,
+
+    "LogFileDirectory": "./var/logs",
+    "LogToConsole": true,
+
+    "AccountingFileDirectory": "./var/accounting_logs",
+    "AccountingLogToConsole": true,
+
+    "Trace": true,
+    "TraceError": true,
+    "DebugTrace": true,
+
+    "AdministratorAccountID": "0",
+    "AdministratorPassCode": "0123456789",
+
+    "BackingStoreProvider": "../dataproviders/awssimpledb/awssimpledb.js",
+
+    "BackingStoreProviderParameters": {},
+
+    "CacheTimeout": 30,
+
+    "AccountMaxEntries": 100,
+
+    "AccountTrimCount": 0,
+
+    "ItemsMaxEntries": 100,
+
+    "ItemsTrimCount": 10,
+
+    "SensorsMaxEntriesPerAccount": 10,
+
+    "SensorsTrimCount": 0,
+
+    "ReadingsMaxPerSensor": 100,
+
+    "ReadingsTrimCount": 10,
+
+    "ticket_cache": {
+        "max_entries": 100,
+        "trim_count": 10
+    },
+
+    "ForceAllBootLoaded": "true",
+
+    "ApplicationsFile": "applications.json",
+
+    "Applications":  []
+}

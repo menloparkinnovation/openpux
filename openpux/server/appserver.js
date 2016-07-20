@@ -62,7 +62,9 @@ var path = require('path');
 var extensionToPathTable = [
   { extension: ".js",     path: "client/javascripts/" },
   { extension: ".css",    path: "client/css/" },
-  { extension: ".html",   path: "client/html/" }
+  { extension: ".html",   path: "client/html/" },
+  { extension: ".png",    path: "client/images/" },
+  { extension: ".jpg",    path: "client/images/" }
 ];
 
 //
@@ -100,6 +102,279 @@ function AppServer(config)
     this.logger = this.config.logger;
 
     this.utility = this.config.utility;
+
+    this.configserver = this.config.configserver;
+}
+
+//
+// Initialize the application server.
+//
+AppServer.prototype.initialize = function () {
+
+    var self = this;
+
+    //
+    // First load any external application configuration file.
+    // Typically config/applications.json
+    //
+    self.loadApplicationsConfigurationFile();
+
+    //
+    // Now that all of the statically configured application information
+    // is loaded now configure the applications by looking up their
+    // configuration.json file if present.
+    //
+    self.configureApplications();
+
+    //
+    // Load any application that request to be loaded at startup.
+    //
+    self.loadBootApps();
+}
+
+//
+// Load the applications.json configuration file if it exits
+// and add any Applications[] entries to the main one.
+//
+AppServer.prototype.loadApplicationsConfigurationFile = function () {
+
+    var self = this;
+
+    if ((typeof(self.config.ApplicationsFile) == "undefined") ||
+        (self.config.ApplicationsFile == null)) {
+
+        self.logger.info("no external ApplicationsConfigurationFile specified");
+
+        // No applications.json file configured
+        return;
+    }
+
+    var fileDirectory = __dirname + "/../config/";
+    var filePath = fileDirectory + self.config.ApplicationsFile;
+
+    // Try and load the config file from config directory
+    var result = self.configserver.loadConfigFileSync(filePath);
+    if (result.error != null) {
+        self.logger.error("error loading external application configuation file " + result.error);
+        return;
+    }
+
+    if ((typeof(result.config.Applications) == "undefined") ||
+        (result.config.Applications.length == 0)) {
+
+        self.logger.info("no entries specified in external ApplicationsConfigurationFile");
+
+        // no entries
+        return;
+    }
+
+    //
+    // Append the array to the ones inside the main configuration file
+    // if configured.
+    //
+    // Note: It's ensured at least an empty array exists in
+    // self.config.Applications
+    //
+    self.config.Applications = self.config.Applications.concat(result.config.Applications);
+
+    self.logger.info("loaded external application configuration file " + filePath);
+
+    return;
+}
+
+//
+// Configure applications.
+//
+// Lookup if an application has a configuration.json entry, and if
+// so, load it and use its configuration in place of the current app entry.
+//
+AppServer.prototype.configureApplications = function () {
+
+    var self = this;
+
+    var apps = this.config.Applications;
+
+    for (var prop in apps) {
+        var app = apps[prop];
+
+        if (!self.isAppEnabled(app)) {
+
+            // skip disabled applications
+            self.logger.info("appserver: " + app.name + " is disabled");
+            continue;
+        }
+
+        var appconfig = self.loadApplicationConfigSync(app.name);
+        if (appconfig.error != null) {
+
+            //
+            // Application does not have an application.json, its configuration
+            // will be taken from the values in the Applications[] entry.
+            //
+            self.logger.info("appserver: " + app.name + " has no configuration.json");
+            continue;
+        }
+
+        //
+        // Replace the Applications[] entry with the updated
+        // applications values.
+        //
+        self.logger.info("appserver: using " + app.name + " configuration.json");
+
+        self.config.Applications[prop] = appconfig.config;
+    }
+}
+
+//
+// Load the applications configuration.json file.
+//
+// Returns:
+//
+// {
+//   error: "error message or null",
+//   config: null // or pointer to obj
+// }
+//
+AppServer.prototype.loadApplicationConfigSync = function (appname) {
+    var self = this;
+
+    // fs.open uses the path where app.js resides, not where this file resides
+    var appDirectoryPath = "apps/" + appname + "/";
+
+    var appConfigurationPath = appDirectoryPath + "configuration.json";
+
+    var config = self.configserver.loadConfigFileSync(appConfigurationPath);
+    if (config.error != null) {
+        var err = "AppServer: Error loading configuration.json for " + appname;
+        err += " error=" + config.error;
+        self.logger.info(err);
+        return config;
+    }
+
+    //
+    // If the application config specifies a separate credentials file load that.
+    //
+    // This allows applications to place credentials in a common location
+    // for deployment.
+    //
+    var appconf = config.config;
+
+    if ((typeof(appconf.credentials_file) == "undefined") ||
+               (appconf.credentials_file == null) ||
+               (appconf.credentials_file == "")) {
+
+        // No credentials file entry
+        return config;
+    }
+
+    //
+    // All loaded credentials are in credentials/.. not the
+    // application directory.
+    //
+    // This makes it easer to manage credentials in deployments
+    // rather than chasing them down in each app directory.
+    //
+    var credentialsDirectoryPath = "credentials/";
+
+    // Try and load the applications credentials file
+    var credentialsFilePath = credentialsDirectoryPath + appconf.credentials_file;
+
+    var creds = self.configserver.loadConfigFileSync(credentialsFilePath);
+    if (creds.error != null) {
+        var err = "appserver: could not load credentials file for " + appname;
+        err += " filePath=" + credentialsFilePath;
+        self.logger.error(err);
+        return config;
+    }
+    else {
+        // replace (or add) the credentials entry
+        self.logger.info("using credentials file for app " + appname);
+        config.config.credentials = creds.config;
+    }
+
+    return config;
+}
+
+//
+// Load boot loaded apps.
+//
+// This is called at server initialization time.
+//
+// Loading applications at boot time ensures any initialization
+// errors occur at server load, vs. when either the first url
+// comes in for the application, or when another application
+// requests it.
+//
+// Since loading uses require(), its synchronous, so boot loading
+// applications avoids holding up the server for app load during
+// online operations.
+//
+AppServer.prototype.loadBootApps = function () {
+
+    var self = this;
+
+    var apps = this.config.Applications;
+
+    for (var prop in apps) {
+        var app = apps[prop];
+
+        if (self.isAppBootLoaded(app)) {
+            var appInstance = self.getAppInstance(app);
+            if (appInstance == null) {
+                var logMessage = "server app boot load error name= " + app.name;
+                self.logger.error(logMessage);
+            }
+        }
+    }
+}
+
+//
+// Returns true if the app is boot/initialization/startup time loaded.
+//
+AppServer.prototype.isAppBootLoaded = function (app) {
+
+    //
+    // If enabled is "true", the module is loaded at server
+    // initialization.
+    //
+    // If enabled is "dynamic", the module is loaded at either
+    // the first URL request, or if another application module
+    // requests it (for service provider application modules).
+    //
+    if ((typeof(app.enabled) == "undefined") || (app.enabled == null)) {
+
+        // Entry is disabled by not having an "enabled" entry.
+        return false;
+    }
+
+    if ((typeof(app.server) == "undefined") || (app.server == null)) {
+
+        // No appserver.js configured
+        return false;
+    }
+
+    if (app.enabled == "true") {
+        // Entry is boot loaded
+        return true;
+    }
+
+    if ((typeof(this.config.ForceAllBootLoaded) == "undefined") ||
+        (this.config.ForceAllBootLoaded == null)) {
+
+        // No force boot loaded setting
+        return false;
+    }
+
+    //
+    // Dynamically loaded applications are loaded at boot if
+    // ForceAllBootLoaded is true.
+    //
+    if ((app.enabled == "dynamic") &&
+        (this.config.ForceAllBootLoaded == "true")) {
+        return true;
+    }
+
+    return false;
 }
 
 //
@@ -124,7 +399,10 @@ AppServer.prototype.getAppInstanceByName = function (name) {
 }
 
 //
-// Lookup an applications entry by name
+// Lookup an applications configuration entry by name.
+//
+// This will return applications who are disabled, but
+// present in the Applications configuration database.
 //
 AppServer.prototype.findAppByName = function (name) {
 
@@ -147,11 +425,47 @@ AppServer.prototype.findAppByName = function (name) {
 }
 
 //
+// Returns whether the app is enabled
+//
+AppServer.prototype.isAppEnabled = function (app) {
+
+    //
+    // If enabled is "true", the module is loaded at server
+    // initialization.
+    //
+    // If enabled is "dynamic", the module is loaded at either
+    // the first URL request, or if another application module
+    // requests it (for service provider application modules).
+    //
+    if ((typeof(app.enabled) == "undefined") || (app.enabled == null)) {
+
+        // Entry is disabled by not having an "enabled" entry.
+        return false;
+    }
+
+    if ((app.enabled == "true") || (app.enabled == "dynamic")) {
+        return true;
+    }
+
+    // Entry is disabled.
+    return false;
+}
+
+//
 // This returns a loaded instance of the application.
 //
 // It attempts to load the server for the application.
 //
+// If the application is disabled, its not loaded.
+//
 AppServer.prototype.getAppInstance = function (app) {
+
+    var self = this;
+
+    if (!self.isAppEnabled(app)) {
+        // Application is not enabled
+        return null;
+    }
 
     if ((typeof(app.server) == "undefined") || (app.server == null)) {
 
@@ -185,12 +499,12 @@ AppServer.prototype.getAppInstance = function (app) {
 
     try {
         var appFactory = new require(appServerPath);
-        app.serverInstance = new appFactory.App(this.config);
+        app.serverInstance = new appFactory.App(self.config, app);
         return app;
     } catch (e) {
-        var logMessage = "e=" + e.toString() + " stack=" + e.stack.toString();
+        var logMessage = "e=" + e.toString();
         logMessage += " server app configuration error, exception loading app module " + appServerPath;
-        this.logger.error(logMessage);
+        self.logger.error(logMessage);
         return null;
     }
 }
@@ -265,6 +579,14 @@ AppServer.prototype.processAppRequest = function (req, res) {
     //
     for (var prop in apps) {
 
+        if ((apps[prop].url == "undefined") ||
+            (apps[prop].url == null) ||
+            (apps[prop].url == "")) {
+
+            // No url setting, continue.
+            continue;
+        }
+
         // url can be an array of url entries the application handles
         if (Array.isArray(apps[prop].url)) {
             var ar = apps[prop].url;
@@ -305,8 +627,11 @@ AppServer.prototype.processAppRequest = function (req, res) {
 //
 AppServer.prototype.processAppUrlRequest = function (req, res, app, app_url) {
     
+    var self = this;
+
     //
-    // TODO: Validate credentials to app domain!
+    // Currently each app is responsible for validating its url
+    // and access type in the ticket.
     //
 
     var handled = false;
@@ -316,25 +641,35 @@ AppServer.prototype.processAppUrlRequest = function (req, res, app, app_url) {
     //
     if ((typeof(app.server) != "undefined") && (app.server != null)) {
 
-        var appServer = this.getAppInstance(app);
+        var appServer = self.getAppInstance(app);
         if (appServer == null) {
 
             //
             // A server was configured, but could not be loaded.
             // return an error.
             //
-            this.utility.logSendErrorAsJSON(this.logger, req, res, 503,
+            self.utility.logSendErrorAsJSON(self.logger, req, res, 503,
                     "could not load application server " + app.server);
 
             return true;;
         }
 
-        handled = appServer.serverInstance.processAppRequest(req, res, app, app_url, this);
+        handled = appServer.serverInstance.processAppRequest(req, res, app, app_url, self);
         return handled;
     }
 
+    //
+    // If the application is not enabled, we don't serve any static
+    // content from its application directory as well.
+    //
+    if (!self.isAppEnabled(app)) {
+        self.logger.error("application is disabled app.name=" + app.name + " url=" + app_url);
+        self.utility.logSendErrorAsJSON(self.logger, req, res, 400, "application is disabled");
+        return true;
+    }
+
     if (req.method != "GET") {
-        this.utility.logSendErrorAsJSON(this.logger, req, res, 400, "request not supported by app");
+        self.utility.logSendErrorAsJSON(self.logger, req, res, 400, "request not supported by app");
         return true;
     }
 
@@ -348,7 +683,7 @@ AppServer.prototype.processAppUrlRequest = function (req, res, app, app_url) {
     // and data services using tools such as jQuery, AngularJS, or plain
     // old Javascript + DOM.
     //
-    return this.processAppGetRequest(req, res, app, app_url);
+    return self.processAppGetRequest(req, res, app, app_url);
 }
 
 //
@@ -423,7 +758,7 @@ AppServer.prototype.processUrlEntry = function (req, res, app, name) {
 
 //
 // This is invoked by the generic application handler
-// to map file extentions to paths.
+// to map file extensions to paths.
 //
 AppServer.prototype.extensionToPath = function (ext, base, app) {
 

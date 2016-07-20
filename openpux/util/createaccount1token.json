@@ -1,0 +1,9 @@
+{
+    "Ticket": "0123456789",
+    "id": "12345678",
+    "object": "/api/v2/accounts/1",
+    "allow_sub_path": true,
+    "access": [
+        "Full"
+    ]
+}

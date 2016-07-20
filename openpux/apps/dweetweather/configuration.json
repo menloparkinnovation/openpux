@@ -1,0 +1,14 @@
+{
+    "enabled": "dynamic",
+    "name": "dweetweather",
+    "url": "/dweetweather",
+    "server": "dweetweatherapp.js",
+    "storage_root": "/dweetweather",
+    "credentials_file": "dweetweather_credentials.json",
+    "credentials": {},
+    "application_config": {},
+    "application_dependencies": [
+        "twilio",
+        "particle"
+    ]
+}

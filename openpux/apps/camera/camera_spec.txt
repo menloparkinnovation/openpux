@@ -1,0 +1,77 @@
+
+02/09/2016
+
+Access to all functions, settings, etc. through curl.
+  - includes authentication token. Test compatiblity of openpux tokens.
+  - basics with URL
+  - more complex with uploaded json file
+
+Application configuration is apps/camera/camera.json, and the
+master config points to the valid apps, or its in the data
+base.
+
+Could have a subdirectory in which apps are automatically loaded.
+
+  apps/default/..
+
+Takes a picture on demand, downloads it to the user.
+
+Take pictures on a schedule, keeps them in the file system.
+
+Pictures such as latest can be used by other applications such
+as WhidbeyWeather.
+
+Camera settings are in sensorsettings.
+
+Web page that is specific to the camera that shows the settings,
+lets you edit them, etc.
+
+  - Buttons to take a picture, etc.
+
+  - Should be automatically generated from schema/json.
+
+     - really close with current customization web pages.
+
+
+--------------
+
+curl, wget research
+
+Neither is ideal for uploading a .json file and getting back
+results.
+
+curl supports urlencoded which can be used.
+
+May still use my utility which allows upload of .json documents,
+though the image download if its multi-part mime is trickier.
+
+// -X allows you to specify the HTTP verb
+curl -X PUT http://www.smartpux.com/smartpuxdata/data
+
+-H, --header <header>
+
+--oauth2-bearer
+
+Examples from photon.txt
+
+curl -G https://api.particle.io/v1/devices/WeatherStation2/temperature \
+  -d access_token=75bf710186884a403d2515b6015be0b87ffb0e87
+
+-d <data>
+  sends HTTP data as a POST
+
+  content-type application/x-www-form-urlencoded.
+
+  multiple -d options will splice together with "&" as urlencoded
+
+curl https://api.particle.io/v1/devices/WeatherStation2/led \
+  -d access_token=75bf710186884a403d2515b6015be0b87ffb0e87 \
+  -d params=on
+
+# EXAMPLE REQUEST
+curl -H "Authorization: Bearer {ACCESS_TOKEN_GOES_HERE}" \
+    https://api.particle.io/v1/events/motion-detected
+
+
+
+

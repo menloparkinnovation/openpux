@@ -1,0 +1,10 @@
+{
+    "enabled": "dynamic",
+    "name": "particle",
+    "url": "/particle",
+    "server": "particleapp.js",
+    "storage_root": "/particle",
+    "credentials_file": "",
+    "credentials": {},
+    "application_config": {}
+}

@@ -1,1 +1,1 @@
-node openpux.js config/awssimpledb_config.json
+npm run simpledb

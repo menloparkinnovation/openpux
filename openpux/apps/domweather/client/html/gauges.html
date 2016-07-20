@@ -1,0 +1,220 @@
+
+<html>
+  <head>
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script type="text/javascript">
+
+      google.load("visualization", "1", {packages:["gauge"]});
+
+      google.setOnLoadCallback(drawChart);
+
+      //
+      // This gets run when the browser page loads
+      //
+      function drawChart() {
+
+          var update_rate = 250;
+
+          var gauges = new MyGauges();
+
+          setInterval( function() {
+              var data = {};
+
+              data.wind_speed = Math.round(105 * Math.random());             
+              data.wind_dir = Math.round(360 * Math.random());             
+              data.temp = 40 + Math.round(60 * Math.random());             
+
+              data.humid = Math.round(100 * Math.random());             
+              data.baro = 10 + Math.round(28 * Math.random());             
+              data.rain = Math.round(10 * Math.random());             
+
+              gauges.update(data);
+
+          }, update_rate);
+      }
+
+      function MyGauges() {
+
+        //
+        // Wind Speed
+        //
+
+        var windspeed_options = {
+          width: 1200, height: 360,
+          redFrom: 50, redTo: 105,
+          yellowFrom:30, yellowTo: 50,
+          minorTicks: 5,
+          min: 0,
+          max: 105
+        };
+
+        this.windspeed_gauge = new GenericGauge("windspeed_gauge", windspeed_options, "Wind(MPH)", 0);
+
+        //
+        // Wind Direction
+        //
+
+        var winddir_options = {
+          width: 1200, height: 360,
+          //redFrom: 50, redTo: 105,
+          //yellowFrom:30, yellowTo: 50,
+          minorTicks: 5,
+          min: 0,
+          max: 359
+        };
+
+        this.winddir_gauge = new GenericGauge("winddir_gauge", winddir_options, "Wind(D)", 0);
+
+        var temp = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          ['Temp',     0]
+        ]);
+
+        //
+        // Temperature
+        //
+
+        var temp_options = {
+          width: 1200, height: 360,
+          redFrom: 100, redTo: 120,
+          yellowFrom:85, yellowTo: 100,
+          minorTicks: 5,
+          min: 0,
+          max: 120
+        };
+
+        this.temp_gauge = new GenericGauge("temp_gauge", temp_options, "Temp(F)", 0);
+
+        //
+        // Humidity
+        //
+
+        var humid_options = {
+          width: 1200, height: 360,
+          redFrom: 95, redTo: 100,
+          yellowFrom:85, yellowTo: 95,
+          minorTicks: 5,
+          min: 0,
+          max: 100
+        };
+
+        this.humid_gauge = new GenericGauge("humid_gauge", humid_options, "Humid", 0);
+
+        //
+        // Baro
+        //
+
+        var baro_options = {
+          width: 1200, height: 360,
+          redFrom: 19, redTo: 23,
+          yellowFrom:23, yellowTo: 28,
+          minorTicks: 5,
+          min: 15,
+          max: 38
+        };
+
+        this.baro_gauge = new GenericGauge("baro_gauge", baro_options, "Baro(inHg)", 0);
+
+        //
+        // Rain
+        //
+
+        var rain_options = {
+          width: 1200, height: 360,
+          redFrom: 9, redTo: 10,
+          yellowFrom:7, yellowTo: 9,
+          minorTicks: 5,
+          min: 0,
+          max: 10
+        };
+
+        this.rain_gauge = new GenericGauge("rain_gauge", rain_options, "Rain(In)", 0);
+    }
+
+    MyGauges.prototype.update = function(data) {
+        this.windspeed_gauge.update(data.wind_speed);
+        this.winddir_gauge.update(data.wind_dir);
+        this.temp_gauge.update(data.temp);
+
+        this.humid_gauge.update(data.humid);
+        this.baro_gauge.update(data.baro);
+        this.rain_gauge.update(data.rain);
+    }
+
+    </script>
+
+<script type="text/javascript">
+//
+// Generic Gauge Function
+//
+// element_id - <div/> to attach to in order to position gauge on the page.
+//
+function GenericGauge(element_id, options, label, initialValue) {
+
+    this.options = options;
+
+    // Each data row create a gauge instance
+    this.dataTable = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          [label,     initialValue]
+        ]);
+
+    // Create the gauge
+    this.gauge = 
+            new google.visualization.Gauge(document.getElementById(element_id));
+
+    this.gauge.draw(this.dataTable, this.options);
+}
+
+GenericGauge.prototype.update = function(value) {
+
+    //
+    // 0 - position one in gauge cluster sharing attributes
+    // 1 - data column 1
+    // 2 - data column 2
+    //
+    this.dataTable.setValue(0, 1, value);
+
+    this.gauge.draw(this.dataTable, this.options);
+}
+ </script>
+
+  </head>
+  <body>
+
+    <table>
+
+        <tr>
+          <td>
+            <div id="windspeed_gauge" style="width: 360px; height: 360px;"></div>
+          </td>
+
+          <td>
+            <div id="winddir_gauge" style="width: 360px; height: 360px;"></div>
+          </td>
+
+          <td>
+            <div id="temp_gauge" style="width: 360px; height: 360px;"></div>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div id="humid_gauge" style="width: 360px; height: 360px;"></div>
+          </td>
+
+          <td>
+            <div id="baro_gauge" style="width: 360px; height: 360px;"></div>
+          </td>
+
+          <td>
+            <div id="rain_gauge" style="width: 360px; height: 360px;"></div>
+          </td>
+
+        </tr>
+
+    </table>
+
+  </body>
+</html>
+

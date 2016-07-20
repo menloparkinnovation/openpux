@@ -56,6 +56,7 @@ var mimeTypeConfiguration = [
   { extension: ".text",  mime_type: "text/plain" },
   { extension: ".gif",   mime_type: "image/gif" },
   { extension: ".png",   mime_type: "image/png" },
+  { extension: ".jpg",   mime_type: "image/jpeg" },
   { extension: ".log",   mime_type: "application/json" }
 ];
 

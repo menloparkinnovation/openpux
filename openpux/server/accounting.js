@@ -64,7 +64,7 @@ var fs = require('fs');
 //
 // {
 //     "InstanceName": "name_of_module_or_application",
-//     "LogDirectory" : "./accounting_logs",
+//     "LogDirectory" : "./var/accounting_logs",
 //     "ConsoleOutput": true
 // }
 //

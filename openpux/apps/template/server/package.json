@@ -1,0 +1,10 @@
+{
+  "name": "template_app",
+  "version": "0.0.1",
+  "description": "Template App",
+  "main": "./templateapp.js",
+  "author": "MenloParkInnovation LLC",
+  "license": "Apache 2.0",
+  "repository": {},
+  "dependencies": {}
+}

@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<!--
+--- Openpux ---
+Demonstrates simple DOM updates of a web page with data.
+
+10/19/2015
+From https://github.com/esquiloio/lib/blob/master/demos/weather/weather.html
+--- Openpux ---
+
+Weather Station Demo
+See README.md for more information.
+This work is released under the Creative Commons Zero (CC0) license.
+See http://creativecommons.org/publicdomain/zero/1.0/
+-->
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Weather Station</title>
+  <link rel="stylesheet" href="domweather.css" type="text/css" />
+
+<script>
+function getOpenpuxConfig() {
+    return {cloud_token: "12345678", cloud_account: "1", cloud_sensor_id: "2"};
+}
+</script>
+<script src="/openpuxclient.js"></script>
+
+<script>
+    var update_rate = 30000;
+
+    var config = getOpenpuxConfig();
+    var opclient = new OpenpuxData(config);
+
+    function getWeather() {
+        opclient.getLatestReading(function (error, opdata) {
+            if (error != null) {
+                return;
+            }
+
+            updateGauges(opdata);
+        });
+    }
+
+    function updateGauges(data) {
+
+      	document.getElementById("humidity").innerHTML =
+          parseInt(data.humidity).toFixed(1) + " %";
+          
+        document.getElementById("temp").innerHTML =
+          parseInt(data.temperature).toFixed(1) + " &deg;F";
+          
+        document.getElementById("pressure").innerHTML =
+          (parseInt(data.barometer) * 0.000295299830714).toFixed(2) + " in";
+    }
+
+    setInterval(function() {
+        getWeather();
+    }, update_rate);
+
+    // Get it right away before the first one on the interval
+    getWeather();
+
+  </script>
+</head>
+<body>
+  <h1>Weather Station</h1>
+  <div class="box">
+    <h3>Temperature</h3>
+    <h2 id="temp"></h2>
+  </div>
+  <div class="box">
+    <h3>Pressure</h3>
+    <h2 id="pressure"></h2>
+  </div>
+  <div class="box">
+    <h3>Humidity</h3>
+    <h2 id="humidity"></h2>
+  </div>
+</body>
+</html>

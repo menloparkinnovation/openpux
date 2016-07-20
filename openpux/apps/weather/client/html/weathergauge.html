@@ -1,0 +1,261 @@
+
+<html>
+  <head>
+
+  <style>
+
+    .class_gauge {
+        style: width: 180px;
+        height: 180px;
+    }
+
+  </style>
+
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+    <script>
+      function getOpenpuxConfig() {
+          return {cloud_token: "12345678", cloud_account: "1", cloud_sensor_id: "2"};
+      }
+    </script>
+    <script src="/openpuxclient.js"></script>
+    <script type="text/javascript">
+
+      google.load("visualization", "1", {packages:["gauge"]});
+
+      google.setOnLoadCallback(drawChart);
+
+      //
+      // This gets run when the browser page loads
+      //
+      function drawChart() {
+
+          // Defined in main .html page
+          var config = getOpenpuxConfig();
+          var opclient = new OpenpuxData(config);
+
+          var update_rate = 30000;
+          var scale_factor = 0.5;
+
+          var gauges = new MyGauges(scale_factor);
+
+          var updateGauges = function() {
+
+              var data = {};
+
+              opclient.getLatestReading(function (error, opdata) {
+                  if (error != null) {
+                      // TODO: set status bar for error
+                      return;
+                  }
+
+                  data.wind_speed = opdata.windspeed;
+                  data.wind_dir = opdata.winddirection;
+                  data.temp = opdata.temperature;
+
+                  data.humid = opdata.humidity;
+
+                  // Convert to inHg
+                  data.baro = (opdata.barometer / 1000) * 0.295300;
+                  data.baro = data.baro.toFixed(1);
+
+                  data.rain = opdata.rainfall;
+
+                  gauges.update(data);
+              });
+          }
+
+          // Update right away so we don't wait for the interval
+          updateGauges();
+
+          setInterval(function() {
+              updateGauges();
+          }, update_rate);
+      }
+
+      function MyGauges(scale_factor) {
+
+        //
+        // Wind Speed
+        //
+
+        var windspeed_options = {
+          width: scale_factor * 1200, height: scale_factor * 360,
+          redFrom: 50, redTo: 105,
+          yellowFrom:30, yellowTo: 50,
+          minorTicks: 5,
+          min: 0,
+          max: 105
+        };
+
+        this.windspeed_gauge = new GenericGauge("windspeed_gauge", windspeed_options, "Wind(MPH)", 0);
+
+        //
+        // Wind Direction
+        //
+
+        var winddir_options = {
+          width: scale_factor * 1200, height: scale_factor * 360,
+          //redFrom: 50, redTo: 105,
+          //yellowFrom:30, yellowTo: 50,
+          minorTicks: 5,
+          min: 0,
+          max: 359
+        };
+
+        this.winddir_gauge = new GenericGauge("winddir_gauge", winddir_options, "Wind(D)", 0);
+
+        var temp = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          ['Temp',     0]
+        ]);
+
+        //
+        // Temperature
+        //
+
+        var temp_options = {
+          width: scale_factor * 1200, height: scale_factor * 360,
+          redFrom: 100, redTo: 120,
+          yellowFrom:85, yellowTo: 100,
+          minorTicks: 5,
+          min: 0,
+          max: 120
+        };
+
+        this.temp_gauge = new GenericGauge("temp_gauge", temp_options, "Temp(F)", 0);
+
+        //
+        // Humidity
+        //
+
+        var humid_options = {
+          width: scale_factor * 1200, height: scale_factor * 360,
+          redFrom: 95, redTo: 100,
+          yellowFrom:85, yellowTo: 95,
+          minorTicks: 5,
+          min: 0,
+          max: 100
+        };
+
+        this.humid_gauge = new GenericGauge("humid_gauge", humid_options, "Humid", 0);
+
+        //
+        // Baro
+        //
+
+        var baro_options = {
+          width: scale_factor * 1200, height: scale_factor * 360,
+          redFrom: 19, redTo: 23,
+          yellowFrom:23, yellowTo: 28,
+          minorTicks: 5,
+          min: 15,
+          max: 38
+        };
+
+        this.baro_gauge = new GenericGauge("baro_gauge", baro_options, "Baro(inHg)", 0);
+
+        //
+        // Rain
+        //
+
+        var rain_options = {
+          width: scale_factor * 1200, height: scale_factor * 360,
+          redFrom: 9, redTo: 10,
+          yellowFrom:7, yellowTo: 9,
+          minorTicks: 5,
+          min: 0,
+          max: 10
+        };
+
+        this.rain_gauge = new GenericGauge("rain_gauge", rain_options, "Rain(In)", 0);
+    }
+
+    MyGauges.prototype.update = function(data) {
+        this.windspeed_gauge.update(data.wind_speed);
+        this.winddir_gauge.update(data.wind_dir);
+        this.temp_gauge.update(data.temp);
+
+        this.humid_gauge.update(data.humid);
+        this.baro_gauge.update(data.baro);
+        this.rain_gauge.update(data.rain);
+    }
+
+    </script>
+
+<script type="text/javascript">
+//
+// Generic Gauge Function
+//
+// element_id - <div/> to attach to in order to position gauge on the page.
+//
+function GenericGauge(element_id, options, label, initialValue) {
+
+    this.options = options;
+
+    // Each data row create a gauge instance
+    this.dataTable = google.visualization.arrayToDataTable([
+          ['Label',  'Value'],
+          [label,     initialValue]
+        ]);
+
+    // Create the gauge
+    this.gauge = 
+            new google.visualization.Gauge(document.getElementById(element_id));
+
+    this.gauge.draw(this.dataTable, this.options);
+}
+
+GenericGauge.prototype.update = function(value) {
+
+    //
+    // 0 - position one in gauge cluster sharing attributes
+    // 1 - data column 1
+    // 2 - data column 2
+    //
+    this.dataTable.setValue(0, 1, value);
+
+    this.gauge.draw(this.dataTable, this.options);
+}
+ </script>
+
+  </head>
+
+  <body>
+
+    <!-- Use a table to organize the gauges in an X, Y matrix -->
+    <!-- class "class_gauge" allows .css to define cell dimensions  -->
+
+    <table>
+        <tr>
+          <td>
+            <div id="windspeed_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="winddir_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="temp_gauge" class="class_gauge"></div>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div id="humid_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="baro_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="rain_gauge" class="class_gauge"></div>
+          </td>
+
+        </tr>
+
+    </table>
+  </body>
+</html>
+

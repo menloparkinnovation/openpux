@@ -1,0 +1,13 @@
+{
+    "enabled": "true",
+    "name": "default",
+    "url": "/",
+    "server": "defaultapp.js",
+    "default_app": "openpux",
+    "default_home_app": "openpux",
+    "default_home_page": "sensor.html",
+    "storage_root": "",
+    "credentials_file": "",
+    "credentials": {},
+    "application_config": {}
+}

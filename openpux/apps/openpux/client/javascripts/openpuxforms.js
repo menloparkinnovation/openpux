@@ -1252,8 +1252,61 @@ QuerySensorReadingsForm.prototype.processOnSubmit = function(name) {
 }
 
 //
+//
+// 04/02/2016
+//
+// args could be the direct values, or contained in an items object.
+//
+// Input:
+//
+// Return Value:
+//
+// { itemName: "name_string", item: object }
+//
+function TranslateResponseItem(name, args) {
+
+    if (args == null) {
+        return null;
+    }
+
+    var o = {};
+
+    if (typeof(args.itemName) != "undefined") {
+        o.itemName = args.itemName;
+    }
+    else {
+        o.itemName = name;
+    }
+
+    if (typeof(args.items) != "undefined") {
+        o.item = args.item;
+    }
+    else {
+        o.item = args;
+    }
+
+    return o;
+}
+
+//
 // This is invoked when a sensor readings query response is received
 // from the server.
+//
+// response:
+//
+// {
+//     status: 200,
+//     error: "error_value",
+//     items: [
+//       {
+//         AccountID: "1",
+//         SensorID: "2",
+//         TimeStamp: "timestamp",
+//         Reading1: "reading1",
+//         Reading2: "reading2"
+//       }
+//     ]
+// }
 //
 QuerySensorReadingsForm.prototype.processQuerySensorReadingsResponse =
     function (error, response) {
@@ -1312,17 +1365,19 @@ QuerySensorReadingsForm.prototype.processQuerySensorReadingsResponse =
         //
         var instanceName = "QuerySensorReadingsResponseForm" + index;
 
+        var item = TranslateResponseItem("Readings", response.items[index]);
+
         responseForm = getForm(
             instanceName,
             "QuerySensorReadingsResponseForm", // formType
-            response.items[index]     // formArgs
+            item                               // formArgs
             );
 
         this.responseForms[instanceName] = responseForm;
 
         responseForm.show();
 
-        self.displaySensorReading(responseForm, response.items[index]);
+        self.displaySensorReading(responseForm, item);
     }
 }
 
@@ -1361,7 +1416,7 @@ QuerySensorReadingsResponseForm.prototype.constructor = QuerySensorReadingsRespo
 //
 // Args contains the object that lists which readings have been provided.
 //
-// { itemName: "name_string", item: object }
+// // { itemName: "name_string", item: object }
 //
 function QuerySensorReadingsResponseForm(name, args) {
 

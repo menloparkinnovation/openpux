@@ -167,10 +167,14 @@ App.prototype.createAccount = function(params, req, callback) {
     accountProperties.Name = accountName;
 
     // TODO: Pass this in during create
-    var objectPath = "/api/v2" + self.appconfig.storage_root + "/" + accountName;
-    //var objectPath = self.appconfig.storage_root + "/" + accountName;
 
-    ticketArgs.object = objectPath;
+    // Account path represents the account in storage
+    var accountPath = self.appconfig.storage_root + "/" + accountName;
+
+    // accessUrlPath path is the access URL in the ticket
+    var accessUrlPath = "/api/v2" + self.appconfig.storage_root + "/" + accountName;
+
+    ticketArgs.object = accessUrlPath;
 
     // Validate that the auth ticket in the request has CreateAccount access
     self.ticketserver.validateAccessForRequest(req, "CreateAccount", function(error, authTicket) {
@@ -190,7 +194,10 @@ App.prototype.createAccount = function(params, req, callback) {
                 return;
             }
 
-            self.storage.createItem(objectPath, accountProperties, function(error3, result) {
+            //
+            // Create the account entry
+            //
+            self.storage.createItem(accountPath, accountProperties, function(error3, result) {
 
                 if (error3 != null) {
 
@@ -212,14 +219,14 @@ App.prototype.createAccount = function(params, req, callback) {
                     // recovery of tickets.
                     //
                     self.ticketserver.deleteTicket(newTicket, function(error4, result4) {
-                        callback(error3 + " conflict on account name " + accountName, null);
+                        callback(error3 + " conflict on account name " + accountPath, null);
                     });
 
                     return;
                 }
 
                 // Account for the basic addAccount resources
-                self.accounting.createObjectBasicCharge(authTicket.object, objectPath);
+                self.accounting.createObjectBasicCharge(authTicket.object, accessUrlPath);
 
                 // return the account name and new ticket id as the result
                 callback(null,  { status: 201, error: null, name: accountName, token: newTicket.id });

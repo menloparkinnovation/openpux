@@ -134,20 +134,30 @@ RpcServer.prototype.process_rpc_Request =
 
                 var func = remote_method_table[prop].func;
 
-                // We pass the request object for validation of tickets
-                func.call(remote_method_object, params, req, function(error, result) {
+                try {
 
-                    if (error != null) {
-                        json = JSON.stringify({ error: error });
-                    }
-                    else {
-                        json = JSON.stringify({ result: result });
-                    }
-                    res.writeHead(200, {'Content-Type': 'application/json'});            
-                    res.write(json);
-                    res.end();
+                    // We pass the request object for validation of tickets
+                    func.call(remote_method_object, params, req, function(error, result) {
+
+                        if (error != null) {
+                            json = JSON.stringify({ error: error });
+                        }
+                        else {
+                            json = JSON.stringify({ result: result });
+                        }
+                        res.writeHead(200, {'Content-Type': 'application/json'});            
+                        res.write(json);
+                        res.end();
+                        return;
+                    });
+
+                } catch(e) {
+                    console.log("exception e=");
+                    console.log(e.stack.toString());
+                    json = JSON.stringify({ error: "exception invoking rpc method", e: e.toString() });
+                    utility.logSendError(self.logger, req, res, error, json);
                     return;
-                });
+                }
 
                 return;
             }

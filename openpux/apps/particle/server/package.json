@@ -1,0 +1,12 @@
+{
+  "name": "particle_openpux_app",
+  "version": "0.0.1",
+  "description": "Particle openpux app",
+  "main": "./particleapp.js",
+  "author": "MenloParkInnovation LLC",
+  "license": "Apache 2.0",
+  "repository": {},
+  "dependencies": {
+    "particle-api-js": "^5.2.3"
+  }
+}

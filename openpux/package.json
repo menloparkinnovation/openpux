@@ -4,8 +4,21 @@
   "description": "Openpux IoT Server",
   "main": "openpux.js",
   "scripts": {
-    "test": "test/regressiontest.sh"
+    "start": "node app.js config/default_config.json",
+    "provision": "bin/provision.sh",
+    "amazon": "node app.js config/awssimpledb_config.json",
+    "resin": "node app.js config/resin_awssimpledb_config.json",
+    "simpledb": "node app.js config/awssimpledb_config.json",
+    "jsondb": "node app.js config/jsondb_config.json",
+    "memory": "node app.js config/memory_config.json",
+    "test": "test/regressiontest.sh",
+    "test_memory": "util/provision_accounts.sh && test/regressiontest.sh",
+    "simpledb_debug": "node debug app.js config/awssimpledb_config.json",
+    "jsondb_debug": "node debug app.js config/jsondb_config.json",
+    "memory_debug": "node debug app.js config/memory_config.json",
+    "cleanlogs": "bin/cleanlogs.sh"
   },
+  "repository": {},
   "keywords": [
     "IoT",
     "Smartpux",
@@ -14,5 +27,13 @@
     "Networks"
   ],
   "author": "MenloParkInnovation",
-  "license": "Apache 2.0"
+  "license": "Apache 2.0",
+  "bugs": {
+    "url": "http://menloparkinnovation.com"
+  },
+  "homepage": "http://menloparkinnovation.com",
+  "dependencies": {
+    "aws-sdk": "^2.1.47",
+    "node-uuid": "^1.4.3"
+  }
 }

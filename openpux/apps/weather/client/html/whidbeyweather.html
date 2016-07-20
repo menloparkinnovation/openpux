@@ -1,52 +1,145 @@
-<!DOCTYPE html>
-<!--
-From https://github.com/esquiloio/lib/blob/master/demos/weather/angular/weather.html
-10/19/2015
 
-Weather Station Demo (AngularJS version)
-See README.md for more information.
-This work is released under the Creative Commons Zero (CC0) license.
-See http://creativecommons.org/publicdomain/zero/1.0/
--->
-<html ng-app="app">
-<head>
-  <meta charset="utf-8">
-  <title>Whidbey Weather Station 1</title>
-  <link rel="stylesheet" href="/weather/weather.css">
-  <script src="/weather/angular.js"></script>
-  <script src="/openpuxclient.js"></script>
-  <script src="/weather/weather.js"></script>
-  <script>
-    function getOpenpuxConfig() {
-        return {cloud_token: "12345678", cloud_account: "1", cloud_sensor_id: "1"};
-    }
-  </script>
-  <script src="/weather/openpuxservices.js"></script>
-</head>
+<html>
+  <head>
 
-<body ng-controller="MainController">
-<h1>Whidbey Weather Station 1</h1>
+    <title>Whidbey Weather</title>
 
-<div class="column">
-  <gauge title="Wind Speed" value="values.windspeed" label="MPH" min="0" max="90">
-  </gauge>
-</div>
-<div class="column">
-  <gauge title="Wind Direction" value="values.winddirection" label="&deg;True" min="0" max="359">
-  </gauge>
-</div>
-<div class="column">
-  <gauge title="Temperature" value="values.temp" label="&deg;F" min="0" max="110">
-  </gauge>
-</div>
-<div class="column">
-  <gauge title="Humidity" value="values.humidity" label="%" min="0" max="130">
-  </gauge>
-</div>
-<div class="column">
-  <gauge title="Pressure" value="values.pressure" label="kPa" min="50" max="150">
-  </gauge>
-</div>
+    <!-- declare this can act as a local app -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
 
-</body>
+    <!-- iphone non-retina is 60x60 at 163 ppi -->
+    <link rel="apple-touch-icon" href="iphone_60x60_whidbey_weather.png">
+
+    <!-- ipad non-retina is 76x76 at 132 ppi -->
+    <link rel="apple-touch-icon" sizes="76x76" href="ipad_76x76_whidbey_weather.png">
+
+    <!-- iphone retina is 120x120 at 326 ppi -->
+    <link rel="apple-touch-icon" sizes="120x120" href="iphone_retina_120x120_whidbey_weather.png">
+
+    <!-- ipad retina is 152x152 at 264 ppi -->
+    <link rel="apple-touch-icon" sizes="152x152" href="ipad_retina_152x152_whidbey_weather.png">
+
+    <link rel="stylesheet" type="text/css" href="iphone.css">
+
+    <!-- This gives the dynamic scale code something to lookup with getElementById() -->
+    <!-- The default .class_gauge {} starts in the external stylesheet for the device -->
+    <!-- but is updated by the dynamic page handling code. -->
+    <style id="gauge_style">
+    </style>
+
+    <style id="table_margin_style">
+    </style>
+
+    <!-- Google Charts API -->
+    <script type="text/javascript" src="https://www.google.com/jsapi"></script>
+
+    <!-- Credentials are retrieved JSONP style from the server -->
+    <script src="weathercreds.js"></script>
+
+    <!-- Standard openpux REST client library -->
+    <script src="/openpuxclient.js"></script>
+
+    <!-- Main application script -->
+    <script type="text/javascript" src="weathergauges.js"></script>
+
+  </head>
+
+  <body onorientationchange="updateOrientation();">
+
+    <form class="range_form" id="range_form" action="">
+      <input class="scale_input" id="scale_input" type="range" min="25" max="200" onchange="scale_changed()"/>
+    </form>
+
+    <!-- Create a form whose .css places it on the bottom as a status lone -->
+    <!-- See <style> section for its configuration -->
+    <form class="status_bar" action="">
+      <input class="status_bar_input" id="status_bar_input" autocomplete="off" />
+      <button type="button" class="status_bar_button" onclick="status_button_clicked()">Status</button>
+    </form>
+
+    <!-- Use a table to organize the gauges in an X, Y matrix -->
+    <!-- class "class_gauge" allows .css to define cell dimensions  -->
+
+   <div id="landscape_display" style="display:none;">
+
+    <!-- Landscape Mode -->
+    <table id="table_landscape" class="class_table_margin">
+
+        <!-- Note: Id's must be unique, or the bindings will fail and the 
+             table will not display. -->
+
+        <tr>
+          <td>
+            <div id="landscape_windspeed_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="landscape_winddir_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="landscape_temp_gauge" class="class_gauge"></div>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div id="landscape_humid_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="landscape_baro_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="landscape_rain_gauge" class="class_gauge"></div>
+          </td>
+
+        </tr>
+
+    </table>
+
+   </div>
+
+    <!-- Portrait Mode -->
+   <div id="portrait_display" style="display:none;">
+
+    <table id="portrait_gauges" class="class_table_margin">
+
+        <tr>
+          <td>
+            <div id="portrait_windspeed_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="portrait_winddir_gauge" class="class_gauge"></div>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div id="portrait_temp_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="portrait_humid_gauge" class="class_gauge"></div>
+          </td>
+        </tr>
+
+        <tr>
+          <td>
+            <div id="portrait_baro_gauge" class="class_gauge"></div>
+          </td>
+
+          <td>
+            <div id="portrait_rain_gauge" class="class_gauge"></div>
+          </td>
+        </tr>
+
+    </table>
+
+   </div>
+
+  </body>
 </html>
+

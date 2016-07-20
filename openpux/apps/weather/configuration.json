@@ -1,0 +1,10 @@
+{
+    "enabled": "true",
+    "name": "weather",
+    "url": "/weather/",
+    "server": null,
+    "storage_root": "",
+    "credentials_file": "",
+    "credentials": {},
+    "application_config": {}
+}

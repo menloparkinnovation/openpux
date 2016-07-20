@@ -249,6 +249,222 @@ function Storage(config)
 }
 
 //
+// The data store has two storage models:
+//
+// Direct: The name of each objects fully qualified path is specified.
+//
+// Log Time Sequence: The name of each objects path is specified, but the
+// data storage system adds its time of creation/update to the end
+// of its name.
+//
+//
+// Direct Name:
+//
+// /Accounts/1/Sensors/1/Settings
+//
+//   createItem("/Accounts/1/Sensors/1/Settings")
+//     - creates /Accounts/1/Sensors/1/Settings
+//
+//   readItem("/Accounts/1/Sensors/1/Settings")
+//     - retrieves /Accounts/1/Sensors/1/Settings
+//
+//   updateItem("/Accounts/1/Sensors/1/Settings", "field")
+//     - adds/updates "field" to /Accounts/1/Sensors/1/Settings
+//
+// Log Name:
+//
+// /Accounts/1/Sensors/1/Settings/2016-02-03T15:29:38.135Z
+//
+//   logCreateItem("/Accounts/1/Sensors/1/Settings")
+//     - creates /Accounts/1/Sensors/1/Settings/2016-02-03T15:29:38.135Z
+//
+//   logReadLatestItem("/Accounts/1/Sensors/1/Settings")
+//     - retrieves /Accounts/1/Sensors/1/Settings/2016-02-03T15:29:38.135Z
+//
+//   Note: There is no logUpdateItem() as fields are not carried forward. Since
+//   all fields you want should be suppled, logCreateItem performs the same
+//   function without confusion.
+//
+//   If you want to update a previous log entry (not recommended practice since
+//   logs should be roll forward audit chains) query the latest readings full
+//   path name including the time sequence in the URL and supplied it to the
+//   standard updateItem() function.
+//
+//   For the same reason there is no logDeleteItem(). Query the items, then
+//   pass the fully qualified path to deleteItem().
+//
+// Note: Log history's other than latest may be queried using the standard
+// queryItems() function, readItem(), deleteItem(), on their full paths.
+//
+
+//
+// Why Log Time Sequence Support
+//
+// Time sequence item creation and updates work as a log so that
+// all updates to an item are logged.
+//
+// It takes the same URL resource name, but appends the time of
+// create/update to the end.
+//
+// Retrieving a time sequence item can be done by reading the latest,
+// which is a query for the most recent item, or by normal queries/enumerates
+// in which are returned full URL paths including the time sequence that
+// uniquely identifies the item.
+//
+// Time sequences are useful for many IoT scenarios which require a log
+// of events and updates, not just the most recent value. This is not just
+// for sensor readings, but any updates to their operating and target state.
+//
+// For example, a burglar alarm's status may be armed, or disarmed by
+// commands. A sensor querying its current target state would request the
+// latest item, but a monitor/log application would show all arm/disarm
+// events and when they occurred.
+//
+// Time sequence storage of data items also allows offline logs to be
+// collected, and then sent to the cloud service periodically. This allows
+// for offline, and infrequently connected operation modes. Since the data
+// model includes the time of entry in its name, merging of previous events
+// is straightforward as a series of item creates in the data store.
+//
+
+//
+// itemName - Item name path such as /accounts/1/sensors/1/readings
+//
+// logCreateItme - Create an item as a time stamped log series.
+//
+// timeStamp - Optional. If supplied by caller it is used. This allows timeStamps
+//             collected from remote sensors to be used.
+//
+//             If not supplied, a service generated one is used.
+//
+Storage.prototype.logCreateItem = function(itemName, itemsArray, timeStamp, callback) {
+
+    var self = this;
+
+    // Date format is ISO 8601 which sorts in lexographical order
+    if (timeStamp == null) {
+        timeStamp = new Date().toISOString();
+    }
+
+    // For caching purposes we use the itemName extended by the timeStamp
+    var logItemName = itemName + "/" + timeStamp;
+
+    // name == itemName, ie == itemEntry, cb == callback
+    var createCacheEntry = function(name, ie, cb) {
+
+        var res = self.ItemsTableCache.set(name, ie);
+        if (!res) {
+            self.traceerror("failure to add items entry");
+            cb("Items table full", null);
+        }
+        else {
+            cb(null, ie);
+        }
+    };
+
+    //
+    // First lookup in the cache to ensure we don't collide with any
+    // application generated names.
+    //
+    var itemEntry = self.ItemsTableCache.get(logItemName);
+    if (itemEntry != null) {
+        // Cache Hit, return "ItemAlreadyExists" failure
+        self.tracelog("logCreateItem error item in cache hit logItemName=" + logItemName);
+        callback("ItemAlreadyExists", null);
+        return;
+    }
+
+    self.tracelog("logCreateIitem: " + logItemName);
+
+    if (self.backingStore == null) {
+        // No backing store, in memory storage only
+        createCacheEntry(logItemName, itemsArray, callback);
+        return;
+    }
+
+    //
+    // We break out hte base itemName and the timeStamp for logCreateItem so
+    // that the database/data model does not have to manipulate the
+    // itemName.
+    //
+    // This is because some data models may store the unique log entry by
+    // extending the itemName with the timeStamp, while others may not using
+    // it as a unique identifier/field.
+    //
+    // For local caching purposes we store the item with the itemName
+    // extended by the timeStamp.
+    //
+    self.backingStore.logCreateItem(itemName, itemsArray, timeStamp, function(error, result) {
+
+        if (error != null) {
+            self.tracelog(error + " logCreateItem: error adding item to datastore error=");
+            callback(error, result);
+            return;
+        }
+
+        //
+        // We don't attempt to delete the item in the backing
+        // store if create cache entry fails locally.
+        //
+        createCacheEntry(logItemName, itemsArray, callback);
+    });
+}
+
+Storage.prototype.logReadLatestItem = function(itemName, consistentRead, callback) {
+
+    var self = this;
+
+    if (this.backingStore == null) {
+
+        // Perform in memory query
+        var queryString = this.ItemsTableCache.buildSelectLastItemsStatement(itemName, "", 1);
+
+        this.ItemsTableCache.queryItems(queryString, consistentRead, function(error, items) {
+
+            if (error != null) {
+                callback(error, items);
+                return;
+            }
+
+            callback(null, items[0].item);
+        });
+
+        return;
+    }
+
+    //
+    // Note: The query is sent to the backing store and will read through
+    // the cache. This is ok since the cache always pushes back updates.
+    //
+
+    self.backingStore.logReadLatestItem(itemName, consistentRead, callback);
+}
+
+//
+// logBuildSelectLastItemsStatment
+//
+// A log series is recorded with the timeStamp added
+// to the objects name path. So we query for all items in
+// which the name path is the parent.
+//
+// parent - /accounts/1/sensor/1/readings
+//
+// Will return:
+//
+// /accounts/1/sensors/1/readings/2015-11-11T14:48:40.304Z,
+// /accounts/1/sensors/1/readings/2015-11-11T14:46:08.002Z,
+//               ...
+//
+Storage.prototype.buildSelectLastItemsStatement = function(sensorid, timestamp, itemcount) {
+
+    if (this.backingStore == null) {
+        return this.ItemsTableCache.buildSelectLastItemsStatement(sensorid, timestamp, itemcount);
+    }
+
+    return this.backingStore.logBuildSelectLastItemsStatement(sensorid, timestamp, itemcount);
+}
+
+//
 // Crud - Create
 //
 // Arguments:
@@ -379,7 +595,7 @@ Storage.prototype.getItem = function(itemName, callback) {
 // Arguments:
 //
 //   querystring - object with query parameters from
-//                 buildSelectLastReadingsStatement(), etc.
+//                 buildSelectLastItemsStatement(), etc.
 //
 //   consistentRead - True if reads should be consistent, or from the nearest
 //                    replica for clustered configurations with eventually consistent
@@ -574,26 +790,6 @@ Storage.prototype.buildSelectChildrenAndDescendantsStatement =
     }
 
     return this.backingStore.buildSelectChildrenAndDescendantsStatement(sensorid, timestamp, itemcount);
-}
-
-//
-// TODO: Make this not openpux specific!
-//
-// Select last itemcount items
-//
-// domain - SimpleDB domain to query
-//
-// sensorid - fully qualified sensor name such as "Account_1.Sensor_1"
-//
-// timestamp - timestamp to begin search by
-//
-Storage.prototype.buildSelectLastReadingsStatement = function(sensorid, timestamp, itemcount) {
-
-    if (this.backingStore == null) {
-        return this.ItemsTableCache.buildSelectLastReadingsStatement(sensorid, timestamp, itemcount);
-    }
-
-    return this.backingStore.buildSelectLastReadingsStatement(sensorid, timestamp, itemcount);
 }
 
 Storage.prototype.dumpAccounts = function(callback) {

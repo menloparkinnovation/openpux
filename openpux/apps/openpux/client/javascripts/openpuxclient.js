@@ -2089,17 +2089,51 @@ OpenpuxData.prototype.getLatestReading = function(callback) {
             return;
         }
 
-         //
-         // There can be multiple sets of sensor readings in the returned document
-         // represented as an array. Just return the first one.
-         //
-         // Each entry in the array is an object of:
-         //
-         // { itemName: "name_string", item: object }
-         //
+        //
+        // There can be multiple sets of sensor readings in the returned document
+        // represented as an array. Just return the first one.
+        //
+        var item = response.items[0];
 
-         callback(null, response.items[0].item);
+        callback(null, item);
     });
+}
+
+//
+//
+// 04/02/2016
+//
+// args could be the direct values, or contained in an items object.
+//
+// Input:
+//
+// Return Value:
+//
+// { itemName: "name_string", item: object }
+//
+OpenpuxData.prototype.TranslateResponseItem = function(name, args) {
+
+    if (args == null) {
+        return null;
+    }
+
+    var o = {};
+
+    if (typeof(args.itemName) != "undefined") {
+        o.itemName = args.itemName;
+    }
+    else {
+        o.itemName = name;
+    }
+
+    if (typeof(args.items) != "undefined") {
+        o.item = args.item;
+    }
+    else {
+        o.item = args;
+    }
+
+    return o;
 }
 
 //

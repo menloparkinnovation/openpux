@@ -179,12 +179,14 @@ OpenpuxApp.prototype.processAppRequest = function (req, res, app, app_url, appse
     self.tracelog(req.headers);
 
     //
-    // Validate the access.
+    // Validate that a proper Authorization header and token has been
+    // supplied and that the ticket allows access to the requested
+    // url.
     //
-    // If the request is allowed, the ticket is returned as the response
-    // object to allow further application level validation.
+    // Operation specific code will validate that the tickt is valid
+    // for a given operation such as UpdateSettings, GetReadings, etc.
     //
-    self.config.ticketserver.validateAccessForRequest(req, req.method, function(error, ticket) {
+    self.config.ticketserver.acquireRequestTicket(req, function(error, ticket) {
 
         if (error != null) {
             errormsg = "authentication error " + error + " for " + req.method;
@@ -432,63 +434,6 @@ OpenpuxApp.prototype.processSensorRequest = function(req, res, request, ticket) 
     }
 }
 
-OpenpuxApp.prototype.addAccount = function(req, res, request, ticket) {
-
-    var self = this;
-
-    var items = request.items;
-
-    // TODO: Add ticket validation for administrator account!
-
-    // Receive the request JSON document as a parsed object
-    self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
-
-        if (error != null) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
-            return;
-        }
-
-        if ((data.NewAccountID == null) || (data.NewAccountID == "")) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", "NewAccountID not specified");
-            return;
-        }
-
-        if ((data.NewAccountTicketID == null) || (data.NewAccountTicketID == "")) {
-            self.tracelog("400 Failed: NewAccountTicketID not specified");
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", "NewAccountTicketID not specified");
-            return;
-        }
-
-        //
-        // Can't specify the administrator accountid
-        //
-        if (data.NewAccountID == g_config.AdministratorAccountID) {
-            self.tracelog("400 Failed: Attempt to create account as non-Administrator");
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", "AccountID not available");
-            return;
-        }
-    
-        var reqItems = {};
-        reqItems.AccountID = data.NewAccountID;
-
-        self.addAccountWorker(reqItems, function(error, result) {
-
-            var returnBlock = {status: null, error: null};
-
-            if (error == null) {
-                returnBlock.status = 200;
-            }
-            else {
-                self.tracelog("error adding account to storage error=" + error);
-                returnBlock.status = 404;
-                returnBlock.error = error;
-            }
-
-            self.utility.sendResultAsJSON(req, res, returnBlock);
-        });
-    });
-}
-
 //
 // Add a sensor to an account.
 //
@@ -511,34 +456,47 @@ OpenpuxApp.prototype.addSensor = function(req, res, request, ticket) {
 
     var items = request.items;
 
-    // TODO: Add ticket validation!
+    var returnBlock = {status: null, error: null};
 
-    // Receive the request JSON document as a parsed object
-    self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
+    //
+    // Validate that the ticket has add sensor access
+    //
 
-        if (error != null) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
-            return;
-        }
+    self.config.ticketserver.validateAccessForTicket(ticket, req.url, "AddSensor",
+        function(ticketError, accessGranted) {
 
-        if ((data.NewSensorID == null) || (data.NewSensorID == "")) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", "NewSensorID not specified");
-            return;
-        }
-    
-        self.addSensorWorker(data, function(error, result) {
-
-            var returnBlock = {status: null, error: null};
-
-            if (error == null) {
-                returnBlock.status = 200;
-            }
-            else {
-                returnBlock.status = 404;
-                returnBlock.error = error;
-            }
-
+        if (ticketError != null) {
+            returnBlock.status = 404;
+            returnBlock.error = ticketError;
             self.utility.sendResultAsJSON(req, res, returnBlock);
+            return;
+        }
+
+        // Receive the request JSON document as a parsed object
+        self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
+
+            if (error != null) {
+                self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+                return;
+            }
+
+            if ((data.NewSensorID == null) || (data.NewSensorID == "")) {
+                self.utility.logSendErrorAsJSON(self.logger, req, res, "400", "NewSensorID not specified");
+                return;
+            }
+
+            self.addSensorWorker(data, function(error, result) {
+
+                if (error == null) {
+                    returnBlock.status = 200;
+                }
+                else {
+                    returnBlock.status = 404;
+                    returnBlock.error = error;
+                }
+
+                self.utility.sendResultAsJSON(req, res, returnBlock);
+            });
         });
     });
 }
@@ -576,34 +534,47 @@ OpenpuxApp.prototype.querySensorSettings = function(req, res, request, ticket) {
 
     var items = request.items;
 
-    // TODO: Add ticket validation!
+    var returnBlock = {status: null, error: null, sensorsettings: null};
 
-    var args = new Object();
-    args.AccountID = items["AccountID"];
-    args.SensorID = items["SensorID"];
+    //
+    // Validate that the ticket has query sensor settings access
+    //
 
-    self.getSensorSettings(args, function(error, data) {
+    self.config.ticketserver.validateAccessForTicket(ticket, req.url, "QuerySensorSettings",
+        function(ticketError, accessGranted) {
 
-        var returnBlock = {status: null, error: null, sensorsettings: null};
-
-        if (error == null) {
-            returnBlock.status = 200;
-        }
-        else {
+        if (ticketError != null) {
             returnBlock.status = 404;
-            returnBlock.error = error;
+            returnBlock.error = ticketError;
+            self.utility.sendResultAsJSON(req, res, returnBlock);
+            return;
         }
 
-        if (data != null) {
-    	    returnBlock.sensorsettings = data;
+        var args = new Object();
+        args.AccountID = items["AccountID"];
+        args.SensorID = items["SensorID"];
 
-            if (self.trace) {
-                self.logger.info("querySensorSettings: settings=");
-                self.logger.info(data);
+        self.getSensorSettings(args, function(error, data) {
+
+            if (error == null) {
+                returnBlock.status = 200;
             }
-        }
+            else {
+                returnBlock.status = 404;
+                returnBlock.error = error;
+            }
 
-        self.utility.sendResultAsJSON(req, res, returnBlock);
+            if (data != null) {
+                returnBlock.sensorsettings = data;
+
+                if (self.trace) {
+                    self.logger.info("querySensorSettings: settings=");
+                    self.logger.info(data);
+                }
+            }
+
+            self.utility.sendResultAsJSON(req, res, returnBlock);
+        });
     });
 
     return;
@@ -622,49 +593,62 @@ OpenpuxApp.prototype.createSensorSettings = function(req, res, request, ticket) 
 
     var items = request.items;
 
-    // TODO: Add ticket validation!
+    var returnBlock = {status: null, error: null};
 
-    // Receive the request JSON document as a parsed object
-    self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
+    //
+    // Validate that the ticket has create sensor settings access
+    //
 
-        if (error != null) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+    self.config.ticketserver.validateAccessForTicket(ticket, req.url, "CreateSensorSettings",
+        function(ticketError, accessGranted) {
+
+        if (ticketError != null) {
+            returnBlock.status = 404;
+            returnBlock.error = ticketError;
+            self.utility.sendResultAsJSON(req, res, returnBlock);
             return;
         }
 
-        // New entry is identified with AccountID and SensorID
-        var o = new Object();
-        o["AccountID"] = items.AccountID;
-        o["SensorID"] = items.SensorID;
+        // Receive the request JSON document as a parsed object
+        self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
 
-        // data contains the name:value properties being posted
-        for(var prop in data) {
-            o[prop] = data[prop];
-        }
-
-        //
-        // Data Object:
-        //
-        //  o["AccountID"] = "99999"
-        //  o["SensorID"] = "99999"
-        //  o["SleepTime"] = "30"
-        //  o["TargetMask0"] = "0"
-        //  o["TargetMask1"] = "1"
-        //        ...
-        //
-        self.createSensorSettingsWorker(o, function(error, result) {
-
-            var returnBlock = {status: null, error: null};
-
-            if (error == null) {
-                returnBlock.status = 200;
-            }
-            else {
-                returnBlock.status = 404;
-                returnBlock.error = error;
+            if (error != null) {
+                self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+                return;
             }
 
-            self.utility.sendResultAsJSON(req, res, returnBlock);
+            // New entry is identified with AccountID and SensorID
+            var o = new Object();
+            o["AccountID"] = items.AccountID;
+            o["SensorID"] = items.SensorID;
+
+            // data contains the name:value properties being posted
+            for(var prop in data) {
+                o[prop] = data[prop];
+            }
+
+            //
+            // Data Object:
+            //
+            //  o["AccountID"] = "99999"
+            //  o["SensorID"] = "99999"
+            //  o["SleepTime"] = "30"
+            //  o["TargetMask0"] = "0"
+            //  o["TargetMask1"] = "1"
+            //        ...
+            //
+            self.createSensorSettingsWorker(o, function(error, result) {
+
+                if (error == null) {
+                    returnBlock.status = 200;
+                }
+                else {
+                    returnBlock.status = 404;
+                    returnBlock.error = error;
+                }
+
+                self.utility.sendResultAsJSON(req, res, returnBlock);
+            });
         });
     });
 }
@@ -682,105 +666,176 @@ OpenpuxApp.prototype.updateSensorSettings = function(req, res, request, ticket) 
 
     var items = request.items;
 
-    // TODO: Add ticket validation!
+    var returnBlock = {status: null, error: null};
 
-    // Receive the request JSON document as a parsed object
-    self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
+    //
+    // Validate that the ticket has update sensor settings access
+    //
 
-        if (error != null) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+    self.config.ticketserver.validateAccessForTicket(ticket, req.url, "UpdateSensorSettings",
+        function(ticketError, accessGranted) {
+
+        if (ticketError != null) {
+            returnBlock.status = 404;
+            returnBlock.error = ticketError;
+            self.utility.sendResultAsJSON(req, res, returnBlock);
             return;
         }
 
-        // New entry is identified with AccountID and SensorID
-        var o = new Object();
-        o["AccountID"] = items.AccountID;
-        o["SensorID"] = items.SensorID;
+        // Receive the request JSON document as a parsed object
+        self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
 
-        // data contains the name:value properties being posted
-        for(var prop in data) {
-            o[prop] = data[prop];
-        }
-
-        //
-        // Data Object:
-        //
-        //  o["AccountID"] = "99999"
-        //  o["SensorID"] = "99999"
-        //  o["SleepTime"] = "30"
-        //  o["TargetMask0"] = "0"
-        //  o["TargetMask1"] = "1"
-        //        ...
-        //
-        self.updateSensorSettingsWorker(o, function(error, result) {
-
-            var returnBlock = {status: null, error: null};
-
-            if (error == null) {
-                returnBlock.status = 200;
-            }
-            else {
-                self.tracelog("updateSensorSettings: error=" + error);
-                returnBlock.status = 404;
-                returnBlock.error = error;
+            if (error != null) {
+                self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+                return;
             }
 
-            self.utility.sendResultAsJSON(req, res, returnBlock);
+            // New entry is identified with AccountID and SensorID
+            var o = new Object();
+            o["AccountID"] = items.AccountID;
+            o["SensorID"] = items.SensorID;
+
+            // data contains the name:value properties being posted
+            for(var prop in data) {
+                o[prop] = data[prop];
+            }
+
+            //
+            // Data Object:
+            //
+            //  o["AccountID"] = "99999"
+            //  o["SensorID"] = "99999"
+            //  o["SleepTime"] = "30"
+            //  o["TargetMask0"] = "0"
+            //  o["TargetMask1"] = "1"
+            //        ...
+            //
+            self.updateSensorSettingsWorker(o, function(error, result) {
+
+                if (error == null) {
+                    returnBlock.status = 200;
+                }
+                else {
+                    self.tracelog("updateSensorSettings: error=" + error);
+                    returnBlock.status = 404;
+                    returnBlock.error = error;
+                }
+
+                self.utility.sendResultAsJSON(req, res, returnBlock);
+            });
         });
     });
 }
 
+//
+// questSensorReadings
+//
+// Returns:
+//
+// A JSON document of the form:
+//
+// { status: 200,
+//   error: null,
+//   items: 
+//    [
+//      {
+//        itemName: '/accounts/1/sensors/1/readings/2015-11-11T14:48:40.304Z',
+//        item: 
+//         { AccountID: '1',
+//           SensorID: '1',
+//           TargetMask0: '0',
+//           TargetMask1: '0001',
+//           TargetMask2: '0002',
+//           TargetMask3: '0003',
+//           SensorReading0: '0000',
+//           SensorReading1: '0001',
+//           SensorReading2: '0002',
+//           SensorReading3: '3',
+//           TimeStamp: '2015-11-11T14:48:40.304Z' 
+//         }
+//      },
+//      { 
+//        itemName: '/accounts/1/sensors/1/readings/2015-11-11T14:46:08.002Z',
+//        item: 
+//         { AccountID: '1',
+//           SensorID: '1',
+//           TargetMask0: '0',
+//           TargetMask1: '0001',
+//           TargetMask2: '0002',
+//           TargetMask3: '0003',
+//           SensorReading0: '0000',
+//           SensorReading1: '0001',
+//           SensorReading2: '0002',
+//           SensorReading3: '3',
+//           TimeStamp: '2015-11-11T14:46:08.002Z' 
+//         }
+//      },
+//      [length]: 2
+//    ]
+// }
+//
 OpenpuxApp.prototype.querySensorReadings = function(req, res, request, ticket) {
 
     var self = this;
 
     var items = request.items;
 
-    // TODO: Add ticket validation!
-
-    var args = new Object();
-    args.AccountID = items["AccountID"];
-    args.SensorID = items["SensorID"];
-
-    var latestCount = request.query["latestcount"];
-    if ((typeof(latestCount) == "undefined") || (latestCount == null)) {
-        latestCount = 1;
-    }
+    var returnBlock = {status: null, error: null, items: null};
 
     //
-    // Get data from the data store.
+    // Validate that the ticket has query readings access
     //
-    self.queryLastReadings(args, latestCount, function(error, data) {
 
-        //
-        // Our result is an object in JSON format with:
-        //
-        // status: "200 OK" or error string
-        // items: [{itemName: "name", item: obj}, ...]
-        //
-        var returnBlock = {status: null, error: null, items: null};
+    self.config.ticketserver.validateAccessForTicket(ticket, req.url, "QuerySensorReadings",
+        function(ticketError, accessGranted) {
 
-        if (error == null) {
-	    returnBlock.status = 200;
-        }
-        else {
+        if (ticketError != null) {
             returnBlock.status = 404;
-            returnBlock.error = error;
+            returnBlock.error = ticketError;
+            self.utility.sendResultAsJSON(req, res, returnBlock);
+            return;
         }
 
-        if (data != null) {
-    	    returnBlock.items = data;
+        var args = new Object();
+        args.AccountID = items["AccountID"];
+        args.SensorID = items["SensorID"];
+
+        var latestCount = request.query["latestcount"];
+        if ((typeof(latestCount) == "undefined") || (latestCount == null)) {
+            latestCount = 1;
         }
 
-        self.utility.sendResultAsJSON(req, res, returnBlock);
+        //
+        // Get data from the data store.
+        //
+        self.queryLastReadings(args, latestCount, function(error, data) {
+
+            //
+            // Our result is an object in JSON format with:
+            //
+            // status: "200 OK" or error string
+            // items: [{itemName: "name", item: obj}, ...]
+            //
+            var returnBlock = {status: null, error: null, items: null};
+
+            if (error == null) {
+                returnBlock.status = 200;
+            }
+            else {
+                returnBlock.status = 404;
+                returnBlock.error = error;
+            }
+
+            if (data != null) {
+                returnBlock.items = data;
+            }
+
+            //console.log("data=");
+            //self.utility.dumpasjson(data);
+    
+            self.utility.sendResultAsJSON(req, res, returnBlock);
+        });
     });
-
-    //
-    // Request has been successfully submitted, the previous lambda block
-    // will handle final request disposition.
-    //
-
-    return;
 }
 
 //
@@ -822,48 +877,14 @@ OpenpuxApp.prototype.generateSensorSettingsName = function(accountid, sensorid) 
     return itemName;
 }
 
-// /accounts/xxx/sensors/xxx/readings/zzzz
-OpenpuxApp.prototype.generateSensorReadingName = function(accountid, sensorid, timestamp) {
-
-    if (timestamp == null) return null;
+// /accounts/xxx/sensors/xxx/readings
+OpenpuxApp.prototype.generateSensorReadingName = function(accountid, sensorid) {
 
     var itemName = this.generateSensorName(accountid, sensorid);
     if (itemName == null) return null;
 
-    itemName = itemName + "/readings/" + timestamp;
+    itemName = itemName + "/readings";
     return itemName;
-}
-
-//
-// Create entry for account
-//
-// AccountID being created:
-//   itemsArray['AccountID'] == new Account
-//
-// callback(error, accountEntry)
-//
-OpenpuxApp.prototype.addAccountWorker = function(itemsArray, callback) {
-
-    var self = this;
-
-    // Account to be created
-    if (itemsArray.AccountID == null) {
-        self.traceerror("missing AccountID");
-        callback("missing AccountID", null);
-        return;
-    }
-
-    //
-    // Can't specify the administrator accountid for the new account.
-    //
-    if (itemsArray.AccountID == g_config.AdministratorAccountID) {
-        callback("AccountID not available", null);
-        return;
-    }
-
-    var itemName = self.generateAccountName(itemsArray.AccountID);
-
-    self.storage.createItem(itemName, itemsArray, callback);
 }
 
 //
@@ -1130,15 +1151,15 @@ OpenpuxApp.prototype.addReadings = function(itemsArray, callback) {
             return;
         }
 
-        var itemName = self.generateSensorReadingName(
-            itemsArray.AccountID, itemsArray.SensorID, itemsArray.TimeStamp);
+        var itemName = self.generateSensorReadingName(itemsArray.AccountID, itemsArray.SensorID);
 
         if (itemName == null) {
             callback("missing TimeStamp for readings", null);
             return;
         }
 
-        self.storage.createItem(itemName, itemsArray, callback);
+        // We use logCreateItem to create a time series of readings
+        self.storage.logCreateItem(itemName, itemsArray, itemsArray.TimeStamp, callback);
     });
 }
 
@@ -1150,11 +1171,46 @@ OpenpuxApp.prototype.addReadings = function(itemsArray, callback) {
 //
 // The callback function is provided:
 //
-// callback(error, result)
+// callback(error, data)
 //
 // Returns:
 //
 // Array of objects. object properties are the set of readings.
+//
+//    [
+//      {
+//        itemName: '/accounts/1/sensors/1/readings/2015-11-11T14:48:40.304Z',
+//        item: 
+//         { AccountID: '1',
+//           SensorID: '1',
+//           TargetMask0: '0',
+//           TargetMask1: '0001',
+//           TargetMask2: '0002',
+//           TargetMask3: '0003',
+//           SensorReading0: '0000',
+//           SensorReading1: '0001',
+//           SensorReading2: '0002',
+//           SensorReading3: '3',
+//           TimeStamp: '2015-11-11T14:48:40.304Z' 
+//         }
+//      },
+//      { 
+//        itemName: '/accounts/1/sensors/1/readings/2015-11-11T14:46:08.002Z',
+//        item: 
+//         { AccountID: '1',
+//           SensorID: '1',
+//           TargetMask0: '0',
+//           TargetMask1: '0001',
+//           TargetMask2: '0002',
+//           TargetMask3: '0003',
+//           SensorReading0: '0000',
+//           SensorReading1: '0001',
+//           SensorReading2: '0002',
+//           SensorReading3: '3',
+//           TimeStamp: '2015-11-11T14:46:08.002Z' 
+//         }
+//      }
+//    ]
 //
 OpenpuxApp.prototype.queryLastReadings = function(args, readingCount, callback) {
 
@@ -1167,8 +1223,40 @@ OpenpuxApp.prototype.queryLastReadings = function(args, readingCount, callback) 
         return;
     }
 
-    var queryString = self.storage.buildSelectLastReadingsStatement(
-        sensorName,
+    // parent is the root of the readings such as /account/1/sensor1/readings
+    var parent = sensorName + "/readings";
+
+    //
+    // If the request is for 1 reading, some data models can retrieve the
+    // most latest reading very efficiently without having to resort
+    // to a query/sort/top.
+    //
+    if (readingCount == 1) {
+
+        self.storage.logReadLatestItem(parent, consistentRead, function(error, data) {
+
+            if (error != null) {
+                callback(error, data);
+                return;
+            }
+
+            // Data is expected to be an array by the caller
+
+            var ar = [];
+            ar.push(data);
+
+            callback(null, ar);
+        });
+
+        return;
+    }
+
+    //
+    // Otherwise we perform a full query to return a set of readings as an array.
+    //
+
+    var queryString = self.storage.buildSelectLastItemsStatement(
+        parent,
         "",  // TimeStamp
         readingCount
         );
@@ -1176,16 +1264,6 @@ OpenpuxApp.prototype.queryLastReadings = function(args, readingCount, callback) 
     var consistentRead = true;
 
     self.storage.queryItems(queryString, consistentRead, callback);
-
-    self.getSensor(args, function(error, sensorEntry) {
-
-        if (error != null) {
-            self.tracelog("queryLastReadings: getSensor error=" + error);
-            callback(error, sensorEntry);
-            return;
-        }
-
-    });
 }
 
 OpenpuxApp.prototype.parseApiRequestStringFromRequest = function (req, res) {
@@ -1446,42 +1524,55 @@ OpenpuxApp.prototype.addSensorReading = function(req, res, request, ticket) {
 
     var items = request.items;
 
-    // TODO: Add ticket validation!
+    var returnBlock = {status: null, error: null};
 
-    // Receive the request JSON document as a parsed object
-    self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
+    //
+    // Validate that the ticket has add sensor access
+    //
 
-        if (error != null) {
-            self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+    self.config.ticketserver.validateAccessForTicket(ticket, req.url, "AddSensorReading",
+        function(ticketError, accessGranted) {
+
+        if (ticketError != null) {
+            returnBlock.status = 404;
+            returnBlock.error = ticketError;
+            self.utility.sendResultAsJSON(req, res, returnBlock);
             return;
         }
 
-        // New entry is identified with AccountID and SensorID
-        var o = new Object();
-        o["AccountID"] = items.AccountID;
-        o["SensorID"] = items.SensorID;
+        // Receive the request JSON document as a parsed object
+        self.utility.receiveJSONObject(req, res, self.logger, function(error, data) {
 
-        // data contains the name:value properties being posted
-        for(var prop in data) {
-            o[prop] = data[prop];
-        }
-
-        //
-        // addReadings() will ensure that the sensor exits.
-        //
-        self.addReadings(o, function(error, result) {
-
-            var returnBlock = {status: null, error: null};
-
-            if (error == null) {
-                returnBlock.status = 201;
-            }
-            else {
-                returnBlock.status = 404;
-                returnBlock.error = error;
+            if (error != null) {
+                self.utility.logSendErrorAsJSON(self.logger, req, res, "400", error);
+                return;
             }
 
-            self.utility.sendResultAsJSON(req, res, returnBlock);
+            // New entry is identified with AccountID and SensorID
+            var o = new Object();
+            o["AccountID"] = items.AccountID;
+            o["SensorID"] = items.SensorID;
+
+            // data contains the name:value properties being posted
+            for(var prop in data) {
+                o[prop] = data[prop];
+            }
+
+            //
+            // addReadings() will ensure that the sensor exists.
+            //
+            self.addReadings(o, function(error, result) {
+
+                if (error == null) {
+                    returnBlock.status = 201;
+                }
+                else {
+                    returnBlock.status = 404;
+                    returnBlock.error = error;
+                }
+
+                self.utility.sendResultAsJSON(req, res, returnBlock);
+            });
         });
     });
 }

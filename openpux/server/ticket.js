@@ -70,16 +70,29 @@ function TicketServer(config)
     this.storage = this.config.storage;
 
     //
-    // Note: Small sensors may require a limit truncated to their character length.
+    // Note:
     //
-    // But these permissions are add readings only addressed to a single sensor.
+    // Small sensors may require a smaller token length due to storage
+    // limitations.
     //
-    // Policy: Shorter ticket length are for limited operations only for
-    // small sensors with limited memory space. (16 chars).
+    // But risk for small entropy tickets is minimized by only giving them
+    // limited permissions, such as add readings for a specific sensor.
     //
-    // Larger tokens required for administration and application oriented
+    // Larger length tickets with more entropy bytes can be issued for
+    // administrative operations, account tokens, etc. which have
+    // a wider impact.
+    //
+    // Proposed Policy: Shorter ticket lengths (lower entropy) are for limited
+    // operations only for small sensors with limited memory space. (16 chars).
+    //
+    // Larger tokens are required for administration and application oriented
     // operations in which the platforms can support it.
     //
+    //this.sensorEntropyBytes = 12; // 96 bits, or approx 16 characters in base64 encoding.
+
+    //this.accountEntropyBytes = 32; // 256 bits, or approx 44 characters in base64 encoding.
+
+    // This is the current default
     this.entropyBytes = 12; // 96 bits, or approx 16 characters in base64 encoding.
 
     //
@@ -94,33 +107,44 @@ function TicketServer(config)
 }
 
 //
-// Return the object path for a ticket
+// This validates the authorization header, retrieves the token, and looks up the
+// ticket.
+// 
+// callback(error, ticket)
 //
-TicketServer.prototype.getObjectPathFromTicket = function (ticket) {
-    return ticket.object;
+TicketServer.prototype.acquireRequestTicket = function (req, callback) {
+
+    var self = this;
+
+    this.getTicketFromRequest(req, function(error, ticket) {
+
+        if (error != null) {
+            self.logger.error("request from " + req.socket.remoteAddress + 
+                " has an invalid ticket/missing header");
+            callback(error, null);
+            return;
+        }
+
+        if (!self.validateTicketUrl(ticket, req.url)) {
+            callback("incorrect object", null);
+            return;
+        }
+
+        callback(null, ticket);
+    });
 }
 
 //
-// Returns true if the ticket allows subpaths.
+// Validate access for a given HTTP request which containers a token
+// inside an authorization header.
 //
-// False otherwise.
+// This validates the header, retrieves the token, and looks up the
+// ticket.
 //
-TicketServer.prototype.AllowSubPath = function (ticket) {
-
-    if (ticket.allow_sub_path) {
-        return true;
-    }
-    else {
-        return false;
-    }
-}
-
+// It then validates whether the given HTTP verb is allowed by the
+// ticket for the req.url path specified in the request.
 //
-// This validates access for the given request.
-//
-// The req.url specifies the object to be accessed.
-//
-// accessRequest specifies the type of access being requested.
+// accessRequest specifies the HTTP verb, or type of access being requested.
 //
 // The request must have an authorization header and it must contain a ticket
 // which grants authorization to the resource described in req.url for the
@@ -158,7 +182,14 @@ TicketServer.prototype.validateAccessForRequest = function (req, accessRequest, 
 }
 
 //
-// Validate access for a supplied token.
+// Given a token retrieved from some source lookup the ticket ID and
+// see if its valid.
+// 
+// If the ticket is valid, validate that the accessRequest is allowed by
+// the ticket for the supplied URL.
+//
+// This is for tokens received from other than an HTTP Authorization header
+// on a request.
 //
 TicketServer.prototype.validateAccessForToken = function (token, url, accessRequest, callback) {
 
@@ -183,6 +214,55 @@ TicketServer.prototype.validateAccessForToken = function (token, url, accessRequ
             callback(null, ticket);
         });
     });
+}
+
+//
+// Validate that the supplied ticket allows the requested access
+// to the supplied resource url.
+//
+// The ticket has already been retrieved and validated from storage.
+//
+// callback(error, accessGranted)
+//
+//   Returns the actual access name granted on success.
+//
+TicketServer.prototype.validateAccessForTicket = function (ticket, url, accessRequest, callback) {
+
+    var self = this;
+
+    var accessState = {object: url, request: accessRequest};
+
+    self.validateTicket(ticket, accessState, function(error, accessGranted) {
+
+        if (error != null) {
+            callback(error, null);
+            return;
+        }
+
+        callback(null, accessGranted);
+    });
+}
+
+//
+// Return the object path for a ticket
+//
+TicketServer.prototype.getObjectPathFromTicket = function (ticket) {
+    return ticket.object;
+}
+
+//
+// Returns true if the ticket allows subpaths.
+//
+// False otherwise.
+//
+TicketServer.prototype.AllowSubPath = function (ticket) {
+
+    if (ticket.allow_sub_path) {
+        return true;
+    }
+    else {
+        return false;
+    }
 }
 
 //
@@ -503,6 +583,11 @@ TicketServer.prototype.createDelegatedTicket = function (authTicket, args, callb
 
     newArgs.access = args.access;
 
+    // if the caller specified a name use it
+    if ((typeof(args.id) != "undefined") && (args.id != null)) {
+        newArgs.id = args.id;
+    }
+
     self.createTicket(newArgs, function(error, ticket) {
 
         if (error != null) {
@@ -633,6 +718,52 @@ TicketServer.prototype.deleteTicket = function (ticket, callback) {
 }
 
 //
+// Validate that the ticket allows access to the URL.
+//
+// If the ticket allows sub paths, the ticket.object must be a strict
+// subset of url.
+//
+// If the ticket does not allow subpaths, then the ticket.object must
+// exactly match the url.
+//
+// Returns:
+//
+//   true - access granted
+//
+//   false - access denied
+//
+TicketServer.prototype.validateTicketUrl = function (ticket, url, callback) {
+
+    var object_path_granted = false;
+
+    if ((typeof(ticket.allow_sub_path) != "undefined") && ticket.allow_sub_path) {
+
+        // The ticket.object must be a prefix of the requested object path
+        if (url.search(ticket.object) == 0) {
+            object_path_granted = true;
+        }
+    }
+    else {
+
+        // ticket.object must refer specifically to the object
+        if (ticket.object == url) {
+            object_path_granted = true;
+        }
+    }
+
+    if (!object_path_granted) {
+
+        // Ticket does not refer to the target object
+        this.logger.error("ticket: ticket presented for wrong object. ticket.object: " + ticket.object +
+                     " target object: " + url);
+
+        return false;
+    }
+
+    return true;
+}
+
+//
 // accessState:
 //
 // {
@@ -647,27 +778,7 @@ TicketServer.prototype.validateTicket = function (ticket, accessState, callback)
 
     var object_path_granted = false;
 
-    if ((typeof(ticket.allow_sub_path) != "undefined") && ticket.allow_sub_path) {
-
-        // The ticket.object must be a prefix of the requested object path
-        if (accessState.object.search(ticket.object) == 0) {
-            object_path_granted = true;
-        }
-    }
-    else {
-
-        // ticket.object must refer specifically to the object
-        if (ticket.object == accessState.object) {
-            object_path_granted = true;
-        }
-    }
-
-    if (!object_path_granted) {
-
-        // Ticket does not refer to the target object
-        this.logger.error("ticket: ticket presented for wrong object. ticket.object: " + ticket.object +
-                     " target object: " + accessState.object);
-
+    if (!this.validateTicketUrl(accessState.object)) {
         callback("incorrect object", null);
         return;
     }

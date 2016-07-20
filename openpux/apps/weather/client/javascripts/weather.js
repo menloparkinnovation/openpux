@@ -6,7 +6,7 @@
 //
 //   Openpux Internet Of Things (IOT) Framework.
 //
-//   Copyright (C) 2014,2015 Menlo Park Innovation LLC
+//   Copyright (C) 2014,2015,2016 Menlo Park Innovation LLC
 //
 //   menloparkinnovation.com
 //   menloparkinnovation@gmail.com
@@ -77,7 +77,7 @@ app.controller('MainController', [
 
                 $scope.values.humidity = result.humidity;
 
-                $scope.values.pressure = result.barometer;
+                $scope.values.pressure = result.barometer / 1000;
 
                 $scope.values.windspeed = result.windspeed;
 

@@ -1,7 +1,5 @@
 
 //
-// TODO: Make queries general, not specific to openpux schema
-//
 //   awssimpledb.js
 //
 //   Openpux Internet Of Things (IOT) Framework.
@@ -81,6 +79,63 @@
 //   dataproviders/awssimpledb/util/regenerate.sh
 //
 //   util/bin/provision.sh
+//
+
+//
+// Openpux Data Provider Api Contract
+//
+// Since Javascript does not support interfaces, the general Storage Provider
+// API contract is provided here.
+//
+// Note: A new provider implementation would substitute its own name
+// for SimpleDB used here. Though the names are private and don't
+// need to be changed, or could use a uniform name across different
+// providers.
+//
+// Constructor:
+//
+// function SimpleDB_Store(config) {}
+//
+// // export:
+// module.exports = {
+//   BackingStore: SimpleDB_Store
+// };
+//
+// SimpleDB_Store.prototype.getName = function()
+//
+// SimpleDB_Store.prototype.logCreateItem = function(itemName, itemsArray, timeStamp, callback) {
+//
+// SimpleDB_Store.prototype.logReadLatestItem = function(itemName, consistentRead, callback) {
+//
+// SimpleDB_Store.prototype.logBuildSelectLastItemsStatement = 
+//
+// SimpleDB_Store.prototype.createItem = function(itemName, itemsArray, callback) {
+//
+// SimpleDB_Store.prototype.readItem = function(itemName, consistentRead, callback) {
+//
+// SimpleDB_Store.prototype.updateItem = function(itemName, itemsArray, callback) {
+//
+// SimpleDB_Store.prototype.queryItems = function(querystring, consistentRead, callback) {
+//
+// SimpleDB_Store.prototype.queryChildren = function(parentPath, readingCount, callback) {
+//
+// SimpleDB_Store.prototype.deleteItem = function(itemName, callback) {
+//
+// SimpleDB_Store.prototype.buildSelectChildrenStatement =
+//
+// SimpleDB_Store.prototype.buildSelectChildrenAndDescendantsStatement =
+//
+// SimpleDB_Store.prototype.buildQuery = function(compareArray, orderby, callback) {
+//
+// SimpleDB_Store.prototype.setTrace = function(value) {
+//
+// SimpleDB_Store.prototype.setTraceError = function(value) {
+//
+// SimpleDB_Store.prototype.tracelog = function(message) {
+//
+// SimpleDB_Store.prototype.traceerror = function(message) {
+//
+// SimpleDB_Store.prototype.dumpasjson = function(ob) {
 //
 
 //
@@ -194,8 +249,34 @@ var util = require('util');
 // route out to HTTP REST requests against the AWS SimpleDB storage service.
 //
 
+//
 // Load Amazon AWS SimpleDB handler
+//
 var simpledbFactory = require('./simpledb_module.js');
+
+function SimpleDB_LoadCredentials(config)
+{
+    var credentials = null;
+
+    var credentials_file = "amazon_simpledb_credentials.json";
+
+    var creds = config.credentialsserver.loadCredentialsFileSync(credentials_file);
+    if (creds.error != null) {
+        var err = "awssimpledb: could not load credentials file " + credentials_file;
+        config.logger.error(err);
+        return null;
+    }
+    else {
+        // replace (or add) the credentials entry
+        config.logger.info("using credentials file for awssimpldb");
+
+        // creds.config contains the JSON object
+        credentials = creds.credentials;
+    }
+
+    // This is null if credentials could not be loaded.
+    return credentials;
+}
 
 function SimpleDB_Store(config)
 {
@@ -220,17 +301,33 @@ function SimpleDB_Store(config)
     this.logger = this.config.logger;
 
     // Configure and load AWS SimpleDB module
-    var simpledb_config = {
-        Trace: this.trace,
-        TraceError: this.traceerrorValue,
+    this.simpledb_config = {};
 
-        // AWS Region
-        region: 'us-west-1',
+    // Passthrough required openpux configuration parameters
+    this.simpledb_config.Trace = this.trace;
+    this.simpledb_config.TraceError = this.traceerrorValue;
+    this.simpledb_config.logger = this.logger;
+    this.simpledb_config.utility = this.config.utility;
 
-        logger: this.logger
-        };
+    // Attempt to load SimpleDB credentials.
+    this.simpledb_config.credentials = SimpleDB_LoadCredentials(config);
 
-    this.simpledb = new simpledbFactory.SimpleDB(simpledb_config);
+    if (this.simpledb_config.credentials == null) {
+        throw "could not load aws credentials";
+    }
+    else {
+        console.log("aws credentials:");
+        this.dumpasjson(this.simpledb_config.credentials);
+    }
+
+    //
+    // Default AWS Region if credentials == null
+    //
+    // {region: 'us-west-1'} is Northern California
+    //
+    this.simpledb_config.defaultRegion = 'us-west-1';
+
+    this.simpledb = new simpledbFactory.SimpleDB(this.simpledb_config);
 
     //
     // Administrator token/password is passed in by the caller.
@@ -250,6 +347,85 @@ function SimpleDB_Store(config)
 
 SimpleDB_Store.prototype.getName = function() {
     return "Amazon AWS SimpleDB";
+}
+
+//
+// timeStamp - Date format is ISO 8601 which sorts in lexographical order
+//
+SimpleDB_Store.prototype.logCreateItem = function(itemName, itemsArray, timeStamp, callback) {
+
+    var logItemName = itemName + "/" + timeStamp;
+
+    this.createItem(logItemName, itemsArray, callback);
+}
+
+//
+// logReadLatestItem
+//
+// Read the latest item of a time sequence.
+//
+// The itemName represents the resource URL, and all updates are written
+// as a log style time sequence.
+//
+// This routine returns the latest item, and functions similar to readItem
+// on a non-time sequence item.
+//
+// itemName - name to read
+//
+// callback(error, result)
+//
+SimpleDB_Store.prototype.logReadLatestItem = function(itemName, consistentRead, callback) {
+
+    var self = this;
+
+    var queryString = self.logBuildSelectLastItemsStatement(
+        itemName,
+        "",  // TimeStamp
+        1    // one item to read
+        );
+
+    self.queryItems(queryString, consistentRead, function(error, items) {
+
+        if (error != null) {
+            callback(error, null);
+            return;
+        }
+
+        callback(null, items[0].item);
+    });
+}
+
+//
+// logBuildSelectLastItemsStatment
+//
+// A log series is recorded with the timeStamp added
+// to the objects name path. So we query for all items in
+// which the name path is the parent.
+//
+// parent - /accounts/1/sensor/1/readings
+//
+// Will return:
+//
+// /accounts/1/sensors/1/readings/2015-11-11T14:48:40.304Z,
+// /accounts/1/sensors/1/readings/2015-11-11T14:46:08.002Z,
+//               ...
+//
+SimpleDB_Store.prototype.logBuildSelectLastItemsStatement = 
+    function(parent, timestamp, itemcount) {
+
+    // Add trailing "/" for query
+    parent = parent + "/";
+
+    var select = "select * from ";
+    select += this.domain;
+    select += " where";
+
+    select += " (__Parent = '" + parent + "')";
+    select += " and (TimeStamp > '" + timestamp + "')";
+
+    select += " order by TimeStamp desc limit " + itemcount;
+
+    return select;
 }
 
 //
@@ -571,34 +747,6 @@ SimpleDB_Store.prototype.processNameValueArraySkipSchemaItems = function(a) {
     }
 
     return b;
-}
-
-//
-// TODO: Make this not openpux specific!
-//
-// Select last itemcount items
-//
-// domain - SimpleDB domain to query
-//
-// sensorid - fully qualified sensor name such as "Account_1.Sensor_1"
-//
-// timestamp - timestamp to begin search by
-//
-SimpleDB_Store.prototype.buildSelectLastReadingsStatement = 
-    function(sensorid, timestamp, itemcount) {
-
-    var parent = sensorid + "/readings/";
-
-    var select = "select * from ";
-    select += this.domain;
-    select += " where";
-
-    select += " (__Parent = '" + parent + "')";
-    select += " and (TimeStamp > '" + timestamp + "')";
-
-    select += " order by TimeStamp desc limit " + itemcount;
-
-    return select;
 }
 
 //

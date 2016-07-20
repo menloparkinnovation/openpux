@@ -55,7 +55,7 @@ var fs = require('fs');
 //
 // {
 //     "InstanceName": "name_of_module_or_application",
-//     "LogDirectory" : "./logs",
+//     "LogDirectory" : "./var/logs",
 //     "ConsoleOutput": true
 // }
 //
@@ -284,6 +284,7 @@ Logger.prototype.closeFileStream = function(callback) {
        if (callback != null) {
            callback();
        }
+       return;
    }
 
    var logTime = new Date().toISOString();
@@ -319,9 +320,13 @@ Logger.prototype.closeFileStream = function(callback) {
    this.logFileFD = -1;
 
    //
-   // The will be closed by the 'end' event on the logFileStream when
-   // all of the buffers have been written out.
+   // The logFileFD will be closed by the 'end' event on the logFileStream when
+   // all of the buffers have been written out. This 'end' event was registered
+   // at stream create/open time.
    //
+
+   // Note: .end is only available on sync streams
+   // https://github.com/nodejs/node-v0.x-archive/blob/cfcb1de130867197cbc9c6012b7e84e08e53d032/lib/fs.js#L1597-L1620
    captured_logFileStream.end(buffer, callback);
 }
 

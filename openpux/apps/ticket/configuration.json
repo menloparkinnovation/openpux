@@ -1,0 +1,10 @@
+{
+    "enabled": "true",
+    "name": "ticket",
+    "url": "/api/v2/token/",
+    "server": "ticketapp.js",
+    "storage_root": "",
+    "credentials_file": "",
+    "credentials": {},
+    "application_config": {}
+}

@@ -1,0 +1,10 @@
+{
+    "enabled": "dynamic",
+    "name": "template",
+    "url": "/template",
+    "server": "templateapp.js",
+    "storage_root": "/template",
+    "credentials_file": "",
+    "credentials": {},
+    "application_config": {}
+}

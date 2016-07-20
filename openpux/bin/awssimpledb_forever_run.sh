@@ -17,4 +17,4 @@
 # forever logs
 # forever --help
 #
-forever start openpux.js config/awssimpledb_config.json
+forever start app.js config/awssimpledb_config.json

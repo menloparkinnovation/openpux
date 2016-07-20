@@ -40,15 +40,21 @@
 //   limitations under the License.
 //
 
-var appConfig = {
-    name:     "default",
-    url_root: "/"
-};
+//
+// Currently the defaultapp serves standard requests such as
+// to /openpuxclient.js, etc. and redirects them to
+// openpux/client/javascripts/openpuxclient.js as per the application
+// handling for openpux app.
+//
+// This is based on the entries in the defaultapp's configuraiton.json file.
+//
 
-function App(config)
+function App(config, appConfiguration)
 {
-    this.appconfig = appConfig;
     this.config = config;
+    this.appconfig = appConfiguration;
+
+    console.log(this.appconfig);
 
     this.moduleName = this.appconfig.name;
 
@@ -79,11 +85,11 @@ function App(config)
 //
 // res - http response
 //
-// app - Applications config entry in config/serverconfig.json
+// app - Applications configuration entry
 //
 // app_url - Specific application URL that was hit that caused the invoke
 //
-// appserver - instance to appserver.js for utility functions to aid
+// appserver - reference to appserver.js instance for utility functions to aid
 //       in generic request handling.
 //
 // Returns:
@@ -94,70 +100,116 @@ function App(config)
 //
 App.prototype.processAppRequest = function (req, res, app, app_url, appserver) {
 
-  var url = req.url;
+    var url = req.url;
+    var forward_app = null;
+    var name = null;
 
-  //
-  // This does not forward Api, rpc, or other types of requests, just basic data file content.
-  //
-  if (req.method != "GET") {
-      return false;
-  }
+    //
+    // This does not forward Api, rpc, or other types of requests, just basic data file content.
+    //
+    if (req.method != "GET") {
+        return false;
+    }
 
-  if (url[0] != '/') {
-      return false;
-  }
+    if (url[0] != '/') {
+        return false;
+    }
 
-  if (url.length == 1) {
+    if (url.length == 1) {
 
-      // use configured default landing page
-      url = app.default_url;
+        //
+        // If the URL is exactly "/" we load the default home app and page
+        //
 
-      // Fall through to standard processing
-  }
+        //console.log("**** defaultapp home page request");
 
-  // trim root '/'
-  var name = url.substring(1, url.length);
-  
-  //
-  // Only simple paths such as /file are allowed, not subdirectories such
-  // as /file/child.html
-  //
-  if (name.search(/\//g) != (-1)) {
-      // Found another '/' in string
-      return false;
-  }
+        if ((typeof(app.default_home_page) == "undefined") ||
+            (app.default_home_page == null)) {
+            return false;
+        }
 
-  // no ".." allowed in path
-  if (name.search(/\.\./g) != (-1)) {
-      // Found ".." in string
-      return false;
-  }
+        if ((typeof(app.default_home_app) == "undefined") ||
+            (app.default_home_app == null)) {
+            return false;
+        }
 
-  var index = -1;
+        // use configured default landing page
+        name = app.default_home_page;
 
-  if ((index = name.search(/\./)) == (-1)) {
+        forward_app = appserver.findAppByName(app.default_home_app);
+        if (forward_app == null) {
+            return false;
+        }
 
-      //
-      // no extension, just try and serve the file with the .html extension
-      // from the client dir
-      //
-      // sensor -> sensor.html
-      //
-      name = name + ".html";
+        console.log("**** defaultapp name=" + name);
+        console.log("**** defaultapp app.name=" + forward_app.name);
 
-      // Fall through to standard processing
-  }
+        //
+        // Forward the request to the configured application
+        //
+        // NOTE: Problem here is its not rooted properly from the browser
+        // so that all requests will be relative to "/" and not the
+        // application such as "/weather".
+        //
+        return appserver.processUrlEntry(req, res, forward_app, name);
+    }
+    else {
 
-  //
-  // Forward the request to the configured application
-  //
-  var forward_app = appserver.findAppByName(app.app);
-  if (forward_app == null) {
-      return false;
-  }
+        //
+        // If the URL is exactly "/xxx" we load it as a default
+        // against the configured default_app.
+        //
+        // This handles URL's such as "/openpuxclient.js" and redirects
+        // them to "apps/openpux/client/javascript/openpuxclient.js"
+        //
 
-  // /appname is the root of the url
-  return appserver.processUrlEntry(req, res, forward_app, name);
+        if ((typeof(app.default_app) == "undefined") ||
+            (app.default_app == null)) {
+
+            return false;
+        }
+
+        forward_app = appserver.findAppByName(app.default_app);
+        if (forward_app == null) {
+            return false;
+        }
+
+        // trim root '/'
+        name = url.substring(1, url.length);
+
+        //
+        // Only simple paths such as /file are allowed, not subdirectories such
+        // as /file/child.html
+        //
+        if (name.search(/\//g) != (-1)) {
+            // Found another '/' in string
+            return false;
+        }
+
+        // no ".." allowed in path
+        if (name.search(/\.\./g) != (-1)) {
+            // Found ".." in string
+            return false;
+        }
+
+        var index = -1;
+
+        if ((index = name.search(/\./)) == (-1)) {
+
+           //
+           // no extension, just try and serve the file with the .html extension
+           // from the client dir
+           //
+           // sensor -> sensor.html
+           //
+           name = name + ".html";
+        }
+
+        //
+        // This just processes a simple file URL from the targeted application.
+        //
+        return appserver.processUrlEntry(req, res, forward_app, name);
+    }
 }
 
 module.exports = {
