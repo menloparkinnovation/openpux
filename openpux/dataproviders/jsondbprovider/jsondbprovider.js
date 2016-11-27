@@ -260,7 +260,7 @@ function JsonDB_Store(config)
         // an exit.
         //
         if (error != null) {
-            throw "error initializing jsondb error=" + error;
+            throw "error initializing jsondb __dirname=" + __dirname + " error=" + error;
         }
 
         return;

@@ -775,7 +775,8 @@ jsondb.prototype.openFileStream = function(callback) {
            } catch(e) {
 
                // File does not exist
-               msg = "FileDoesNotExist and specified openExisting";
+               msg = "FileDoesNotExist and specified openExisting e=" + e;
+               msg += " __dirname=" + __dirname;
                this.traceerror(msg);
                callback(msg);
                return;
