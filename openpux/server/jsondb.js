@@ -770,8 +770,17 @@ jsondb.prototype.openFileStream = function(callback) {
            // does exist as "a" will create an empty file if it does
            // not, and the caller may have made a mistake in naming.
            //
+           // Note: fs.exitsSync() is used since embedded platforms such
+           // as the C.H.I.P. Computer have an older node runtime. v0.10.29
+           // and accessSync() is only available as of v.0.11.15.
+           //
+           // Since jsondb is targeted to these platforms, using the
+           // restricted version makes sense since these platforms may
+           // stick with older, smaller versions of the NodeJS runtime.
+           //
            try {
-               fs.accessSync(dbFilePath, fs.R_OK | fs.W_OK);
+               //fs.accessSync(dbFilePath, fs.R_OK | fs.W_OK);
+               fs.existsSync(dbFilePath);
            } catch(e) {
 
                // File does not exist
