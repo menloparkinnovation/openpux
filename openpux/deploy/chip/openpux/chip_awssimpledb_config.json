@@ -2,10 +2,10 @@
     "http_ipv4_listen_address": "0.0.0.0",
     "http_ipv4_listen_port": 8080,
 
-    "LogFileDirectory": "./logs",
+    "LogFileDirectory": "./var/logs",
     "LogToConsole": true,
 
-    "AccountingFileDirectory": "./accounting_logs",
+    "AccountingFileDirectory": "./var/accounting_logs",
     "AccountingLogToConsole": true,
 
     "Trace": true,
@@ -16,6 +16,8 @@
     "AdministratorPassCode": "0123456789",
 
     "BackingStoreProvider": "../dataproviders/awssimpledb/awssimpledb.js",
+
+    "BackingStoreProviderParameters": {},
 
     "CacheTimeout": 30,
 
@@ -40,15 +42,9 @@
         "trim_count": 10
     },
 
-    "Applications":  [
-        { "name": "ticket",     "url": "/api/v2/token/",   "server": "ticketapp.js" },
-        { "name": "openpux",    "url": "/api/v2/",         "server": "openpuxapp.js" },
-        { "name": "admin",      "url": "/administration/", "server": "adminapp.js" },
-        { "name": "smartpux",   "url": "/smartpuxdata/",   "server": "smartpuxapp.js" },
-        { "name": "weather",    "url": "/weather/",        "server": null },
-        { "name": "esquiloio",  "url": "/esquiloio/",      "server": "weatherapp.js" },
-        { "name": "domweather", "url": ["/domweather/", "/erpc", "/js/erpc.js"], "server": "domweatherapp.js"},
-        { "name": "default",    "url": "/",                "server": "defaultapp.js", 
-            "app": "openpux", "default_url": "/sensor" }
-     ]
+    "ForceAllBootLoaded": "true",
+
+    "ApplicationsFile": "applications.json",
+
+    "Applications":  []
 }
