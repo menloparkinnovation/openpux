@@ -1,0 +1,46 @@
+
+Manually start/stop openpux after setup:
+
+sudo sh
+/etc/init.d/openpux start
+/etc/init.d/openpux stop
+/etc/init.d/openpux restart
+
+check status with:
+sudo sh
+export HOME=/
+
+forever list
+forever logs
+
+#
+# Setup openpux
+#
+
+#install node.js (see nodejs directory)
+
+# install forever
+npm install forever -g
+
+# Install dependencies
+cd openpux
+npm install
+
+# provision aws credentials (assumes you have placed them in $HOME/private)
+mkdir /home/chip/.aws
+cp /home/chip/private/aws/* $HOME/.aws
+
+# root as well for services
+mkdir /root/.aws
+cp /home/chip/private/aws/* /root/.aws
+
+mkdir /.aws
+cp /home/chip/private/aws/* /.aws
+
+# setup /etc/init.d
+
+sudo sh
+cp $HOME/Smartpux/openpux/deploy/chip/openpux/openpux /etc/init.d
+
+update-rc.d openpux defaults
+

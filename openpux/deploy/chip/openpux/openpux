@@ -1,0 +1,48 @@
+#!/bin/bash
+# /etc/init.d/openpux
+
+### BEGIN INIT INFO
+# Provides:          openpux
+# Required-Start:    $remote_fs $syslog
+# Required-Stop:     $remote_fs $syslog
+# Default-Start:     2 3 4 5
+# Default-Stop:      0 1 6
+# Short-Description: openpux /etc/init.d script
+# Description:       Provides IoT services
+### END INIT INFO
+
+
+case "$1" in 
+    start)
+        echo "Starting openpux"
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/startopenpux.sh
+        ;;
+    stop)
+        echo "Stopping openpux"
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/stopopenpux.sh
+        ;;
+    restart)
+        echo "Restarting openpux, stop..."
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/stopopenpux.sh
+        echo "Restarting openpux, start"
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/startopenpux.sh
+        ;;
+    reload)
+        echo "reload Restarting openpux, stop..."
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/stopopenpux.sh
+        echo "reload Restarting openpux, start"
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/startopenpux.sh
+        ;;
+    force-reload)
+        echo "force-reload Restarting openpux, stop..."
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/stopopenpux.sh
+        echo "force-reload Restarting openpux, start"
+        /home/chip/Smartpux/openpux/deploy/chip/openpux/startopenpux.sh
+        ;;
+    *)
+        echo "Usage: /etc/init.d/openpux start|stop|restart|reload|force-reload"
+        exit 1
+        ;;
+esac
+
+exit 0
