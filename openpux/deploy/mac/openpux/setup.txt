@@ -1,7 +1,20 @@
 
-Setup openpux
+--
 
-install node.js
+mkdir /gits
+cd /gits
+mkdir scratch
+cd scratch
+
+git clone https://github.com/menloparkinnovation/openpux.git
+
+cd openpux/openpux
+npm install
+
+deploy/mac/openpux/openpux.sh
+
+------
+
 
 # install forever
 npm install forever -g
@@ -10,4 +23,3 @@ npm install forever -g
 mkdir $HOME/.aws
 cp $HOME/somewhere/private/aws/* $HOME/.aws
 
-bin/provision.sh

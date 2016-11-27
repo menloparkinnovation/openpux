@@ -1,4 +1,7 @@
 
+DEPLOY=/gits/scratch/openpux/openpux
+cd $DEPLOY
+
 DEPLOY=$HOME/openpux_test/openpux
 
 cd $DEPLOY/deploy/mac/openpux

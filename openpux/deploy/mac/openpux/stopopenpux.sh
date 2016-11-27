@@ -1,5 +1,5 @@
 
-DEPLOY=$HOME/openpux_test/openpux
+DEPLOY=/gits/scratch/openpux/openpux
 
 cd $DEPLOY/deploy/mac/openpux
 
