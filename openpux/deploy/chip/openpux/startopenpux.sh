@@ -1,5 +1,5 @@
 
-DEPLOY=/home/chip/Smartpux/openpux
+DEPLOY=/home/chip/openpux/openpux
 
 cd $DEPLOY/deploy/chip/openpux
 

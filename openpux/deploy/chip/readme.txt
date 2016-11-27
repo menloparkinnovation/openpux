@@ -3,6 +3,8 @@ Deployment for C.H.I.P. Computer.
 
 11/27/2016
 
+Note: As of 11/27/2016 CHIP deploys using $HOME/openpux/openpux.
+
 This CHIP computer is an ArmV7 architecture running a Debian Linux.
 
 It uses the R8 AllWinner chipset and is pretty much code compatible with
