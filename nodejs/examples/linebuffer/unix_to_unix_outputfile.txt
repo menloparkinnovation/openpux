@@ -1,0 +1,76 @@
+
+This is a Unix formatted file. The first line above has a single newline.
+This is a line right after1.
+This is another right after. Next line is two newlines.
+
+For testing formatting.
+
+You will notice that lines end with a single 0x0A which is the line ending
+for Unix formatted files.
+
+DOS formatted files end with a 0x0D 0x0A
+
+0x0D '\r' <CR>
+
+0x0A '\n' <LF>
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: ascii
+KEYWORDS: ascii table
+KEYWORDS: newline
+KEYWORDS: \n
+KEYWORDS: \r
+11/10/2014
+
+0x0D <CR> '\r'
+0x0A <LF> '\n'
+
+http://www.asciitable.com/
+http://en.wikipedia.org/wiki/Newline
+
+https://www.cs.tut.fi/~jkorpela/chars/c0.html
+
+0x09 - <tab>
+0x0A - '\n', LF, ^J, '\n'
+0x0D - '\r', CR, <return> key, ^M, '\r'
+
+0x0D, 0x0A - <CR><LF> // common for HTTP transfers as a line ending sequence
+
+//
+// These use URL/HTTP/HTML percent encoding
+// http://en.wikipedia.org/wiki/Percent-encoding
+// These are % with the two digit hex value
+//
+
+'%'  = %25
+'$'  = %24
+','  = %2c
+'*'  = %2a
+'\r' = %0d
+'\n' = $0a
+
+
+
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+
+
+
+

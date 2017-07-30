@@ -1,0 +1,45 @@
+
+//
+// fileio example/test
+//
+// 12/05/2014
+//
+
+var g_verbose = false;
+
+function main(ac, arv) {
+    console.log("hello world!");
+}
+
+var usage = function(bad_arg) {
+
+    if (typeof bad_arg != "undefined") {
+        console.error("Bad argument " + bad_arg);
+    }
+
+    console.error(g_usage);
+
+    process.exit(1);
+}
+
+function tracelog(config, message) {
+    if (g_verbose) {
+        // console.log connects to stdout
+        console.log(message);
+    }
+}
+
+function errlog(message) {
+    // console.error connects to stderr
+    console.error(message);
+}
+
+//
+// Remove argv[0] to get to the base of the standard arguments.
+// The first argument will now be the script name.
+//
+var args = process.argv.slice(1);
+
+// Invoke main
+main(args.length, args);
+
