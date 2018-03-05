@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -20,6 +21,8 @@
 //
 // MenloEvent.cpp
 //
+// Header is in MenloDispatchObject.h
+//
 // 04/02/2014
 //  05/03/2015 - separated out from MenloDispatchObject.cpp
 //
@@ -29,9 +32,58 @@
 #include <MenloDispatchObject.h>
 #include <MenloPower.h>
 
+#define DBG_PRINT_ENABLED 0
+
+#if DBG_PRINT_ENABLED
+#define DBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define DBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define DBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define DBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define DBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define DBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define DBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define DBG_PRINT(x)
+#define DBG_PRINT_STRING(x)
+#define DBG_PRINT_HEX_STRING(x, l)
+#define DBG_PRINT_HEX_STRING_NNL(x, l)
+#define DBG_PRINT_NNL(x)
+#define DBG_PRINT_INT(x)
+#define DBG_PRINT_INT_NNL(x)
+#endif
+
+//
+// Allows selective print when debugging but just placing
+// an "x" in front of what you want output.
+//
+#define XDBG_PRINT_ENABLED 0
+
+#if XDBG_PRINT_ENABLED
+#define xDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define xDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define xDBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define xDBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define xDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define xDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define xDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define xDBG_PRINT(x)
+#define xDBG_PRINT_STRING(x)
+#define xDBG_PRINT_HEX_STRING(x, l)
+#define xDBG_PRINT_HEX_STRING_NNL(x, l)
+#define xDBG_PRINT_NNL(x)
+#define xDBG_PRINT_INT(x)
+#define xDBG_PRINT_INT_NNL(x)
+#endif
+
 //
 // MenloEvent support
 //
+
+//
+// MenloDispatchObject.h contains the MenloEvent, MenloEventRegistration classes
+//
+
 
 MenloEventRegistration*
 MenloEventRegistration::GetNext()
@@ -170,13 +222,35 @@ MenloEvent::DispatchEvents(MenloDispatchObject* sender, MenloEventArgs* eventArg
     // round.
     //
 
+    //
+    // Debugging:
+    //
+    // The xDBG_PRINT debugging code prints out the core event dispatch
+    // of a given list. It shows the address of the list head variable,
+    // and shows each MenloEventRegistration pointer and its method.
+    //
+
+    // DispatchEvents Start for the given list
+    xDBG_PRINT_NNL("DE S ");
+    xDBG_PRINT_INT((int)&m_eventList);
+    
     tmp = m_eventList;
 
     while(tmp != NULL) {
 
+        xDBG_PRINT_NNL("p ");
+        xDBG_PRINT_INT((int)tmp);
+
+        xDBG_PRINT_NNL("m ");
+
+        // Must use a trick to get the address of the C++ method pointer block
+        int* p = (int*)(&tmp->method);
+        int x = (int)*p;
+        xDBG_PRINT_INT(x);
+
         //
         // Note: The handler can unregister the event, so be
-        // prepared for that. So we do any updates can caching
+        // prepared for that. So we do any updates caching
         // of next pointers to ensure no corruption if the
         // event is unregistered, and re-registered for a different
         // position on the list.
@@ -195,6 +269,10 @@ MenloEvent::DispatchEvents(MenloDispatchObject* sender, MenloEventArgs* eventArg
         // next was fetched before callback in case of re-registration of entry
         tmp = next;
     }
+
+    // DispatchEvents End
+    xDBG_PRINT_NNL("DE E ");
+    xDBG_PRINT_INT((int)&m_eventList);
 
     return pollInterval;
 }

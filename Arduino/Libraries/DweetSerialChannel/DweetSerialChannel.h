@@ -49,7 +49,7 @@
 // and transmit buffers as well as internal processing states
 // in both MenloDweet common support and NMEA0183 transport. As
 // such each MenloDweet instance is bound to a transport channel
-// such as serial, radioserial, HTTP, TCP, COAP, etc.
+// such as serial, radioserial, HTTP, TCP, COAP, SMS, etc.
 //
 // This allows each instance to act independently when receiving
 // and processing MenloDweet requests as they may arrive as
@@ -69,7 +69,7 @@
 // from multiple channels is application defined.
 //
 // The model is similar to an RPC server which may receive
-// requests from multiple indepenent transports and clients
+// requests from multiple independent transports and clients
 // at the same time.
 //
 // Most applications will point the multiple Dweet channels
@@ -112,13 +112,13 @@ private:
     int m_inputBufferIndex;
     int m_inputBufferMaxIndex;
 
-    char m_inputBuffer[84];
+    uint8_t m_inputBuffer[84];
 
     //
     // output buffer is used by NMEA0183 to format sentences before send
     // This is passed to DweetChannel::m_nmea.Initialize()
     //
-    char m_outputBuffer[84];
+    uint8_t m_outputBuffer[84];
 
     //
     // The DweetSerialChannel registers for PollEvents in order

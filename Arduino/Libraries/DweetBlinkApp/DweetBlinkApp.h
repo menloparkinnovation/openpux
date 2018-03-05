@@ -140,9 +140,6 @@ private:
     //
     DweetSerialChannel m_dweetSerialChannel;
 
-    // Dweet Serial Channel Event registration
-    MenloDweetEventRegistration m_serialDweetEvent;
-
     // DweetEvent function
     unsigned long DweetEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs);
 };

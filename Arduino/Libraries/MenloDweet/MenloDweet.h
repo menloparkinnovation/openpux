@@ -35,6 +35,19 @@
 #include "MenloDispatchObject.h"
 #include "DweetStrings.h"
 
+//
+// Setting this support to on overflows Uno for LightHouse by 38 bytes
+// and Photon by 8 bytes.
+//
+// MenloWatchDog:
+//
+// 19,800 with
+// 19,604 without
+//    196 bytes
+//
+//#define DWEET_STATE_ENABLE_DEFAULT_TABLE_SUPPORT 0
+#define DWEET_STATE_ENABLE_DEFAULT_TABLE_SUPPORT 1
+
 // Built in string sizes not in MenloConfigStore.h
 // Includes '\0'
 #define NOCHECKSUM_SIZE 2
@@ -55,18 +68,47 @@
 #define DWEET_APP_FAILURE              0xFFF5
 #define DWEET_SET_NOTSUPPORTED         0xFFF4
 #define DWEET_NO_POWER                 0xFFF3
+#define DWEET_GET_NOTSUPPORTED         0xFFF2
+#define DWEET_NO_RESOURCE              0xFFF1
+
+#define DWEET_EVENT_NOT_PROCESSED      0
 
 //
 // For documentation of all parameters to the table driven
 // routines see model.txt
 //
 
+//
+//
+// Default values table entry.
+//
+// Entries without default values will not invoke the set function
+// when there is a checksum error on the EEPROM configuration block.
+//
+// A valid EEPROM checksum, but rejected value will attempt to provide
+// a default entry if its available in this table.
+//
+// Size comes from the size_table[] for the given index_table[configIndex]
+//
+struct StateSettingsDefaultValue {
+    int configIndex; // EEPROM config index value identifing value
+    PGM_P address;   // Address of variable with default configuration data
+};
+
+//
+// Arguments structure used to pass the applications configured table pointers.
+//
 struct StateSettingsParameters {
     PGM_P stringTable;         // table of PGM character strings
     PGM_P functionTable;       // table of PGM function pointers
-    MenloObject* object;       // object "this" to invoke on
+    PGM_P ModuleName;          // Dweet Module providing the parameters
     const int* indexTable;     // table of PGM int's for configIndex
     const int* sizeTable;      // table of PGM int's for configSize
+
+    // table of PGM default values when checksum is invalid
+    const struct StateSettingsDefaultValue* defaultsTable;
+
+    MenloObject* object;       // object "this" to invoke on
     int tableEntries;          // number of entries in the above tables
     char* workingBuffer;       // caller ensures is maximum size for commands
     int checksumIndex;         // index of checksum (always 2 ASCII chars)
@@ -112,9 +154,63 @@ class MenloNMEAMessageEventRegistration : public MenloEventRegistration {
  public:
 };
 
+//
+// An instance of MenloDweet is created per transport type in order
+// to handle the internal state of a Dweet transport independently.
+//
+// Multiple Applications can register for Dweet events and the
+// dispatch logic allows an application to "claim" the event.
+//
+// This allows for composible applications in which subsystems handle
+// specific Dweets.
+//
+// Example: LightHouse application package, Debug package, Arduino
+// low level base platform package, etc.
+//
+// The listener event list is global across all Dweet transports
+// which allow applications to receive dweets regardless of transport.
+//
+// MenloDweetEventArgs.dweet points to the "this" instance of
+// the MenloDweet transport instance raising the event and is what should
+// be used to parse/format a reply as it will be for the specific
+// transport the Dweet came in on.
+//
+
 class MenloDweet : public MenloDispatchObject {
 
+ private:
+
+  //
+  // These are static so application modules can register for
+  // Dweets from all transports.
+  //
+
+  //
+  // MenloDweet is an Event generator
+  //  
+  static MenloEvent s_eventList;
+
+  //
+  // Registrations for NMEA 0183 message received notifications
+  //
+  static MenloEvent s_nmeaEventList;
+
+protected:
+
+  int EmitUnhandledDweetEvent(char* name, char* value);
+
+  //
+  // Process a NMEA 0183 message that has arrived that is not
+  // the Menlo Dweet $PDWT prefix by emitting an event for listeners
+  // to handle.
+  //
+  unsigned long EmitNMEAMessageEvent(char* prefix, char* cmds, char* buffer);
+
  public:
+
+  static void RegisterGlobalUnhandledDweetEvent(MenloDweetEventRegistration* callback);
+
+  static void RegisterGlobalNMEAMessageEvent(MenloNMEAMessageEventRegistration* callback);
 
   MenloDweet();
 
@@ -126,14 +222,22 @@ class MenloDweet : public MenloDispatchObject {
   // in the I/O contract for small memory embedded systems.
   //
 
-  void RegisterUnhandledDweetEvent(MenloDweetEventRegistration* callback);
-
-  void RegisterNMEAMessageEvent(MenloNMEAMessageEventRegistration* callback);
-
   int Initialize(MenloNMEA0183* nmea, Stream* port);
 
   //
+  // This virtual allows a caller to override the port write
+  // function for transports that don't model an Arduino
+  // Stream* style port.
+  //
+  // In this case m_port would be NULL at initialize.
+  //
+  virtual size_t WritePort(const uint8_t *buffer, size_t size);
+
+  //
   // Process a Dweet input buffer.
+  //
+  // A return value of 0 means the Dweet message was not recognized
+  // and processed by any of the application listeners or subsystems.
   //
   int DispatchMessage(char* buffer, int length);
 
@@ -206,6 +310,13 @@ class MenloDweet : public MenloDispatchObject {
   int
   LoadConfigurationSettingsTable(
       struct StateSettingsParameters* parms
+      );
+
+  static
+  int
+  LoadDefaultSettingFromTable(
+      struct StateSettingsParameters* parms,
+      int index
       );
 
   // MenloDweet.cpp
@@ -543,25 +654,15 @@ class MenloDweet : public MenloDispatchObject {
 
  protected:
 
-  int EmitUnhandledDweetEvent(char* name, char* value);
-
-  //
-  // Process a NMEA 0183 message that has arrived that is not
-  // the Menlo Dweet $PDWT prefix by emitting an event for listeners
-  // to handle.
-  //
-  unsigned long EmitNMEAMessageEvent(char* prefix, char* cmds, char* buffer);
-
  private:
 
+  //  void SendDweetCommandPreamble_P(PGM_P command);
+
+  // Used for parsing and formatting output
   MenloNMEA0183* m_nmea;
+
+  // Used for sending complete sentences out
   Stream* m_port;
-
-  // MenloDweet is an Event generator
-  MenloEvent m_eventList;
-
-  // Registrations for NMEA 0183 message received notifications
-  MenloEvent m_nmeaEventList;
 
   byte m_traceLevel;
 

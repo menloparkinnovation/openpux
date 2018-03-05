@@ -1,0 +1,124 @@
+{
+  "trace_message_codes": [
+    {
+        "messageid": "0x00",
+        "type": "nodata",
+        "module": "MenloDebug",
+        "message": "Trace Buffer Initialized"
+    },
+    {
+        "messageid": "0x01",
+        "type": "nodata",
+        "module": "MenloDebug",
+        "message": "First Message No Data"
+    },
+    {
+        "messageid": "0x20",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessSetConfigCommandsTable: No SETCONFIG entry in table"
+    },
+    {
+        "messageid": "0x22",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessSetConfigCommandsTable: SETCONFIG has invalid chars"
+    },
+    {
+        "messageid": "0x23",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: No entry in table"
+    },
+    {
+        "messageid": "0x24",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: ProcessItemAction error"
+    },
+    {
+        "messageid": "0x25",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: SetState function failed"
+    },
+    {
+        "messageid": "0x26",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: GETCONFIG"
+    },
+    {
+        "messageid": "0x27",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: SETCONFIG"
+    },
+    {
+        "messageid": "0x28",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: GETSTATE"
+    },
+    {
+        "messageid": "0x29",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: SETSTATE"
+    },
+    {
+        "messageid": "0x30",
+        "type": "nodata",
+        "module": "MenloDweet",
+        "message": "ProcessStateCommandsTable: Not Recognized"
+    },
+    {
+        "messageid": "0x40",
+        "type": "nodata",
+        "module": "Application",
+        "message": "First Message No Data for Applications"
+    },
+    {
+        "messageid": "0x60",
+        "type": "nodata",
+        "module": "MenloParticleWeatherApp",
+        "message": "ParticleCloudEvent entered"
+    },
+    {
+        "messageid": "0x7D",
+        "type": "nodata",
+        "module": "MenloDebug",
+        "message": "Last Message No Data"
+    },
+    {
+        "messageid": "0x7E",
+        "type": "nodata",
+        "module": "MenloDebug",
+        "message": "Trace Buffer Started"
+    },
+    {
+        "messageid": "0x7F",
+        "type": "nodata",
+        "module": "MenloDebug",
+        "message": "Trace Buffer Full"
+    },
+    {
+        "messageid": "0x80",
+        "type": "binary",
+        "module": "MenloDebug",
+        "message": "First Message with Data"
+    },
+    {
+        "messageid": "0xC0",
+        "type": "binary",
+        "module": "Application",
+        "message": "First Message with Data for Applications"
+    },
+    {
+        "messageid": "0xFF",
+        "type": "binary",
+        "module": "MenloDebug",
+        "message": "Last Message with Data"
+    }
+  ]
+}

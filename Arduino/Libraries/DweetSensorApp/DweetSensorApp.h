@@ -33,21 +33,6 @@
 #include "DweetRadio.h"
 
 //
-// Outline:
-//
-// By default a Sensor has an optional indication LED which
-// can be single, or multi-color.
-//
-// It is configurable over NMEA 0183 using the Dweet protocol.
-//
-// The Sensor is also capable of generating and responding to
-// other NMEA 0183 commands.
-//
-// It has a configurable update interval used to send updates
-// over the radio, or serial streams.
-//
-
-//
 // Default environmental monitoring interval
 //
 #define SENSOR_DEFAULT_INTERVAL (30L * 1000L) // 30 seconds
@@ -60,112 +45,28 @@
 // TOP_INDEX is in MenloConfigStore.h and is above the pre-configured
 // platform items.
 //
-#define APP_STORAGE_BASE_INDEX TOP_INDEX
+#define SENSORAPP_STORAGE_BASE_INDEX TOP_INDEX
 
 // begining of sensor block that is checksumed
-#define SENSOR_LIGHT_COLOR        APP_STORAGE_BASE_INDEX
-#define SENSOR_LIGHT_COLOR_SIZE    9 // 00.00.00
-
-#define SENSOR_LIGHT_ONLEVEL       (SENSOR_LIGHT_COLOR + SENSOR_LIGHT_COLOR_SIZE)
-#define SENSOR_LIGHT_ONLEVEL_SIZE  5 // 0000
-
-#define SENSOR_SENSORRATE (SENSOR_LIGHT_ONLEVEL + SENSOR_LIGHT_ONLEVEL_SIZE)
-#define SENSOR_SENSORRATE_SIZE  5
+#define SENSORAPP_SENSORRATE         SENSORAPP_STORAGE_BASE_INDEX
+#define SENSORAPP_SENSORRATE_SIZE    5
 // End of sensor block that is checksumed
 
 // Note: This must be last as the checksum range depends on it
-#define SENSOR_CHECKSUM   (SENSOR_SENSORRATE + SENSOR_SENSORRATE_SIZE)
-#define SENSOR_CHECKSUM_SIZE 2
+#define SENSORAPP_CHECKSUM   (SENSORAPP_SENSORRATE + SENSORAPP_SENSORRATE_SIZE)
 
-// The first saved value is the start of the LIGHT checksum range
-#define SENSOR_CHECKSUM_BEGIN SENSOR_LIGHT_COLOR
+#define SENSORAPP_CHECKSUM_SIZE 2
 
-// End of range for LIGHT checksum is the start of the checksum storage location
-#define SENSOR_CHECKSUM_END  SENSOR_CHECKSUM
+// The first saved value is the start of configuration range
+#define SENSORAPP_CHECKSUM_BEGIN SENSORAPP_SENSORRATE
 
-#define SENSOR_MAX_SIZE SENSOR_LIGHT_COLOR_SIZE
+// End of range for configuration block is the start of the checksum storage location
+#define SENSORAPP_CHECKSUM_END  SENSORAPP_CHECKSUM
 
-struct SensorsData {
-    int lightIntensity;
-    int battery;
-    int solar;
-    int moisture;
-    int temperature;
-};
+#define SENSORAPP_MAX_SIZE SENSORAPP_SENSORRATE_SIZE
 
-struct SensorsConfiguration {
-  int sensorPower;           // Power on sensors
-  int lightIntensity;        // light intensity reading
-  int battery;               // battery charge state
-  int solar;                 // solar cell voltage
-  int moisture;              // moisture sensor
-  int temperature;           // temperature sensor
-
-  int lightPin;
-  int redPin;
-  int greenPin;
-  int bluePin;
-};
-
-//
-// The SensorApp also can provide low overhead
-// 32 byte radio packet updates.
-//
-// The basic packet definition comes from MenloRadioSerial
-// so the radio channel can be shared with general management
-// commands (Dweets).
-//
-
-//
-// This is an overlay for MenloRadioSerialSensorData which
-// is a general use application level radio packet form
-//
-struct SensorDataPacket {
-
-  // 2 bytes
-  uint8_t  type;
-  uint8_t  flags; // a bit for each value present
-
-  //
-  // Multibyte types are stored LSB first as on the AtMega series.
-  // Other big endian processors need to reverse the bytes.
-  //
-  // (These have more code space to accomodate)
-  //
-
-  // 16 bytes
-  uint16_t light;
-  uint16_t battery;
-  uint16_t solar;
-  uint16_t moisture;
-  uint16_t temperature;
-  uint16_t windspeed;
-  uint16_t winddirection;
-  uint16_t barometer;
-
-  // 14 bytes
-  uint16_t rainfall;
-  uint16_t humidity;
-  uint16_t fog;
-  uint16_t seastate;
-  uint16_t radiomonitor;
-  uint16_t batteryCurrent;
-  uint16_t solarCurrent;
-};
-
-#define SENSOR_DATA_LIGHT       0x01
-#define SENSOR_DATA_BATTERY     0x02
-#define SENSOR_DATA_SOLAR       0x04
-#define SENSOR_DATA_MOISTURE    0x08
-#define SENSOR_DATA_TEMPERATURE 0x10
-#define SENSOR_DATA_WIND        0x20
-#define SENSOR_DATA_BAROMETER   0x40
-#define SENSOR_DATA_HUMIDITY    0x80
-
-#define SENSOR_DATA_SIZE sizeof(struct SensorDataPacket)
-
-#define SENSOR_DATA_PACKET   MENLO_RADIO_SERIAL_SENSORDATA
-#define SENSOR_DATA_OVEHEAD  MENLO_RADIO_SERIAL_SENSORDATA_OVERHEAD
+// Sub-applications of DweetSensorApp have storage after the base class values
+#define SENSORAPP_SUBAPP_STORAGE_BASE_INDEX (SENSORAPP_CHECKSUM + SENSORAPP_CHECKSUM_SIZE)
 
 //
 // The application provides Dweet handling contracts to be part
@@ -177,111 +78,89 @@ public:
 
     DweetSensorApp();
 
-    int Initialize(SensorsConfiguration* sensors);
+    int Initialize();
 
-    void SetRadio(MenloRadio* menloRadio);
+    void SetDweet(MenloDweet* dweet) {
+        m_dweet = dweet;
+    }
+
+    MenloDweet* GetDweet() {
+        return m_dweet;
+    }
 
     //
     // Application command dispatcher. Invoked from DweetEvent
     // handler when Dweet's arrive for app to examine.
     //
+    // This is handled by the parent class DweetApp which invokes
+    // this virtual when the registered event occurs.
+    //
+    // Arguments:
+    //
+    // dweet - Channel the command came in on, and should be used
+    //         if there are any replies.
+    //
+    // name  - Name of the Dweet being request such as GETCONFIG, SETCONFIG, etc.
+    //
+    // value - Item being operated on such as NAME, SERIALNUMBER, etc.
+    //
+    //         Note: Value may have an additional separator such as ":"
+    //         for commands such as SETCONFIG=SERIALNUMBER:00000000
+    //
     virtual int ProcessAppCommands(MenloDweet* dweet, char* name, char* value);
+
+    //
+    // Applications based on DweetSensorApp have the option of using
+    // sub-classing and virtual methods rather than their own independent
+    // registration for received Dweets and Timer events.
+    //
+    // They are free to do so, for simple extensions of a basic application
+    // subclassing is more straightforward than event registrations which
+    // shines as a larger component integration framework.
+    //
+    virtual int SubClassProcessAppCommands(MenloDweet* dweet, char* name, char* value);
+
+    //
+    // This is invoked from the sensor timer to allow sensors
+    // to process.
+    //
+    virtual unsigned long SensorTimerEvent();
 
     //
     // GET/SET property commands
     //
 
-    int LightColor(char* buf, int size, bool isSet);
-
-    int LightOnLevel(char* buf, int size, bool isSet);
-
     int SensorUpdateRate(char* buf, int size, bool isSet);
 
-    int ProcessSensors(char* buf, int size, bool isSet);
-
-    //
-    // Get sensor readings
-    //
-    bool readSensors(SensorsData* sensors);
-
 protected:
+
+    // If set sensor updates are sent
+    bool m_sendSensorUpdates;
+
+    MenloDweet* m_dweet;
 
 private:
 
     // Load settings from EEPROM
     void InitializeStateFromStoredConfig();
 
-    // Set light on state in the hardware
-    void SetLightOnState();
-
-    // Control RGB intensity values
-    void SetRGB(bool state);
-
     // Reset the update timer to the new value
     void SetSensorUpdateRate(uint16_t value);
 
-    // MenloRadio to send sensor updates to
-    MenloRadio* m_radio;
-
-    // Light on or off
-    bool m_lightState;
-
     //
-    // Level in which light turns on
-    // Based on lightIntensity reading level. (analog 10 or 12 bit)
-    //
-    int m_lightOnLevel;
-
-    //
-    // This is the current light level.
-    //
-    int m_lightLevel;
-
-    //
-    // Hardware Configuration
-    //
-
-    // True  -> 1 == ON
-    // FALSE -> 0 == ON
-    bool m_lightPolarity;
-
-    bool m_rgbEnabled;
-
-    // Default RGB intensity values
-    int m_redIntensity;
-    int m_greenIntensity;
-    int m_blueIntensity;
-
-    //
-    // Pins for environmental monitoring
-    // These pins are analog inputs
-    //
-    SensorsConfiguration m_sensors;
-
-#if USE_DS18S20
-    //
-    // Dallas OneWire Temperature Sensor
-    //
-    OS_DS18S20 m_temperatureSensor;
-#endif
-
-    //
-    // MenloTimer is used to schedule periodic environmental
+    // MenloTimer is used to schedule periodic sensor
     // readings.
     //
     // This is also used to send sensor updates if configured.
     //
-    unsigned long m_monitorInterval;
+    unsigned long m_sensorTimerInterval;
 
     // Timer and event registration
-    MenloTimer m_timer;
-    MenloTimerEventRegistration m_timerEvent;
+    MenloTimer m_sensorTimer;
+    MenloTimerEventRegistration m_sensorTimerEvent;
 
-    // TimerEvent function
-    unsigned long TimerEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs);
-
-    // If set sensor updates are sent
-    bool m_sendSensorUpdates;
+    // Sensor TimerEvent function
+    unsigned long LocalSensorTimerEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs);
 
     // Indicates when we can start async processing
     bool m_initialized;

@@ -106,11 +106,12 @@ void Nrf24l::init()
     spi->begin();
 }
 
-
-void Nrf24l::config() 
+//
 // Sets the important registers in the MiRF module and powers the module
 // in receiving mode
 // NB: channel and payload must be set now.
+//
+void Nrf24l::config() 
 {
     // Set RF channel
         configRegister(RF_CH,channel);
@@ -129,8 +130,8 @@ void Nrf24l::config()
 //
 // P0 is the auto-ack receive address.
 //
-void Nrf24l::setRADDR(uint8_t * adr) 
 // Sets the receiving address
+void Nrf24l::setRADDR(uint8_t * adr) 
 {
         //
         // Menlo note: This sets P1 to the receive address which is 5
@@ -143,23 +144,28 @@ void Nrf24l::setRADDR(uint8_t * adr)
         //
 
 	ceLow();
-	writeRegister(RX_ADDR_P1,adr,mirf_ADDR_LEN);
+	writeRegister(RX_ADDR_P1, adr, mirf_ADDR_LEN);
 	ceHi();
 }
 
-void Nrf24l::setTADDR(uint8_t * adr)
+//
 // Sets the transmitting address
+//
+void Nrf24l::setTADDR(uint8_t * adr)
 {
 	/*
 	 * RX_ADDR_P0 must be set to the sending addr for auto ack to work.
 	 */
 
 	writeRegister(RX_ADDR_P0,adr,mirf_ADDR_LEN);
+
 	writeRegister(TX_ADDR,adr,mirf_ADDR_LEN);
 }
 
-extern bool Nrf24l::dataReady() 
+//
 // Checks if data is available for reading
+//
+extern bool Nrf24l::dataReady() 
 {
     // See note in getData() function - just checking RX_DR isn't good enough
     uint8_t status = getStatus();
@@ -569,6 +575,12 @@ Nrf24l::DumpRegisters()
     //   TX not full
     //   RX_P_1 - RX_P_2, RX_P3 == 1 (rx fifo empty)
     //
+    // #define RX_DR       6
+    // #define TX_DS       5
+    // #define MAX_RT      4
+    // #define RX_P_NO     1
+    // #define TX_FULL     0
+    //
     readRegister(STATUS, &reg, 1);
     MenloDebug::PrintNoNewline(F("STATUS "));
     MenloDebug::PrintHex(reg);
@@ -584,6 +596,37 @@ Nrf24l::DumpRegisters()
     MenloDebug::PrintHex(reg);
 
     //
+    // EN_AA - Enable auto ack virtual register 0x01
+    //
+    // 0x3F
+    //
+    // 0011 1111
+    //
+    // bit 5:0 - enable auto ack for pipe 0 - 5
+    // bit 6 - reserved
+    // bit 7 - reserved
+    //
+    readRegister(EN_AA, &reg, 1);
+    MenloDebug::PrintNoNewline(F("EN_AA "));
+    MenloDebug::PrintHex(reg);
+
+    readRegister(EN_RXADDR, &reg, 1);
+    MenloDebug::PrintNoNewline(F("EN_RXADDR "));
+    MenloDebug::PrintHex(reg);
+
+    //
+    // Channel
+    // 0x01
+    //
+    readRegister(RF_CH, &reg, 1);
+    MenloDebug::PrintNoNewline(F("RF_CH "));
+    MenloDebug::PrintHex(reg);
+
+    readRegister(RF_SETUP, &reg, 1);
+    MenloDebug::PrintNoNewline(F("RF_SETUP "));
+    MenloDebug::PrintHex(reg);
+
+    //
     // CONFIG register contains configuration bits:
     //
     // configRegister(CONFIG, mirf_CONFIG | ( (1<<PWR_UP) | (1<<PRIM_RX) ) );
@@ -596,19 +639,18 @@ Nrf24l::DumpRegisters()
     MenloDebug::PrintNoNewline(F("CONFIG "));
     MenloDebug::PrintHex(reg);
 
-    //
-    // Channel
-    // 0x01
-    //
-    readRegister(RF_CH, &reg, 1);
-    MenloDebug::PrintNoNewline(F("RF_CH "));
+    // 0x00 no dynamic payloads enabled
+    readRegister(DYNPD, &reg, 1);
+    MenloDebug::PrintNoNewline(F("DYNPD "));
     MenloDebug::PrintHex(reg);
 
+    // Packet Width (Length)
     // 0x20 == 32 bytes for P0
     readRegister(RX_PW_P0, &reg, 1);
     MenloDebug::PrintNoNewline(F("RX_PW_P0 "));
     MenloDebug::PrintHex(reg);
 
+    // Packet Width (Length)
     // 0x20 == 32 bytes for P1
     readRegister(RX_PW_P1, &reg, 1);
     MenloDebug::PrintNoNewline(F("RX_PW_P1 "));
@@ -625,7 +667,7 @@ Nrf24l::DumpRegisters()
     //
     readRegister(RX_ADDR_P0, buffer, mirf_ADDR_LEN);
 
-    MenloDebug::PrintNoNewline(F("RX_ADDR_P0 "));
+    MenloDebug::Print(F("RX_ADDR_P0 "));
     for (index = 0; index < mirf_ADDR_LEN; index++) {
         MenloDebug::PrintHex(buffer[index]);
     }  
@@ -641,7 +683,7 @@ Nrf24l::DumpRegisters()
     //
     readRegister(RX_ADDR_P1, buffer, mirf_ADDR_LEN);
 
-    MenloDebug::PrintNoNewline(F("RX_ADDR_P1 "));
+    MenloDebug::Print(F("RX_ADDR_P1 "));
     for (index = 0; index < mirf_ADDR_LEN; index++) {
         MenloDebug::PrintHex(buffer[index]);
     }  
@@ -657,7 +699,7 @@ Nrf24l::DumpRegisters()
     //
     readRegister(TX_ADDR, buffer, mirf_ADDR_LEN);
 
-    MenloDebug::PrintNoNewline(F("TXADDR "));
+    MenloDebug::Print(F("TXADDR "));
     for (index = 0; index < mirf_ADDR_LEN; index++) {
         MenloDebug::PrintHex(buffer[index]);
     }  
@@ -709,21 +751,6 @@ Nrf24l::DumpRegisters()
     MenloDebug::PrintHex(reg);
 
     //
-    // EN_AA - Enable auto ack virtual register 0x01
-    //
-    // 0x3F
-    //
-    // 0011 1111
-    //
-    // bit 5:0 - enable auto ack for pipe 0 - 5
-    // bit 6 - reserved
-    // bit 7 - reserved
-    //
-    readRegister(EN_AA, &reg, 1);
-    MenloDebug::PrintNoNewline(F("EN_AA "));
-    MenloDebug::PrintHex(reg);
-
-    //
     // SETUP_RETR - Virtual register 0x04
     //
     //
@@ -771,10 +798,6 @@ Nrf24l::DumpRegisters()
     MenloDebug::PrintNoNewline(F("FEATURE "));
     MenloDebug::PrintHex(reg);
 
-    // 0x00 no dynamic payloads enabled
-    readRegister(DYNPD, &reg, 1);
-    MenloDebug::PrintNoNewline(F("DYNPD "));
-    MenloDebug::PrintHex(reg);
 #endif
 }
 

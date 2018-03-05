@@ -27,10 +27,8 @@
 //
 
 //
-// TOP_INDEX is in MenloConfigStore.h and is above the pre-configured
-// platform items.
+// LIGHTHOUSE_MODULE_BASE_INDEX is in MenloConfigStore.h
 //
-#define APP_STORAGE_BASE_INDEX TOP_INDEX
 
 //
 // Note: Each entry has an extra byte allocated
@@ -38,7 +36,7 @@
 //
 
 // begining of lighthouse block that is checksumed
-#define LIGHT_PERIOD        APP_STORAGE_BASE_INDEX
+#define LIGHT_PERIOD        LIGHTHOUSE_MODULE_BASE_INDEX
 #define LIGHT_PERIOD_SIZE   9  // 32 bit value in HEX chars
 #define LIGHT_TICK          (LIGHT_PERIOD + LIGHT_PERIOD_SIZE)
 #define LIGHT_TICK_SIZE     9  // 32 bit value in HEX chars
@@ -57,18 +55,20 @@
 #define LIGHT_STORAGE_SIZE  1
 
 #define LIGHT_SENSORRATE (LIGHT_STORAGE_INDEX + LIGHT_STORAGE_SIZE)
-#define LIGHT_SENSORRATE_SIZE  5
+#define LIGHT_SENSORRATE_SIZE  5 // 0000
 // End of lighthouse block that is checksumed
 
 // Note: This must be last as the checksum range depends on it
 #define LIGHT_CHECKSUM   (LIGHT_SENSORRATE + LIGHT_SENSORRATE_SIZE)
 #define LIGHT_CHECKSUM_SIZE 2
 
+// 118 bytes 03/06/2016
+
 // The first saved value is the start of the LIGHT checksum range
-#define LIGHT_CHECKSUM_BEGIN LIGHT_PERIOD
+#define LIGHT_CHECKSUM_BEGIN (LIGHT_PERIOD)
 
 // End of range for LIGHT checksum is the start of the checksum storage location
-#define LIGHT_CHECKSUM_END  LIGHT_CHECKSUM
+#define LIGHT_CHECKSUM_END   (LIGHT_CHECKSUM)
 
 // 0000.0000.0000.0000.0000'\0'
 #define SENSOR_DATA_SIZE 26

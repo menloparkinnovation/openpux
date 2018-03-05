@@ -68,9 +68,13 @@
 //
 struct LightHouseSensorData {
 
+  //
+  // This header follows SensorPacket in MenloRadio.h
+  //
+
   // 2 bytes
   uint8_t  type;
-  uint8_t  subType; // subtype for applications
+  uint8_t  flags;       // High 4 bits application. Low 4 bits define state.
 
   //
   // Multibyte types are stored LSB first as on the AtMega series.
@@ -95,17 +99,14 @@ struct LightHouseSensorData {
   uint16_t fog;
   uint16_t seastate;
   uint16_t radiomonitor;
-  uint16_t userdata0;
-  uint16_t userdata1;
+  uint16_t batteryCurrent;
+  uint16_t solarCurrent;
 };
 
 #define LIGHTHOUSE_SENSOR_DATA_SIZE sizeof(struct LightHouseSensorData)
 
-#define LIGHTHOUSE_SENSOR_DATA_PACKET   MENLO_RADIO_SERIAL_SENSORDATA
-#define LIGHTHOUSE_SENSOR_DATA_OVEHEAD  MENLO_RADIO_SERIAL_SENSORDATA_OVERHEAD
-
 //
-// See MenloRadioSerial.h for subType LIGHTHOUSE_SENSOR_DATA_SUBTYPE
+// See MenloRadio.h for application type MENLO_RADIO_APPLICATION_LIGHT_HOUSE.
 //
 
 //

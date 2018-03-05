@@ -1,4 +1,33 @@
 
+05/04/2016
+
+Try and place the output buffer in the common DweetChannel.h
+so that its shared by all DweetChannels.
+
+Most embedded firmware only sends one at a time.
+
+Design it so that an optional buffer can be supplied for cases where
+its async on multiple channels on output.
+
+Currently MenloNMEA0813 requires a buffer from the DweetChannel to
+allow it to format to and checksum/send from. Each DweetChannel supplies
+a unique output buffer to each unique NMEA0183 instance.
+
+It may make more sense to share a MenloNMEA0183 instance and buffer
+through MenloDweet. But this would involve making it a static which
+does make things more complicated.
+
+  - But could be the way for DweetChannels by default to share an instance,
+    but allow their initialization to supply an alternate non-shared instance
+    when they want to supply their own buffers.
+
+The goal is to decrease duplication of the 80 byte output buffer for
+each DweetChannel, and allow broadcast Dweets to be supported across
+all DweetChannels by an embedded device.
+
+Each DweetChannel still needs its own input buffer though.
+
+
 02/22/2015
 
 duplicate Dweet strings in strings.txt

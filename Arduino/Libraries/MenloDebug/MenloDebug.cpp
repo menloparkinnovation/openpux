@@ -32,8 +32,9 @@
 #include <MenloNMEA0183Stream.h>
 #include <MenloDebug.h>
 
-// Defaults to 0x00, no tracing enabled
-uint8_t MenloDebug::TraceLevel = 0x00;
+// Defaults to 0x01, default tracing enabled
+uint8_t MenloDebug::TraceMask = 0x01;
+//uint8_t MenloDebug::TraceMask = 0xFF;
 
 // Synchronous is off by default
 uint8_t MenloDebug::Synchronous = 0x00;
@@ -43,6 +44,15 @@ uint8_t MenloDebug::PanicPinNumber = 0xFF;
 
 // After 2 times displaying the panic code, reset
 uint8_t MenloDebug::PanicDisplayLoops = 2;
+
+// Tracing support
+uint8_t* MenloDebug::TraceBuffer = NULL;
+int MenloDebug::TraceBufferSize = 0;
+int MenloDebug::TraceBufferIndex = 0;
+
+// Tracing format buffer
+uint8_t* MenloDebug::TraceFormatBuffer = NULL;
+int MenloDebug::TraceFormatBufferSize = 0;
 
 Stream* MenloDebug::Port = NULL;
 
@@ -59,18 +69,6 @@ int MenloDebug::SentenceStarted = 0;
 // is used.
 //
 MenloNMEA0183Stream g_debug_nmea;
-
-uint8_t
-MenloDebug::GetTraceLevel()
-{
-  return MenloDebug::TraceLevel;
-}
-
-void
-MenloDebug::SetTraceLevel(uint8_t level)
-{
-  MenloDebug::TraceLevel = level;
-}
 
 uint8_t
 MenloDebug::SetSynchronous(uint8_t syncOn)
@@ -232,6 +230,92 @@ MenloDebug::PrintHexNoNewline(int number)
   return 1;
 }
 
+size_t
+MenloDebug::PrintHexPtr(void* ptr)
+{
+  MenloDebug::PrintHexPtrNoNewline(ptr);
+  MenloDebug::EndSentence();
+
+  return 1;
+}
+
+size_t
+MenloDebug::PrintHexPtrNoNewline(void* ptr)
+{
+#if defined(MENLO_BOARD_RFDUINO) || (MENLO_ESP8266) || (MENLO_ARM32)
+    // 32 bit architecture
+    MenloDebug::PrintHex32NoNewline((uint32_t)ptr);
+#else
+    // 16 bit architecture
+    MenloDebug::PrintHexNoNewline((uint16_t)ptr);
+#endif
+
+  return 1;
+}
+
+//#if defined(MENLO_BOARD_RFDUINO) || (MENLO_ESP8266) || (MENLO_ARM32)
+// Print with a newline which ends the current sentence
+size_t
+MenloDebug::PrintHex32(uint32_t number)
+{
+  MenloDebug::PrintHex32NoNewline(number);
+  MenloDebug::EndSentence();
+
+  return 1;
+}
+
+size_t
+MenloDebug::PrintHex32NoNewline(uint32_t number)
+{
+  char buf[8];
+  char c;
+  int index;
+
+  MenloDebug::StartSentenceIfRequired();
+
+  MenloUtility::UInt32ToHexBuffer(number, &buf[0]);
+
+  for (index = 0; index < 8; index++ ) {
+    c = buf[index];
+    g_debug_nmea.addChar(c);
+    MenloDebug::Port->write(c);
+  }
+
+  // The sentence is not ended as further data is expected
+  return 1;
+}
+//#endif
+
+size_t
+MenloDebug::PrintHexByte(uint8_t number)
+{
+  MenloDebug::PrintHexByteNoNewline(number);
+  MenloDebug::EndSentence();
+
+  return 1;
+}
+
+size_t
+MenloDebug::PrintHexByteNoNewline(uint8_t number)
+{
+  char buf[4];
+  char c;
+  int index;
+
+  MenloDebug::StartSentenceIfRequired();
+
+  MenloUtility::UInt8ToHexBuffer(number, &buf[0]);
+
+  for (index = 0; index < 2; index++ ) {
+    c = buf[index];
+    g_debug_nmea.addChar(c);
+    MenloDebug::Port->write(c);
+  }
+
+  // The sentence is not ended as further data is expected
+  return 1;
+}
+
 // Print with a newline which ends the current sentence
 size_t
 MenloDebug::Print(const char* string)
@@ -353,7 +437,7 @@ MenloDebug::PrintNoNewline(const char* string)
   return 1;
 }
 
-#if defined(MENLO_ATMEGA)
+#if defined(MENLO_ATMEGA) || (MENLO_BOARD_RFDUINO) || (MENLO_ESP8266) || (MENLO_ARM32)
 
 //
 // A PGM_P string in a table or other data is not setup as
@@ -381,7 +465,7 @@ MenloDebug::Print_P(PGM_P string)
   }
 
   //
-  // Can't use the _FlashStringHelper version or we will call outselves
+  // Can't use the _FlashStringHelper version or we will call ourselves
   // again and recurse off the stack
   //
   MenloDebug::Print("");
@@ -437,6 +521,29 @@ MenloDebug::Print(const __FlashStringHelper* string, int number)
   return 1;
 }
 
+void
+MenloDebug::TraceString(uint8_t level, uint8_t code, PGM_P string)
+{
+    uint8_t buf[16];
+    int length;
+
+    if (string == NULL) {
+        Trace(level, code, 0, NULL);
+    }
+    else {
+
+        length = strlen_P(string);
+        if (length > sizeof(buf) - 1) {
+            length = sizeof(buf) - 1;
+        }
+
+        memcpy_P(&buf[0], string, length);
+        buf[length] = '\0';
+
+        Trace(level, code, length, buf);
+    }
+}
+
 #endif
 
 size_t
@@ -477,35 +584,6 @@ void
 MenloDebug::ConfigurePanicDisplayLoops(uint8_t number)
 {
   MenloDebug::PanicDisplayLoops = number;
-}
-
-void
-MenloDebug::Trace(uint8_t traceCode)
-{
-  //
-  // Note: A hex log ring buffer would allow logging
-  // on platforms where it could be read out.
-  //
-  PrintNoNewline(F("0x"));
-  PrintHex(traceCode);
-}
-
-void
-MenloDebug::Trace16(unsigned short traceCode)
-{
-  //
-  // Note: A hex log ring buffer would allow logging
-  // on platforms where it could be read out.
-  //
-  PrintNoNewline(F("0x"));
-  PrintHex(traceCode);
-}
-
-void
-MenloDebug::TracePrint(unsigned short traceCode, char* string)
-{
-  Trace(traceCode);
-  Print(string);
 }
 
 void
@@ -644,25 +722,10 @@ MenloDebug::FlashNumber(uint8_t code)
   digitalWrite(MenloDebug::PanicPinNumber, LOW);
 }
 
-#if defined(MENLO_ATMEGA)
-
-void
-MenloDebug::TracePrint(unsigned short traceCode, const __FlashStringHelper* string)
-{
-  Trace(traceCode);
-  Print(string);
-}
-
-#endif
-
 //
 // Callable from C
 //
-#if defined(MENLO_ATMEGA)
-extern "C" void MenloDebug_AssertionFailed(const __FlashStringHelper* file, int line)
-#else
-extern "C" void MenloDebug_AssertionFailed(const char* file, int line)
-#endif
+extern "C" void MenloDebug_AssertionFailed(int module, int line)
 {
   //
   // This effectively halts the system on error.
@@ -671,13 +734,234 @@ extern "C" void MenloDebug_AssertionFailed(const char* file, int line)
   //
   for (;;) {
 
-    MenloDebug::Print(F("Assertion Failed!"));
-    MenloDebug::Print(F("FILE: "));
-    MenloDebug::Print(file);
-    MenloDebug::Print(F(" LINE: "));
+    MenloDebug::PrintNoNewline(F("assert! M "));
+    MenloDebug::PrintHexNoNewline(module);
+    MenloDebug::PrintNoNewline(F(" L "));
     MenloDebug::PrintHex(line);
-    MenloDebug::Print(F("\n"));
 
     MenloDebug::Panic(MenloDebugUserAssertionFailed);
   }
+}
+
+// ====== Tracing Support ======
+
+uint8_t
+MenloDebug::GetTraceMask()
+{
+  return MenloDebug::TraceMask;
+}
+
+void
+MenloDebug::SetTraceMask(uint8_t mask)
+{
+  MenloDebug::TraceMask = mask;
+}
+
+//
+// SetTraceBuffer
+//
+// A trace buffer of NULL or 0 size disables tracing.
+//
+// A trace buffer once set is used immediately.
+//
+// This allows sequences of code to be traced into a module/application
+// specific buffer.
+//
+// Parameters:
+//
+//  buffer - Trace buffer to use. Recommended to be statically allocated
+//           unless you are careful with heap allocation/free.
+//
+//           If NULL tracing is disabled.
+//
+//  size   - Size in bytes of the trace buffer.
+//
+//           0 disables tracing.
+//
+//  index  - Index into buffer to begin the trace.
+//
+//           This allows use of GetTraceBuffer()/SetTraceBuffer() to save
+//           the previous trace buffer pointers, set an application or module
+//           specific trace buffer, and then restore when done.
+//
+//           A new buffer is initialized with index 0.
+//
+void
+MenloDebug::SetTraceBuffer(uint8_t* buffer, int size, int index)
+{
+    // Note: NULL shuts it off
+    MenloDebug::TraceBuffer = buffer;
+    MenloDebug::TraceBufferSize = size;
+    MenloDebug::TraceBufferIndex = index;
+
+    //
+    // The first location is reserved to indicate the tracebuffer status
+    //
+    if ((buffer != NULL) && (size > 0)) {
+        MenloDebug::TraceBuffer[0] = 0x7E;
+        MenloDebug::TraceBufferIndex++;
+    }
+}
+
+//
+// Return the current trace buffer
+//
+void
+MenloDebug::GetTraceBuffer(uint8_t** buffer, int* size, int* index)
+{
+    *buffer = MenloDebug::TraceBuffer;
+    *size = MenloDebug::TraceBufferSize;
+    *index = MenloDebug::TraceBufferIndex;
+}
+
+//
+// Set the format buffer.
+//
+// This is set by a transport, and used for retrieval.
+//
+// This allows a decoupling between the tracing facility and transports.
+//
+void
+MenloDebug::SetFormatBuffer(uint8_t* formatBuffer, int formatBufferSize)
+{
+    MenloDebug::TraceFormatBuffer = formatBuffer;
+    MenloDebug::TraceFormatBufferSize = formatBufferSize;
+}
+
+//
+// Return the current format buffer
+//
+void
+MenloDebug::GetFormatBuffer(uint8_t** buffer, int* size)
+{
+    *buffer = MenloDebug::TraceFormatBuffer;
+    *size = MenloDebug::TraceFormatBufferSize;
+}
+
+//
+// Note: Tracing is always in a compact binary format.
+//
+// Transports that acquire trace data can convert it to
+// strings, or other data formats as required. The possible
+// conversions are not burdened here to keep the core code small.
+//
+// The simplest conversion for a caller is to call
+// GetTraceBuffer(), allocate a buffer that is 2X+1 tracebuffer
+// contents indicated by index, and call MenloUtility::UInt8ToHexBuffer()
+// to convert to ASCII hex format, and '\0' terminate it.
+//
+void
+MenloDebug::Trace(uint8_t level, uint8_t code, uint8_t size, uint8_t* data)
+{
+    int total;
+    int space;
+    uint8_t* to;
+
+    if ((MenloDebug::TraceMask & level) == 0) {
+        return;
+    }
+
+    PrintNoNewline(F("T "));
+    PrintHex(code);
+
+    PrintNoNewline(F("D ptr "));
+    PrintHex(((int)data) >> 16);
+    PrintHex((int)data);
+
+    PrintNoNewline(F("D size "));
+    PrintHex(size);
+
+    if (data != NULL) {
+        PrintNoNewline(F("D "));
+        PrintHexString(data, size);
+    }
+
+    if (MenloDebug::TraceBuffer == NULL) return;
+    if (MenloDebug::TraceBufferSize == 0) return;
+
+    if (size == 0) {
+
+        // Just the code. Code must have upper bit clear to indicate no data.
+        total = 1;
+        code = code & 0x7F;
+    }
+    else {
+
+        //
+        // 2 bytes for code and data size byte. Code has the upper bit set
+        // to indicate data.
+        //
+
+        total = size + 2;
+        code = code | 0x80;
+    }
+
+    space = MenloDebug::TraceBufferSize - MenloDebug::TraceBufferIndex;
+    if (total > space) {
+
+        // MessageId 0x7F indicates a full tracebuffer
+        MenloDebug::TraceBuffer[0] = 0x7F;
+
+        Print(F("T OVF"));
+        return;
+    }
+
+    to = &MenloDebug::TraceBuffer[MenloDebug::TraceBufferIndex];
+
+    MenloDebug::TraceBufferIndex += total;
+
+    // Code
+    *to = code;
+    to++;
+
+    if (size == 0) {
+        // Done
+        return;
+    }
+
+    // Size
+    *to = (uint8_t)size;
+    to++;
+
+    // Data
+    memcpy(to, data, size);
+}
+
+//
+// These allow potentially short call sites and re-used code
+//
+
+void
+MenloDebug::Trace(uint8_t level, uint8_t code)
+{
+    Trace(level, code, 0, NULL);
+}
+
+void
+MenloDebug::TraceByte(uint8_t level, uint8_t code, uint8_t data)
+{
+    Trace(level, code, sizeof(data), (uint8_t*)&data);
+}
+
+void
+MenloDebug::TraceInt(uint8_t level, uint8_t code, int data)
+{
+    Trace(level, code, sizeof(data), (uint8_t*)&data);
+}
+
+void
+MenloDebug::TraceLong(uint8_t level, uint8_t code, unsigned long data)
+{
+    Trace(level, code, sizeof(data), (uint8_t*)&data);
+}
+
+void
+MenloDebug::TraceString(uint8_t level, uint8_t code, char* data)
+{
+    if (data == NULL) {
+        Trace(level, code, 0, NULL);
+    }
+    else {
+        Trace(level, code, strlen(data), (uint8_t*)data);
+    }
 }

@@ -144,6 +144,16 @@ MenloDispatchObject::LoopInternal()
             tmp = tmp->m_link;
         }
 
+        //
+        // Note: there is no watchdog reset here since the design is that
+        // the processing chain either completes within the watchdog timeout,
+        // or lengthy processing modules handle the watchdog keep alive
+        // call themselves.
+        //
+        // A common bug is setting a MenloTimer with a period of 0 which
+        // causes an endless loop, and we want the watchdog to catch it.
+        //
+
     } while (pollInterval == 0);
 
     //

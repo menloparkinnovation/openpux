@@ -29,6 +29,7 @@
 
 #if MENLO_ARM32
 
+#if MENLO_BOARD_SPARKCORE
 void EnableWatchdog()
 {
 }
@@ -36,6 +37,15 @@ void EnableWatchdog()
 void ResetWatchdog()
 {
 }
+#else
+void EnableWatchdog()
+{
+}
+
+void ResetWatchdog()
+{
+}
+#endif // MENLO_BOARD_SPARKCORE
 
 char*
 MenloPlatform::GetStringPointerFromStringArray(char** array, int index)
@@ -93,9 +103,32 @@ MenloPlatform::GetMethodPointerFromMethodArray(char** array, int index)
 // Note: This differs for each ARM processor
 //
 
+#if MENLO_BOARD_SPARKCORE
+
+uint8_t
+eeprom_read_byte(const uint8_t* index)
+{
+    return EEPROM.read((int)index);
+}
+
+void
+eeprom_write_byte(const uint8_t* index, uint8_t value)
+{
+    //
+    // update is used instead of write since it reads the location
+    // and avoids the write if the value matches.
+    //
+    // Better for wear leveling.
+    //
+    EEPROM.update((int)index, value);
+}
+
+#else
+
 //
-// Basic implementation for runtime store/retrieval
-// ARM version have plenty of RAM for the emulation array
+// Basic implementation for runtime store/retrieval.
+//
+// ARM versions have plenty of RAM for the emulation array
 //
 
 // Note: This is zero init
@@ -113,5 +146,31 @@ eeprom_write_byte(const uint8_t* index, uint8_t value)
     eeprom_emulation[(int)index] = value;
 }
 #endif // EEPROM emulation
+
+#endif // MENLO_BOARD_SPARKCORE
+
+
+#if REQUIRES_PGM_ROUTINES
+
+uint16_t
+pgm_read_word(const int* ptr)
+{
+    const uint16_t* p = (const uint16_t*)ptr;
+
+    return *p;
+}
+
+//
+// Address is to a pointer word in memory
+//
+void*
+pgm_read_ptr(const int* ptr)
+{
+    char** p = (char**)ptr;
+
+    return *p;
+}
+
+#endif // PGM emulation
 
 #endif // MENLO_ARM32

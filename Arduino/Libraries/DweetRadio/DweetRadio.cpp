@@ -77,6 +77,8 @@
 
 #define RADIO_SEND_TIMEOUT 500
 
+const char radio_module_name_string[] PROGMEM = "DweetRadio";
+
 extern const char dweet_radio_channel_string[] PROGMEM = "RADIOCHANNEL";
 
 extern const char dweet_radio_txaddr_string[] PROGMEM = "RADIOTXADDR";
@@ -153,6 +155,10 @@ PROGMEM const StateMethod radio_function_table[] =
     &DweetRadio::GatewayHandler
 };
 
+
+//
+// These are defined in MenloConfigStore.h
+//
 PROGMEM const int radio_index_table[] =
 {
     RADIO_CHANNEL,
@@ -243,9 +249,11 @@ DweetRadio::GatewayHandler(char* buf, int size, bool isSet)
     if (isSet) {
         if (strcmp_P(buf, dweet_on_string) == 0) {
             EnableReceiveDweetStream(true);
+            MenloDebug::Print(F("RadioGateway is ON"));
         }
         else if (strcmp_P(buf, dweet_off_string) == 0) {
             EnableReceiveDweetStream(false);
+            MenloDebug::Print(F("RadioGateway is OFF"));
         }
         else {
             status = DWEET_INVALID_PARAMETER;
@@ -280,7 +288,7 @@ DweetRadio::GatewayHandler(char* buf, int size, bool isSet)
 // Returns 0 if not.
 //
 int
-DweetRadio::ProcessRadioCommands(char* name, char* value)
+DweetRadio::ProcessRadioCommands(MenloDweet* dweet, char* name, char* value)
 {
     struct StateSettingsParameters parms;
     char workingBuffer[RADIO_MAX_SIZE+1]; // Must be larger than any config values we fetch
@@ -307,7 +315,7 @@ DweetRadio::ProcessRadioCommands(char* name, char* value)
         // where c is channel
         // 000... data to send up to 32 bytes as 64 chars
         //
-        return ProcessRadioTransmit(name, value);
+        return ProcessRadioTransmit(dweet, name, value);
     }
     else if (strncmp_P(name, PSTR("R"), 1) == 0)  {
 
@@ -343,21 +351,26 @@ DweetRadio::ProcessRadioCommands(char* name, char* value)
         // required for DweetRadio.
         //
 
+        parms.ModuleName = (PGM_P)radio_module_name_string;
         parms.stringTable = (PGM_P)radio_string_table;
         parms.functionTable = (PGM_P)radio_function_table;
+        parms.defaultsTable = NULL;
         parms.object =  this;
         parms.indexTable = radio_index_table;
         parms.sizeTable = radio_size_table;
         parms.tableEntries = tableEntries;
         parms.workingBuffer = workingBuffer;
+
+        // RADIO_CHECKSUM is defined in MenloConfigStore.h
         parms.checksumIndex = RADIO_CHECKSUM;
         parms.checksumBlockStart = RADIO_CHECKSUM_BEGIN;
         parms.checksumBlockSize = RADIO_CHECKSUM_END - RADIO_CHECKSUM_BEGIN;
+
         parms.name = name;
         parms.value = value;
 
         // DweetState.cpp
-        return m_dweet->ProcessStateCommandsTable(&parms);
+        return dweet->ProcessStateCommandsTable(&parms);
     }
 }
 
@@ -383,11 +396,12 @@ DweetRadio::Initialize(MenloDweet* dweet, MenloRadio* radio)
   m_receiveDweetStreamEnabled = false;
 
   //
-  // Register for unhandled Dweets
+  // Register for unhandled Dweets arriving on any transport.
   //
   m_dweetEvent.object = this;
   m_dweetEvent.method = (MenloEventMethod)&DweetRadio::DweetEvent;
-  m_dweet->RegisterUnhandledDweetEvent(&m_dweetEvent);
+
+  MenloDweet::RegisterGlobalUnhandledDweetEvent(&m_dweetEvent);
 
   //
   // By default received radio packets are not forwarded
@@ -406,8 +420,10 @@ DweetRadio::Initialize(MenloDweet* dweet, MenloRadio* radio)
   // MenloRadio itself as its implemented at the Dweet level.
   //
 
+  parms.ModuleName = (PGM_P)radio_module_name_string;
   parms.stringTable = (PGM_P)radio_string_table;
   parms.functionTable = (PGM_P)radio_function_table;
+  parms.defaultsTable = NULL;
   parms.object =  this;
   parms.indexTable = radio_index_table;
   parms.sizeTable = radio_size_table;
@@ -500,7 +516,7 @@ DweetRadio::DweetEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
 
   DBG_PRINT("DweetRadio DweetEvent");
 
-  if (ProcessRadioCommands(dweetArgs->name, dweetArgs->value) == 0) {
+  if (ProcessRadioCommands(dweetArgs->dweet, dweetArgs->name, dweetArgs->value) == 0) {
     // Not handled
     DBG_PRINT("DweetRadio DweetEvent NOT HANDLED");
     return MAX_POLL_TIME;
@@ -591,7 +607,7 @@ DweetRadio::ProcessToRadioBuffer(
         radioBuffer[index] = MenloUtility::HexToByte(str);
         index++;
 
-        DEBUG_ASSERT(index <= radioBufferLength);
+        DEBUG_ASSERT((index <= radioBufferLength));
 
         // Consumes two chars
         str++;
@@ -603,7 +619,7 @@ DweetRadio::ProcessToRadioBuffer(
 }
 
 int
-DweetRadio::ProcessRadioTransmit(char* name, char* value)
+DweetRadio::ProcessRadioTransmit(MenloDweet* dweet, char* name, char* value)
 {
     int size;
     int status;
@@ -629,13 +645,13 @@ DweetRadio::ProcessRadioTransmit(char* name, char* value)
         //
         // error in format
         //
-        size = m_dweet->CalculateMaximumValueReply(command, dweet_error_string, value);
+        size = dweet->CalculateMaximumValueReply(command, dweet_error_string, value);
         if ((int)strlen(value) > size) {
             // Update in buffer
             value[size] = '\0';
         }
 
-        m_dweet->SendDweetItemReplyType_P(
+        dweet->SendDweetItemReplyType_P(
 	    command,
             dweet_error_string,
             value
@@ -664,7 +680,7 @@ DweetRadio::ProcessRadioTransmit(char* name, char* value)
     buf[0] = channel;
     buf[1] = '\0';
 
-    m_dweet->SendDweetItemReplyType_P(
+    dweet->SendDweetItemReplyType_P(
         command,
         dweet_reply_string,
         buf

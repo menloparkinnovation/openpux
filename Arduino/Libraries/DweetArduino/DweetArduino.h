@@ -35,6 +35,9 @@
 //
 // TODO: Convert to table driven and cut down on space.
 //
+// TODO: Subclass DweetApp to automatically have a common
+// registration hander for Dweets.
+//
 class DweetArduino : public MenloObject  {
 
 public:

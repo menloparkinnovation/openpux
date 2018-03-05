@@ -1,4 +1,17 @@
 
+//
+// 05/30/2016
+//
+// This class is tried specifically to the Nordic nRF24L01+ support
+// on Arduino platforms.
+//
+// The new class DweetRadioSerialTransport.h allows generic use of
+// any radio through the MenloRadio* and DweetRadio* interfaces.
+//
+// The new class should be used for new projects. This class is kept in
+// place until all existing projects have migrated over.
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -100,6 +113,57 @@ struct DweetRadioSerialAppConfiguration {
     char* radioSerialTransmitAddress;
 };
 
+//
+// 04/13/2016:
+//
+// This class uses 706 bytes of data on the Atmega328.
+//
+// It's a complete application within a class, and contains:
+//
+//  - Full duplex Dweet buffers for serial channel support
+//  - 2X Radio buffers for RadioSerial
+//  - Radio support driver class
+//  - Full duplex Dweet buffers for radio serial channel support
+//  - Application state variables, event registrations, etc.
+//  - 2X base NMEA state class for serial channel, radio serial channel
+//
+//  218 bytes in the base class, the rest here:
+//
+//  64 m_radioSerialInputBuffer
+//
+//  25 m_dweetRadio
+//     21 calculated, 25 actual from sizeof()
+//
+//  82 m_radioSerial - radio buffer + registration
+//     68 calculated, 82 from sizeof()
+//
+// 205 m_dweetRadioSerialChannel - 168 in buffers
+//     182 calculated, 205 from sizeof()
+//     84 bytes each for input and output buffers
+//
+//   8 m_radioSerialDweetEvent
+//
+// 100 m_nordic
+//     88 calculated, 100 actual from sizeof()
+//     44 in base class MenloRadio
+//
+//   2 m_MirfHardwareSpi
+//     0 calculated, 2 from sizeof()
+//
+//  9 MenloEventRegistration
+//    8 calculated, 9 from sizeof()
+//
+// Base Class DweetSerialApp: 218 bytes from sizeof()
+//
+// MenloDebug::PrintHex(sizeof(DweetRadioSerialApp)); // 706 bytes
+// MenloDebug::PrintHex(sizeof(OS_nRF24L01)); // 100 bytes
+// MenloDebug::PrintHex(sizeof(DweetRadio));  //  25 bytes
+// MenloDebug::PrintHex(sizeof(DweetSerialChannel)); // 205 bytes
+// MenloDebug::PrintHex(sizeof(MenloRadioSerial));   //  82 bytes
+// MenloDebug::PrintHex(sizeof(MirfHardwareSpiDriver)); // 2 bytes
+// MenloDebug::PrintHex(sizeof(MenloEventRegistration)); // 9 bytes
+// MenloDebug::PrintHex(sizeof(DweetSerialApp)); // 218 bytes
+//
 class DweetRadioSerialApp : public DweetSerialApp  {
 
 public:
@@ -127,7 +191,11 @@ private:
     static const uint8_t RadioSerialInputBufferSize = 64;
     uint8_t m_radioSerialInputBuffer[RadioSerialInputBufferSize];
 
+    //
     // nRF24L01 radio instance
+    //
+    // See DweetRadioSerialTransport.h for radio independent version.
+    //
     OS_nRF24L01 m_nordic;
     MirfHardwareSpiDriver m_MirfHardwareSpi;
 
@@ -135,6 +203,9 @@ private:
     // Radio Dweet support
     //
     // This supports configuring and controlling the radio.
+    //
+    // TODO: This may need to be generalized to support different
+    // radios such as the 433Mhz ones.
     //
     DweetRadio m_dweetRadio;
 
@@ -156,21 +227,6 @@ private:
     // Dweet channel support over radio serial.
     //
     DweetSerialChannel m_dweetRadioSerialChannel;
-
-    //
-    // Event registration for transports.
-    //
-    // For each transport an unhandled Dweet event handler
-    // is registered to receive application commands from
-    // the transport.
-    //
-    // A common event handler function is used since each
-    // events arguments include the Dweet channel it came
-    // in on.
-    //
-
-    // RadioSerial Event registration
-    MenloDweetEventRegistration m_radioSerialDweetEvent;
 };
 
 #endif // DweetRadioSerialApp_h

@@ -68,6 +68,8 @@ typedef unsigned long (MenloObject::*MenloEventMethod)(MenloDispatchObject* send
 // An event registration object is allocated by the caller
 // and is typically an embedded class.
 //
+// This is 7 bytes on an AtMega328.
+//
 class MenloEventRegistration {
  public:
 

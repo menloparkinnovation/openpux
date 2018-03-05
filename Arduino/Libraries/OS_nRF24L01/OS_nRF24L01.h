@@ -204,6 +204,8 @@ public:
 
     //int TestRegisters();
 
+    void DumpRegisters();
+
     int RunRangeTestServer(byte* targetAddress);
 
 protected:

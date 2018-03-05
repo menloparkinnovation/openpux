@@ -27,6 +27,11 @@ extern "C" {
 // Lots of places in Mirf.c that depends on back to back
 // byte transfers being on a consistent clock.
 //
+// 04/13/2016 - This pattern is now common on ARM processors
+// and newer open source NRF24 drivers support it, including
+// multiple client addressing. Need to update to one of these
+// newer drivers.
+//
 
 class MirfSpiDriver {
 public:

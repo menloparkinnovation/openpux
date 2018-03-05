@@ -591,70 +591,6 @@ void MenloMemoryMonitor::ReportMemoryUsage(int programState)
   }
 }
 
-//
-// overflowType == OverflowTypexxx
-// value == __LINE__
-//
-void MenloMemoryMonitor::ReportMemoryOverflow(int overflowType, int value)
-{
-  MenloDebug::PrintNoNewline(F("+++MemoryOverflow+++ Type "));
-  MenloDebug::PrintHexNoNewline(overflowType);
-  MenloDebug::PrintNoNewline(F(" __LINE__ "));
-  MenloDebug::PrintHex(value);
-
-#if MEMORY_RANGE_REPORT
-  MemoryRangeReport();
-#endif
-
-  xDBG_PRINT("Details: OverflowType ");
-
-  switch (overflowType) {
-
-  case OverflowTypeConfiguration:
-    xDBG_PRINT("Configuration");
-    break;
-
-  case OverflowTypeStackCanary:
-    xDBG_PRINT("StackCanary");
-    break;
-
-  case OverflowTypeStackOverflow:
-    xDBG_PRINT("StackOverflow");
-    break;
-
-  case OverflowTypeHeapOverflow:
-    xDBG_PRINT("HeapOverflow");
-    break;
-
-  case OverflowTypeGuardRegion:
-    xDBG_PRINT("GuardRegion");
-    break;
-
-  default:
-    xDBG_PRINT2("+++!!!MemoryOverflow Type ", overflowType);
-  break;
-  }
-
-  xDBG_PRINT2(" DebugValue(Program Line Number) ", value);
-
-  // Attempt to get a detailed usage report out
-  ReportMemoryUsage(__LINE__);
-  ReportAllMemoryValues();
-
-#if MEMORY_RANGE_REPORT
-  for (;;) {
-      MemoryRangeReport();
-      delay(1000);
-  }
-#endif
-
-  //
-  // Wait for watchdog reset as our state is too seriously corrupt
-  // to be able to attempt recovery.
-  //
-  MenloDebug::Panic(overflowType);
-}
-
 void MenloMemoryMonitor::ReportAllMemoryValues()
 {
 #if DBG_PRINT_ENABLED
@@ -837,7 +773,254 @@ CanarySmashReport(unsigned char* ptr)
 }
 #endif
 
-#else // MENLO_ATMEGA
+// MENLO_ATMEGA
+#else
+#if defined(ESP8266)
+
+//
+// ESP8266 Support
+//
+
+//
+// http://www.esp8266.com/wiki/doku.php?id=esp8266_memory_map
+//
+
+// https://github.com/esp8266/Arduino/issues/81
+extern "C" {
+// hardware/esp8266/2.2.0/tools/sdk/include/user_interface.h
+// void system_print_meminfo(void)
+// uint32 system_get_free_heap_size(void)
+#include "user_interface.h"
+}
+
+//
+// The ESP8266 does not use the standard C allocator, but its
+// own custom one umm_malloc.
+//
+// umm_malloc has its own internal support for heap canary's
+// to detect stack overflow if the POISON option is set.
+//
+//   - Need to dig into it, may just be for overrun, re-use
+//     after free errors.
+//
+// Routine to check memory blocks:
+//
+// UMM_HEAP_INFO ummHeapInfo;
+// umm_info(void *ptr, int force);
+//
+
+#define ESP8266_RAM_START 0x3FFE8000
+#define ESP8266_RAM_SIZE  0x14000
+#define ESP8266_RAM_END   (ESP8266_RAM_START + ESP8266_RAM_SIZE)
+
+//
+// Stack range is from a stackdump after an exception.
+//
+// It is below the beginning of the heap.
+//
+// Confirm with the linker map file.
+//
+#define ESP8266_STACK_START 0x3FFF1900
+#define ESP8266_STACK_END   0x3FFF1CD0
+
+//
+// Standard linker variable names are not available on the esp8266.
+//
+//extern unsigned int __data_start; // start of initialized data
+//extern unsigned int __data_end;   // end of initialized data
+//extern unsigned int __bss_start;
+//extern unsigned int __bss_end;
+//extern unsigned int __heap_start;
+//extern unsigned int __heap_end;
+
+//
+// Standard C heap variables are not available on esp8266 as it
+// uses a custom umm_malloc library.
+//
+//extern void *__brkval;
+//extern char *__malloc_heap_start;
+//extern char *__malloc_heap_end;
+//extern size_t __malloc_margin;
+
+//
+// Variables from umm_malloc.c
+//
+
+extern void* umm_heap; // actually umm_block*
+
+extern char _heap_start;
+extern short int umm_numblocks;
+
+// From cores/esp8266/umm_malloc/umm_malloc_cfg.h
+size_t heap_end = (size_t)(0x3fffc000);
+
+//
+// These are the calculated limits supported by this class
+//
+
+// A value of 0 means unlimited (no checking)
+size_t maxStackSize = 0;
+size_t maxHeapSize = 0;
+size_t guardRegionSize = 0;
+
+//
+// The ESP8266 heap has its own region which will fail
+// an allocation when exceeded. So guard region between
+// it and the stack is not required.
+//
+// GuardRegion is used as a minimum memory free region
+// for both heap and stack on memory checks during runtime.
+//
+
+void MenloMemoryMonitor::Init(
+    size_t MaxHeapSize,
+    size_t MaxStackSize,
+    size_t GuardRegionSize,
+    bool   DetailedTracking
+    )
+{
+    void* stackPtr;
+    void* heapPtr = NULL;
+
+    //
+    // Save the configuration parameters.
+    //
+    maxStackSize = MaxStackSize;
+    maxHeapSize = MaxHeapSize;
+    guardRegionSize = GuardRegionSize;
+
+    //
+    // Allocate dynamic memory specified by the caller
+    // and release it. This is to test mis-configuration
+    // that would overflow upfront.
+    //
+    if (maxHeapSize != 0) {
+        heapPtr = (char*)malloc(maxHeapSize);
+        if (heapPtr == NULL) {
+            ReportMemoryOverflow(OverflowTypeConfiguration, __LINE__);
+        }
+    }
+
+    if (maxStackSize != 0) {
+        stackPtr = (char*)alloca(maxStackSize);
+        if (stackPtr == NULL) {
+            ReportMemoryOverflow(OverflowTypeConfiguration, __LINE__);
+        }
+    }
+
+    //
+    // Run the memory check to verify the configuration limits
+    // can be met.
+    //
+
+    CheckMemory(__LINE__);
+
+    if (heapPtr != NULL) {
+        free(heapPtr);
+    }
+
+    // stackPtr does not need free since its alloca()
+
+    return;
+}
+
+void MenloMemoryMonitor::CheckMemory(int errorValue)
+{
+    // Trick to get current SP
+    int currentStackSize = 0;
+    int SP = (int)&currentStackSize;
+
+    currentStackSize = ESP8266_STACK_END - SP;
+
+    //
+    // Check for stack overflow
+    //
+    if ((SP - ESP8266_STACK_START) <= guardRegionSize) {
+        ReportMemoryOverflow(OverflowTypeStackOverflow, errorValue);
+    }
+
+    uint32_t freeMemory = system_get_free_heap_size();
+
+    //
+    // Check for heap overflow
+    //
+    if (freeMemory <= guardRegionSize) {
+        ReportMemoryOverflow(OverflowTypeHeapOverflow, errorValue);
+    }
+
+    return;
+}
+
+void MenloMemoryMonitor::ReportMemoryUsage(int programState)
+{
+    ReportAllMemoryValues();
+}
+
+void MenloMemoryMonitor::ReportAllMemoryValues()
+{
+    int heapStart = (int)&_heap_start;
+    int ummHeap = (int)umm_heap;
+    int ummNumBlocks = (int)umm_numblocks;
+
+    uint32_t freeMemory = system_get_free_heap_size();
+
+    MenloDebug::PrintNoNewline(F("Heap Free 0x"));
+
+    // Shows 0x9800 (38,912 bytes)
+    MenloDebug::PrintHex32(freeMemory);
+
+    system_print_meminfo();
+
+    // Trick to get current SP
+    int currentStackSize = 0;
+    int SP = (int)&currentStackSize;
+
+    MenloDebug::PrintNoNewline(F("SP 0x"));
+
+    //
+    // Shows 0x3FFF1A90
+    // The stack is 760 bytes below the bottom of the heap
+    //
+    // On exception says:
+    //
+    // sp: 3fff1900 end: 3fff1cd0 offset: 01a0
+    //   0x3d0 range (976 bytes)
+    //
+    // stack dump is from:
+    //
+    // 3fff1aa0
+    // 3fff1cc0
+    //
+    MenloDebug::PrintHexPtr((void*)SP);
+
+    currentStackSize = (int)ESP8266_RAM_END - SP;
+
+    MenloDebug::PrintNoNewline(F("Current Stack Size 0x"));
+    MenloDebug::PrintHex32(currentStackSize);
+
+    MenloDebug::PrintNoNewline(F("umm_numblocks 0x"));
+
+    // Shows 0x144F
+    MenloDebug::PrintHex32(ummNumBlocks);
+
+    MenloDebug::PrintNoNewline(F("umm_heap 0x"));
+
+    // Shows 0x3FFF1D88
+    MenloDebug::PrintHexPtr((void*)ummHeap);
+
+    MenloDebug::PrintNoNewline(F("_heap_start 0x"));
+
+    // Shows 0x3FFF1D88
+    MenloDebug::PrintHexPtr((void*)heapStart);
+
+    MenloDebug::PrintNoNewline(F("_heap_end 0x"));
+
+    // Shows 0x3FFFC000
+    MenloDebug::PrintHexPtr((void*)heap_end);
+}
+
+// ESP8266
+#else
 
 //
 // NON-AVR Platforms
@@ -880,13 +1063,76 @@ void MenloMemoryMonitor::ReportMemoryUsage(int programState)
 {
 }
 
-void MenloMemoryMonitor::ReportMemoryOverflow(int overflowType, int value)
-{
-}
-
 void MenloMemoryMonitor::ReportAllMemoryValues()
 {
 }
-
+#endif
 #endif
 
+//
+// These routines are common and not implementation specific.
+//
+
+//
+// overflowType == OverflowTypexxx
+// value == __LINE__
+//
+void MenloMemoryMonitor::ReportMemoryOverflow(int overflowType, int value)
+{
+  MenloDebug::PrintNoNewline(F("+MO+ Type "));
+  MenloDebug::PrintHexNoNewline(overflowType);
+  MenloDebug::PrintNoNewline(F("L "));
+  MenloDebug::PrintHex(value);
+
+#if MEMORY_RANGE_REPORT
+  MemoryRangeReport();
+#endif
+
+  xDBG_PRINT("Details: OverflowType ");
+
+  switch (overflowType) {
+
+  case OverflowTypeConfiguration:
+    xDBG_PRINT("Configuration");
+    break;
+
+  case OverflowTypeStackCanary:
+    xDBG_PRINT("StackCanary");
+    break;
+
+  case OverflowTypeStackOverflow:
+    xDBG_PRINT("StackOverflow");
+    break;
+
+  case OverflowTypeHeapOverflow:
+    xDBG_PRINT("HeapOverflow");
+    break;
+
+  case OverflowTypeGuardRegion:
+    xDBG_PRINT("GuardRegion");
+    break;
+
+  default:
+    xDBG_PRINT2("+++!!!MemoryOverflow Type ", overflowType);
+  break;
+  }
+
+  xDBG_PRINT2(" DebugValue(Program Line Number) ", value);
+
+  // Attempt to get a detailed usage report out
+  ReportMemoryUsage(__LINE__);
+  ReportAllMemoryValues();
+
+#if MEMORY_RANGE_REPORT
+  for (;;) {
+      MemoryRangeReport();
+      delay(1000);
+  }
+#endif
+
+  //
+  // Wait for watchdog reset as our state is too seriously corrupt
+  // to be able to attempt recovery.
+  //
+  MenloDebug::Panic(overflowType);
+}

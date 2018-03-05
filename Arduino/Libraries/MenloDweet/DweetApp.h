@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -27,9 +28,17 @@
 #ifndef DweetApp_h
 #define DweetApp_h
 
+//
+// DweetApp provides a standard contract signature for Dweet applications.
+//
+
 class DweetApp : public MenloObject  {
 
 public:
+
+    DweetApp();
+
+    int Initialize();
 
     //
     // Application command dispatcher. Invoked from DweetEvent
@@ -37,7 +46,20 @@ public:
     //
     virtual int ProcessAppCommands(MenloDweet* dweet, char* name, char* value) = 0;
 
+    //
+    // DweetEvent function
+    //
+    // This allows subclasses to use a common Dweet event delivery function.
+    //
+    unsigned long DweetEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs);
+
 private:
+
+    //
+    // Each DweetApp registers for the unhandled Dweet event hander
+    // in which Dweets arrive from all transports.
+    //
+    MenloDweetEventRegistration m_dweetEvent;
 
 };
 

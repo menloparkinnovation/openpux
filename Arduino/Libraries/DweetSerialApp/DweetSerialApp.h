@@ -54,15 +54,13 @@
 #include <MenloDispatchObject.h>
 #include <MenloTimer.h>
 
-struct DweetSerialAppConfiguration {
+//
+// This class handles setting up the Dweet channel registration
+// for a given application instance.
+//
 
-    //
-    // The application object.
-    //
-    // A single application object is invoked from potentially
-    // multiple Dweet channels/transports.
-    //
-    DweetApp* dweetApp;
+struct DweetSerialAppConfiguration {
+    // PlaceHolder
 };
 
 class DweetSerialApp : public MenloObject  {
@@ -71,29 +69,17 @@ public:
 
     DweetSerialApp();
 
-    int Initialize(DweetSerialAppConfiguration* config);
+    int Initialize(DweetSerialAppConfiguration* config = NULL);
 
     // Default is the Dweet protocol over NMEA 0183
     static char* m_dweetPrefix;
-
-    // Return gDweet channel
+    
+    // Return Dweet channel
     MenloDweet* GetDweet() {
         return &m_dweetSerialChannel;
     }
 
-    //
-    // DweetEvent function
-    //
-    // This allows subclasses to use a common Dweet event delivery function.
-    //
-    unsigned long DweetEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs);
-
 protected:
-
-    //
-    // The application object we dispatch events on
-    //
-    DweetApp* m_dweetApp;
 
     //
     // Dweet can support multiple channels active at one time
@@ -108,20 +94,6 @@ protected:
 
 private:
 
-    //
-    // Event registration for transports.
-    //
-    // For each transport an unhandled Dweet event handler
-    // is registered to receive application commands from
-    // the transport.
-    //
-    // A common event handler function is used since each
-    // events arguments include the Dweet channel it came
-    // in on.
-    //
-
-    // Serial Event registration
-    MenloDweetEventRegistration m_serialDweetEvent;
 };
 
 #endif // DweetSerialApp_h

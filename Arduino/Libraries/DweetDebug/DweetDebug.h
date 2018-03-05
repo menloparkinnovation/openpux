@@ -35,6 +35,8 @@
 //
 // TODO: Convert to table driven and cut down on space.
 //
+// TODO: Make a subclass of DweetApp and get automatic dweet handling
+//
 class DweetDebug : public MenloObject  {
 
 public:

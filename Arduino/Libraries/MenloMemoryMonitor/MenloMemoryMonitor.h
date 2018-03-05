@@ -105,11 +105,11 @@ class MenloMemoryMonitor {
   //
   static void ReportMemoryUsage(int programState);
 
+  static void ReportAllMemoryValues();
+
 private:
 
   static void ReportMemoryOverflow(int overflowType, int value);
-  static void ReportAllMemoryValues();
-
 };
 
 #endif // MenloMemoryMonitor_h

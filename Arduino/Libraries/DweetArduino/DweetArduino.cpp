@@ -83,7 +83,8 @@ DweetArduino::Initialize(MenloDweet* dweet)
     //
     m_dweetEvent.object = this;
     m_dweetEvent.method = (MenloEventMethod)&DweetArduino::DweetEvent;
-    m_dweet->RegisterUnhandledDweetEvent(&m_dweetEvent);
+
+    MenloDweet::RegisterGlobalUnhandledDweetEvent(&m_dweetEvent);
 
     return 1;
 }
@@ -282,6 +283,18 @@ ArduinoPinNameToNumber(char* name)
     else if (strcmp_P(name, PSTR("D13")) == 0)  {
        pin = 13;
     }
+#if MENLO_ESP8266
+    //
+    // Just a single analog input on ESP8266
+    //
+    else if (strcmp_P(name, PSTR("A0")) == 0)  {
+       pin = A0;
+    }
+#else
+#if MENLO_BOARD_RFDUINO
+    // TODO: fill in analog values for RFDuino
+    // Better: Platform abstraction for this low level debug module
+#else
     else if (strcmp_P(name, PSTR("A0")) == 0)  {
        pin = A0;
     }
@@ -306,6 +319,8 @@ ArduinoPinNameToNumber(char* name)
     else if (strcmp_P(name, PSTR("A7")) == 0)  {
        pin = A7;
     }
+#endif // MENLO_BOARD_RFDUINO
+#endif // MENLO_ESP8266
 
     return pin;
 }

@@ -147,6 +147,12 @@ OS_nRF24L01::OS_nRF24L01()
   m_BufferLength = 0;
 }
 
+void
+OS_nRF24L01::DumpRegisters()
+{
+    Mirf.DumpRegisters();
+}
+
 //
 // MenloRadio Contracts 
 //
@@ -189,6 +195,11 @@ OS_nRF24L01::Channel(char* buf, int size, bool isSet)
         }
     }
     else {
+
+        if (size < 2) {
+            return DWEET_PARAMETER_TO_LONG;
+        }
+
         chan = Mirf.channel;
 
         MenloUtility::UInt8ToHexBuffer(chan, buf);
@@ -426,6 +437,7 @@ uint8_t* OS_nRF24L01::GetReceiveBuffer()
 // cePin - Digital pin number for Chip Enable
 //
 // csnPin - Digital pin for slave select not
+//          SPI SS pin.
 //
 int
 OS_nRF24L01::Initialize(
@@ -451,6 +463,8 @@ OS_nRF24L01::Initialize(
   // should be in a configuration method.
   //
   Mirf.cePin = cePin;
+
+  // csn is the SPI SS pin
   Mirf.csnPin = csnPin;
 
   //
@@ -802,7 +816,7 @@ void
 OS_nRF24L01::OnPowerOn()
 {
     //
-    // A request to power on is the power on the receiver which
+    // A request to power on is to power on the receiver which
     // is the radios default mode of operation when powered on.
     //
     // If a transmit is requested the Mirf will transition the radio

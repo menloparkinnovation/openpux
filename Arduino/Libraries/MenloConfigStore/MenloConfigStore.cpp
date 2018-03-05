@@ -74,13 +74,18 @@
 #define xDBG_PRINT_INT_NNL(x)
 #endif
 
-#define CONFIG_PIN_SUPPORT 1
+#define CONFIG_PIN_SUPPORT 0
 
 MenloConfigStore ConfigStore;
 
 // Constructor
 MenloConfigStore::MenloConfigStore()
 {
+#if MENLOCONFIGSTORE_DYNAMIC_MODEL
+    m_headerCacheValid = false;
+    m_blockCacheValid = false;
+#endif
+
   //
   // TOOD: Read pin status while initializing
   // Could use a pin of 0000 as no pin.
@@ -177,7 +182,6 @@ MenloConfigStore::UnlockPin(char* pin)
   int i;
   int index;
   uint8_t buf;
-  bool result;
 
   // If already unlocked, just return true
   if (!m_pinLocked) return true;
@@ -284,16 +288,24 @@ MenloConfigStore::CalculateAndStoreCheckSumRange(
       return false;
   }
 
+  DBG_PRINT_NNL("idx ");
+  DBG_PRINT_INT_NNL(configIndex);
+  DBG_PRINT_NNL(" l ");
+  DBG_PRINT_INT(length);
+
   checksum = CalculateCheckSumRange(configIndex, length);
 
   // Does not NULL terminate the buffer
   MenloUtility::UInt8ToHexBuffer(checksum, &buf[0]);
 
-  //DBG_PRINT_NNL("config write checksum [0] ");
-  //DBG_PRINT_INT_NNL(buf[0]);
+  DBG_PRINT_NNL("config write checksum ");
+  DBG_PRINT_INT_NNL(checksum);
 
-  //DBG_PRINT_NNL(" [1] ");
-  //DBG_PRINT_INT(buf[1]);
+  DBG_PRINT_NNL(" buf[0] ");
+  DBG_PRINT_INT_NNL(buf[0]);
+
+  DBG_PRINT_NNL(" buf[1] ");
+  DBG_PRINT_INT(buf[1]);
 
   eeprom_write_byte((uint8_t*)checkSumStoreIndex, buf[0]);
   eeprom_write_byte((uint8_t*)checkSumStoreIndex + 1, buf[1]);
@@ -352,12 +364,18 @@ MenloConfigStore::CalculateAndValidateCheckSumRange(
   //DBG_PRINT_INT(buf[1]);
 
   if (checksumBuf[0] != buf[0]) {
-     xDBG_PRINT("config read chksum low is bad");
+     xDBG_PRINT_NNL("chksum low is bad sb ");
+     xDBG_PRINT_INT_NNL(checksumBuf[0]);
+     xDBG_PRINT_NNL(" is ");
+     xDBG_PRINT_INT(buf[0]);
      return false;
   }
 
   if (checksumBuf[1] != buf[1]) {
-     xDBG_PRINT("config read chksum high is bad");
+     xDBG_PRINT_NNL("chksum high is bad sb ");
+     xDBG_PRINT_INT_NNL(checksumBuf[1]);
+     xDBG_PRINT_NNL(" is ");
+     xDBG_PRINT_INT(buf[1]);
      return false;
   }
 
@@ -390,6 +408,10 @@ MenloConfigStore::CalculateCheckSumRange(int configIndex, int length)
     return chksum;
 }
 
+//
+// Characters allowed are the characters that can be data
+// values in a Dweet configuration setting.
+//
 bool
 MenloConfigStore::IsValidConfigChar(char c)
 {
@@ -405,6 +427,9 @@ MenloConfigStore::IsValidConfigChar(char c)
 
     // Allow 1.0, etc.
     if (c == '.') return true;
+
+    // Allow URL and path separators
+    if (c == '/') return true;
 
     //
     // We don't want to allow any Dweet/NMEA 0183 formatting
@@ -453,6 +478,9 @@ MenloConfigStore::ProcessConfigBufferForValidChars(char* buf, int len)
 // NULL is allowed as it represents string null
 // terminators, or initial state.
 //
+// Characters allowed are the characters that can be data
+// values in a Dweet configuration setting.
+//
 bool
 MenloConfigStore::ConfigBufferHasInvalidChars(char* buf, int len)
 {
@@ -466,6 +494,7 @@ MenloConfigStore::ConfigBufferHasInvalidChars(char* buf, int len)
 	     continue;
            }
            else {
+            xDBG_PRINT("invalid char");
             return true;
 	   }
         }
@@ -510,6 +539,7 @@ MenloConfigStore::WriteConfig(int configIndex, uint8_t* buffer, uint8_t length)
 
   // If pin locked fail
   if (IsPinLocked()) {
+    xDBG_PRINT("pin locked");
     return 0;
   }
 
@@ -531,3 +561,363 @@ MenloConfigStore::WriteConfig(int configIndex, uint8_t* buffer, uint8_t length)
   // amount written may be short if off the end of the EEPROM
   return bufferIndex;
 }
+
+#if MENLOCONFIGSTORE_DYNAMIC_MODEL
+
+//
+// This is the new dynamic EEPROM storage allocation model.
+//
+// This makes it easier to compose application modules.
+//
+
+//
+// Validate the table header.
+//
+// Caches important entries on success to speed future lookups.
+//
+bool
+MenloConfigStore::ValidateTableHeader(uint8_t* error)
+{
+    uint8_t low;
+    uint8_t high;
+    uint8_t checksum;
+    uint8_t checksumBytes;
+    uint8_t calculated_checksum;
+
+    if (m_headerCacheValid) {
+        return true;
+    }
+
+    checksum = eeprom_read_byte((const uint8_t*)ALLOCATION_TABLE_CHECKSUM);
+
+    m_cachedNumberOfEntries = eeprom_read_byte((const uint8_t*)ALLOCATION_TABLE_SIZE);
+
+    // Calculate the proposed number of entries
+    checksumBytes = m_cachedNumberOfEntries * ALLOCATION_TABLE_ENTRY_SIZE;
+    checksumBytes += ALLOCATION_TABLE_CHECKSUM_BYTES;
+
+    // Range check it for maximum eeprom size
+    if (checksumBytes > MAX_EEPROM_SIZE) {
+        DBG_PRINT("ValidataTableHeader: invalid table header, size out of EEPROM range");
+        *error = CONFIG_STORE_INVALID_SIZE;
+        return false;
+    }
+
+    // Checksum it. We start just after the checksum itself.
+    calculated_checksum = CalculateCheckSumRange(ALLOCATION_TABLE_CHECKSUM_BEGIN, checksumBytes);
+
+    if (calculated_checksum != checksum) {
+        DBG_PRINT("ValidataTableHeader: invalid table header, bad checksum");
+        *error = CONFIG_STORE_TABLE_BAD_CHECKSUM;
+        return false;
+    }
+
+    //
+    // Checksum is good. Load the cache and mark it as valid.
+    //
+    
+    low = eeprom_read_byte((const uint8_t*)ALLOCATION_TABLE_ENTRY_ADDRESS_LOW);
+    high = eeprom_read_byte((const uint8_t*)ALLOCATION_TABLE_ENTRY_ADDRESS_HIGH);
+
+    m_cachedAllocationPointer = ((high << 8) | low);
+
+    m_headerCacheValid = true;
+
+    DBG_PRINT("ValidataTableHeader: valid header, cache loaded");
+
+    return true;
+}
+
+//
+// Initialize the table clearing all existing entries.
+//
+bool
+MenloConfigStore::InitializeTable(uint8_t* error)
+{
+    uint8_t tmp;
+    uint16_t allocationptr;
+
+    DBG_PRINT("MenloConfigStore::InitializeTable: Initializating table");
+
+    m_headerCacheValid = false;
+    m_blockCacheValid = false;
+
+    // mark 0 entries.
+    eeprom_write_byte((uint8_t*)ALLOCATION_TABLE_SIZE, 0);
+
+    // Allocation pointer is just below maximum EEPROM space
+    allocationptr = MAX_EEPROM_SIZE - 1;
+
+    tmp = allocationptr & 0x00FF;
+    eeprom_write_byte((uint8_t*)ALLOCATION_TABLE_ENTRY_ADDRESS_LOW, tmp);
+
+    tmp = (allocationptr >> 8) & 0x00FF;
+    eeprom_write_byte((uint8_t*)ALLOCATION_TABLE_ENTRY_ADDRESS_HIGH, tmp);
+
+    // Calculate the checksum and write it
+    tmp = CalculateCheckSumRange(ALLOCATION_TABLE_CHECKSUM_BEGIN, ALLOCATION_TABLE_CHECKSUM_BYTES);
+
+    eeprom_write_byte((uint8_t*)ALLOCATION_TABLE_CHECKSUM, tmp);
+
+    // Now use the validation routine to load and cache it.
+    return ValidateTableHeader(error);
+}
+
+//
+// Lookup the address for the data block
+//
+uint16_t
+MenloConfigStore::GetBlockEntry(
+    uint8_t allocationid,
+    uint16_t* returnedBlockSize,
+    uint8_t* error
+    )
+{
+    uint8_t low;
+    uint8_t high;
+    uint8_t tmp;
+    uint16_t ptr;
+    uint16_t blockPtr;
+    uint16_t blockSize;
+    int index;
+    uint8_t checksum;
+    uint8_t calculated_checksum;
+
+    //
+    // If the header cache is invalid, load the header.
+    //
+    if (!m_headerCacheValid) {
+
+        xDBG_PRINT("GetBlockEntry: cache invalid, loading table header");
+
+        if (!ValidateTableHeader(error)) {
+            return CONFIG_STORE_ERROR;
+        }
+    }
+
+    // See if its a cache hit
+    if (m_blockCacheValid && (m_cachedAllocationid == allocationid)) {
+        *returnedBlockSize = m_cachedBlockSize;
+        return m_cachedBlockAddress;
+    }
+
+    //
+    // Perform a search for the allocation id
+    //
+
+    // Point to the start of the allocation entries
+    ptr = ALLOCATION_TABLE_HEADER_SIZE;
+
+    for (index = 0; index < m_cachedNumberOfEntries; index++) {
+        tmp = eeprom_read_byte((const uint8_t*)(ptr + ALLOCATION_TABLE_ENTRY_ALLOCATION_ID));
+
+        if (tmp == allocationid) {
+
+            //
+            // Get the blocks address and size
+            //
+
+            tmp = eeprom_read_byte((const uint8_t*)(ptr + ALLOCATION_TABLE_ENTRY_ALLOCATION_SIZE));
+            blockSize = (tmp >> ALLOCATION_TABLE_ENTRY_SIZE_SHIFT);
+
+            low = eeprom_read_byte((const uint8_t*)(ptr + ALLOCATION_TABLE_ENTRY_ADDRESS_LOW));
+            high = eeprom_read_byte((const uint8_t*)(ptr + ALLOCATION_TABLE_ENTRY_ADDRESS_HIGH));
+
+            blockPtr = ((high << 8) | low);
+
+            // Load cached entry and return
+            m_cachedBlockAddress = blockPtr;
+            m_cachedBlockSize = blockSize;
+            m_cachedIndex = index;
+            m_cachedAllocationid = allocationid;
+
+            m_blockCacheValid = true;
+
+            *returnedBlockSize = m_cachedBlockSize;
+
+            // This points to the blocks checksum
+            return m_cachedBlockAddress;
+        }
+
+        // Go to the next entry
+        ptr += ALLOCATION_TABLE_ENTRY_SIZE;
+    }
+
+    *error = CONFIG_STORE_BLOCK_NOT_FOUND;
+    return CONFIG_STORE_ERROR;
+}
+
+uint16_t
+MenloConfigStore::AllocateBlockEntry(uint8_t allocationid, uint16_t size, uint8_t* error)
+{
+    uint8_t sizeShifted;
+    uint8_t checksum;
+    uint8_t resultError;
+    uint16_t blockPtr;
+    uint16_t blockSize;
+    uint16_t index;
+    uint16_t tableEntryPtr;
+    uint16_t tableEndPtr;
+    uint16_t newAllocationPointer;
+
+    //
+    // If the header cache is invalid, load the header.
+    //
+    if (!m_headerCacheValid) {
+
+        xDBG_PRINT("AllocateBlockEntry: cache invalid, loading table header");
+
+        if (!ValidateTableHeader(error)) {
+            return CONFIG_STORE_ERROR;
+        }
+    }
+
+    //
+    // This saves a bunch of branch instructions in the if's.
+    // It at least makes the code read cleaner.
+    //
+    uint8_t errorScratch;
+
+    if (error == NULL) {
+        error = &errorScratch;
+    }
+
+    if (size < 2) {
+        *error = CONFIG_STORE_INVALID_SIZE;
+        return CONFIG_STORE_ERROR;
+    }
+
+    // Round up size to our allocation chunk size
+    size += (ALLOCATION_TABLE_ENTRY_MINIMUM_SIZE - 1);
+    size = size & ~(ALLOCATION_TABLE_ENTRY_MINIMUM_SIZE - 1);
+
+    // Ensure its not already allocated
+    blockPtr = GetBlockEntry(allocationid, &blockSize, &resultError);
+    if (blockPtr != CONFIG_STORE_ERROR) {
+
+        //
+        // We fail in case they asked for a larger size than already
+        // present. Otherwise we would hide an overwrite bug in the
+        // caller. So its best to fail them and they can figure out
+        // what is going on.
+        //
+        *error = CONFIG_STORE_ALLREADY_ALLOCATED;
+        return CONFIG_STORE_ERROR;
+    }
+
+    // Calculate the table end pointer
+    tableEndPtr = ALLOCATION_TABLE_HEADER_SIZE;
+    tableEndPtr += (m_cachedNumberOfEntries + 1) * ALLOCATION_TABLE_ENTRY_SIZE;
+
+    // See if the new allocation request will fit
+    newAllocationPointer = m_cachedAllocationPointer;
+    newAllocationPointer -= size;
+
+    //
+    // The configuration store if full if the new allocations
+    // of the table entry and data block overlap
+    //
+    if (newAllocationPointer <= tableEndPtr) {
+        *error = CONFIG_STORE_FULL;
+        return CONFIG_STORE_ERROR;
+    }
+
+    // Calculate the pointer to the new entry
+    tableEntryPtr = ALLOCATION_TABLE_HEADER_SIZE;
+    tableEntryPtr += (m_cachedNumberOfEntries) * ALLOCATION_TABLE_ENTRY_SIZE;
+
+    sizeShifted = size >> ALLOCATION_TABLE_ENTRY_SIZE_SHIFT;
+
+    eeprom_write_byte((uint8_t*)(tableEntryPtr + ALLOCATION_TABLE_ENTRY_ALLOCATION_ID), allocationid);
+    eeprom_write_byte((uint8_t*)(tableEntryPtr + ALLOCATION_TABLE_ENTRY_ALLOCATION_SIZE), sizeShifted);
+
+    eeprom_write_byte(
+        (uint8_t*)(tableEndPtr + ALLOCATION_TABLE_ENTRY_ADDRESS_LOW),
+        newAllocationPointer & 0xFF
+        );
+
+    eeprom_write_byte(
+        (uint8_t*)(tableEndPtr + ALLOCATION_TABLE_ENTRY_ADDRESS_HIGH),
+        (newAllocationPointer >> 8) & 0xFF
+        );
+
+    // Recalculate header checksum
+    checksum = CalculateCheckSumRange(ALLOCATION_TABLE_CHECKSUM_BEGIN, tableEndPtr);
+    eeprom_write_byte((uint8_t*)ALLOCATION_TABLE_CHECKSUM, checksum);
+
+    // Invalidate the caches so they will be reloaded
+    m_headerCacheValid = false;
+    m_blockCacheValid = false;
+
+    // Now clear the block area including the checksum
+    eeprom_write_byte((uint8_t*)(newAllocationPointer + ALLOCATION_BLOCK_CHECKSUM), 0);
+
+    // Note: This skips the checksum.
+    for (index = ALLOCATION_BLOCK_DATA_START; index < size; index++) {
+        eeprom_write_byte((uint8_t*)(newAllocationPointer + index), 0);
+    }
+
+    //
+    // Note: The newly allocated data area is left with its checksum invalid
+    // since it has no valid contents yet until set by the caller.
+    //
+
+    return newAllocationPointer;
+}
+
+bool
+MenloConfigStore::ValidateBlockEntryChecksum(uint8_t allocationid, uint8_t* error)
+{
+    uint16_t blockPtr;
+    uint16_t blockSize;
+    uint8_t checksum;
+    uint8_t calculated_checksum;
+
+    blockPtr = GetBlockEntry(allocationid, &blockSize, error);
+    if (blockPtr == CONFIG_STORE_ERROR) {
+        return false;
+    }
+
+    calculated_checksum =
+        CalculateCheckSumRange(blockPtr + ALLOCATION_BLOCK_DATA_START, blockSize - 1);
+
+    checksum = eeprom_read_byte((const uint8_t*)(blockPtr + ALLOCATION_BLOCK_CHECKSUM));
+
+    if (calculated_checksum != checksum) {
+        *error = CONFIG_STORE_BLOCK_BAD_CHECKSUM;
+        return false;
+    }
+
+    return true;
+}
+
+//
+// Recalculate the checksum for an application id's block after it
+// has made a series of updates.
+//
+// To prevent mistakes the entry is looked up in the table
+//
+bool
+MenloConfigStore::UpdateBlockEntryChecksum(uint8_t allocationid, uint8_t* error)
+{
+    uint8_t checksum;
+    uint16_t blockPtr;
+    uint16_t blockSize;
+
+    //
+    // This does not impact any of the caches
+    //
+
+    blockPtr = GetBlockEntry(allocationid, &blockSize, error);
+    if (blockPtr == CONFIG_STORE_ERROR) {
+        return false;
+    }
+
+    checksum = CalculateCheckSumRange(blockPtr + ALLOCATION_BLOCK_DATA_START, blockSize - 1);
+
+    eeprom_write_byte((uint8_t*)(blockPtr + ALLOCATION_BLOCK_CHECKSUM), checksum);
+
+    return true;
+}
+
+#endif // MENLOCONFIGSTORE_DYNAMIC_MODEL

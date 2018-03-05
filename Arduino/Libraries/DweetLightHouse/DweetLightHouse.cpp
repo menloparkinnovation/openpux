@@ -60,6 +60,26 @@
 
 #include "LightHouseHardwareBase.h"
 
+#define EDBG_PRINT_ENABLED 0
+
+#if EDBG_PRINT_ENABLED
+#define eDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define eDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define eDBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define eDBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define eDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define eDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define eDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define eDBG_PRINT(x)
+#define eDBG_PRINT_STRING(x)
+#define eDBG_PRINT_HEX_STRING(x, l)
+#define eDBG_PRINT_HEX_STRING_NNL(x, l)
+#define eDBG_PRINT_NNL(x)
+#define eDBG_PRINT_INT(x)
+#define eDBG_PRINT_INT_NNL(x)
+#endif
+
 #define DBG_PRINT_ENABLED 0
 
 #if DBG_PRINT_ENABLED
@@ -107,12 +127,13 @@
 //
 // Strings used in DweetLightHouse
 //
+const char lighthouse_module_name_string[] PROGMEM = "DweetLightHouse";
 
-extern const char dweet_lightperiod_string[] PROGMEM = "LIGHTPERIOD";
+extern const char dweet_lightperiod_string[] PROGMEM = "LIGHTPERIOD";  // index 0
 extern const char dweet_lighttick_string[] PROGMEM = "LIGHTTICK";
 extern const char dweet_lightcolor_string[] PROGMEM = "LIGHTCOLOR";
 extern const char dweet_lightramp_string[] PROGMEM = "LIGHTRAMP";
-extern const char dweet_lightonlevel_string[] PROGMEM = "LIGHTONLEVEL";
+extern const char dweet_lightonlevel_string[] PROGMEM = "LIGHTONLEVEL"; // index 4
 extern const char dweet_sensorrate_string[] PROGMEM = "SENSORRATE";
 
 // Sensor/environmental support
@@ -140,7 +161,7 @@ const char* const lighthouse_string_table[] PROGMEM =
   dweet_lighttick_string,
   dweet_lightcolor_string,
   dweet_lightramp_string,
-  dweet_lightonlevel_string,
+  dweet_lightonlevel_string, // index 4
   dweet_sensorrate_string,
   dweet_sensors_string
 };
@@ -154,18 +175,21 @@ PROGMEM const StateMethod lighthouse_function_table[] =
     &DweetLightHouse::LightTick,
     &DweetLightHouse::LightColor,
     &DweetLightHouse::LightRamp,
-    &DweetLightHouse::LightOnLevel,
+    &DweetLightHouse::LightOnLevel, // index 4
     &DweetLightHouse::SensorUpdateRate,
     &DweetLightHouse::ProcessSensors
 };
 
+//
+// These are defined in Libraries/DweetLightHouse/LightHouseConfig.h
+//
 PROGMEM const int lighthouse_index_table[] =
 {
   LIGHT_PERIOD,
   LIGHT_TICK,
   LIGHT_COLOR,
   LIGHT_RAMP,
-  LIGHT_ONLEVEL,
+  LIGHT_ONLEVEL, // index 4
   LIGHT_SENSORRATE,
   0                 // SENSORS does not have an EEPROM setting
 };
@@ -176,7 +200,7 @@ PROGMEM const int lighthouse_size_table[] =
   LIGHT_TICK_SIZE,
   LIGHT_COLOR_SIZE,
   LIGHT_RAMP_SIZE,
-  LIGHT_ONLEVEL_SIZE,
+  LIGHT_ONLEVEL_SIZE, // index 4
   LIGHT_SENSORRATE_SIZE,
   0                 // SENSORS does not have an EEPROM setting
 };
@@ -278,6 +302,9 @@ DweetLightHouse::LightTick(char* buf, int size, bool isSet)
 // LIGHTCOLOR:WHITE
 // LIGHTCOLOR:BLUE
 //
+// NOTE: We can not modify the string in buffer because it can
+// later be passed to a SetConfig call.
+//
 int
 DweetLightHouse::LightColor(char* buf, int size, bool isSet)
 {
@@ -289,6 +316,8 @@ DweetLightHouse::LightColor(char* buf, int size, bool isSet)
 
     if (isSet) {
 
+        xDBG_PRINT("LightColor set:");
+
         //
         // RR.GG.BB
         //
@@ -298,8 +327,8 @@ DweetLightHouse::LightColor(char* buf, int size, bool isSet)
 
         length = strlen(buf);
         if (length < 8) {
-            DBG_PRINT("LightColor: bad length");
-            return DWEET_INVALID_PARAMETER_LENGTH;
+            xDBG_PRINT("LightColor: bad length");
+            return DWEET_INVALID_PARAMETER_LENGTH; // 0xFFFD
         }
 
         ptr = buf;
@@ -307,7 +336,7 @@ DweetLightHouse::LightColor(char* buf, int size, bool isSet)
         red = MenloUtility::HexToByte(ptr);
         ptr += 2;
         if (*ptr != '.') {
-            DBG_PRINT("LightColor: not . after RR");
+            xDBG_PRINT("LightColor: not . after RR");
             return DWEET_INVALID_PARAMETER;
         }
         ptr++; // skip '.'
@@ -315,7 +344,7 @@ DweetLightHouse::LightColor(char* buf, int size, bool isSet)
         green = MenloUtility::HexToByte(ptr);
         ptr += 2;
         if (*ptr != '.') {
-            DBG_PRINT("LightColor: not . after GG");
+            xDBG_PRINT("LightColor: not . after GG");
             return DWEET_INVALID_PARAMETER;
         }
         ptr++; // skip '.'
@@ -325,14 +354,14 @@ DweetLightHouse::LightColor(char* buf, int size, bool isSet)
 
         m_lightHouseApp->LightColor(&red, &green, &blue, isSet);
 
-        DBG_PRINT("LightColor set NP");
+        xDBG_PRINT("LightColor set");
 
         return 0;
     }
     else {
 
         if (size < 9) {
-            DBG_PRINT("LightColor: bad length on get");
+            xDBG_PRINT("LightColor: bad length on get");
             return DWEET_INVALID_PARAMETER_LENGTH;
         }
 
@@ -435,6 +464,8 @@ DweetLightHouse::LightOnLevel(char* buf, int size, bool isSet)
     uint16_t onLevel;
 
     if (isSet) {
+
+        xDBG_PRINT("LightOnLevel set");
 
         //
         // Parse the argument string
@@ -539,6 +570,12 @@ DweetLightHouse::ProcessAppCommands(MenloDweet* dweet, char* name, char* value)
 
     int tableEntries = sizeof(lighthouse_string_table) / sizeof(char*);
 
+    //eDBG_PRINT("n ");
+    eDBG_PRINT_STRING(name);
+
+    //eDBG_PRINT_NNL("v ");
+    eDBG_PRINT_STRING(value);
+
     //
     // To maximum space for the sequence the set/get light
     // sequence commands don't use GETSTATE/SETSTATE to
@@ -574,8 +611,11 @@ DweetLightHouse::ProcessAppCommands(MenloDweet* dweet, char* name, char* value)
         // class instance as this function performs the specialization
         // required for DweetLightHouse
         //
+
+        parms.ModuleName = (PGM_P)lighthouse_module_name_string;
         parms.stringTable = (PGM_P)lighthouse_string_table;
         parms.functionTable = (PGM_P)lighthouse_function_table;
+        parms.defaultsTable = NULL;
         parms.object =  this;
         parms.indexTable = lighthouse_index_table;
         parms.sizeTable = lighthouse_size_table;
@@ -586,7 +626,7 @@ DweetLightHouse::ProcessAppCommands(MenloDweet* dweet, char* name, char* value)
         parms.checksumBlockSize = LIGHT_CHECKSUM_END - LIGHT_CHECKSUM_BEGIN;
         parms.name = name;
         parms.value = value;
-
+ 
         return dweet->ProcessStateCommandsTable(&parms);
     }
 }
@@ -621,6 +661,11 @@ DweetLightHouse::Initialize(
     struct StateSettingsParameters parms;
     char workingBuffer[LIGHT_MAX_SIZE+1]; // Must be larger than any config values we fetch
 
+    //MenloDebug::Print(F("DweetLightHouse: initialize"));
+
+    // Initialize DweetApp for default event dispatching
+    DweetApp::Initialize();
+
     int tableEntries = sizeof(lighthouse_string_table) / sizeof(char*);
 
     //
@@ -637,14 +682,17 @@ DweetLightHouse::Initialize(
     // Improve: These stubs can be eliminated and direct calls
     // to the application class used.
     //
-
+    parms.ModuleName = (PGM_P)lighthouse_module_name_string;
     parms.stringTable = (PGM_P)lighthouse_string_table;
     parms.functionTable = (PGM_P)lighthouse_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = lighthouse_index_table;
     parms.sizeTable = lighthouse_size_table;
     parms.tableEntries = tableEntries;
     parms.workingBuffer = workingBuffer;
+
+    // Arduino/Libaries/DweetLightHouse/LightHouseConfig.h
     parms.checksumIndex = LIGHT_CHECKSUM;
     parms.checksumBlockStart = LIGHT_CHECKSUM_BEGIN;
     parms.checksumBlockSize = LIGHT_CHECKSUM_END - LIGHT_CHECKSUM_BEGIN;
@@ -658,7 +706,7 @@ DweetLightHouse::Initialize(
             MenloDebug::Print(F("DweetLightHouse Stored settings checksum is invalid"));
         }
         else {
-            MenloDebug::Print(F("DweetLightHouse Stored settings are invalid"));
+            MenloDebug::Print(F("DweetLightHouse A Stored setting is invalid"));
         }
     }
     else {
@@ -768,6 +816,8 @@ DweetLightHouse::ProcessSetLightSequence(MenloDweet* dweet, char* name, char* va
     //
     // LIGHTSQ=00:0000000
     // LIGHTSQ_ERROR=00:00
+    //
+    // This is in LightHouseApp* in xxx
     //
     result = m_lightHouseApp->SetLightSequence(value, persistent);
     if (!result) {

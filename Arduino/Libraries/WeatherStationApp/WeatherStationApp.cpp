@@ -69,6 +69,25 @@
 #endif
 
 //
+// Allows selective print when debugging but just placing
+// an "x" in front of what you want output.
+//
+#define XDBG_PRINT_ENABLED 0
+
+#if XDBG_PRINT_ENABLED
+#define xDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define xDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define xDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define xDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define xDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define xDBG_PRINT(x)
+#define xDBG_PRINT_NNL(x)
+#define xDBG_PRINT_INT(x)
+#define xDBG_PRINT_INT_NNL(x)
+#endif
+
+//
 // Using Menlo Dweet Node.js application
 //
 // node dweet.js <portname>
@@ -101,6 +120,8 @@
 //
 // These have persistent power on values stored in EEPROM
 //
+
+const char weather_module_name_string[] PROGMEM = "WeatherStationApp";
 
 // Configure update send interval
 const char dweet_updateinterval_string[] PROGMEM = "UPDATEINTERVAL";
@@ -186,6 +207,10 @@ PROGMEM const StateMethod weather_function_table[] =
 //
 // 0 entries have no persistent EEPROM storage requirement.
 //
+// The index represents the starting location in EEPROM storage
+// for its configuration, and size is from the size table entry
+// which follows.
+//
 PROGMEM const int weather_index_table[] =
 {
   WEATHER_INTERVAL_INDEX,
@@ -211,6 +236,9 @@ PROGMEM const int weather_index_table[] =
 // All entries require a size to determine string length required
 // for command.
 //
+// The values are in ./WeatherStationApp.h and represent *STRING* size
+// that will be encoded as ASCII HEX for the DWEET response.
+//
 PROGMEM const int weather_size_table[] =
 {
   WEATHER_INTERVAL_SIZE,
@@ -232,6 +260,14 @@ PROGMEM const int weather_size_table[] =
   WEATHER_SENDREADINGS_SIZE   // send sensor readings
 };
 
+//
+// This is invoked from:
+//
+// Smartpux/SparkCore/particle/MenloParticleWeather/MenloParticleWeatherApp.cpp
+//
+// WeatherStationHardwareBase* is from
+// Smartpux/SparkCore/particle/MenloParticleWeather/WeatherShieldPhoton.h
+//
 int
 WeatherStationApp::Initialize(
     WeatherStationConfiguration* config,
@@ -250,10 +286,14 @@ WeatherStationApp::Initialize(
 
     m_deferSensorReadings = false;
 
+    // Initialize DweetApp for default event dispatching
+    DweetApp::Initialize();
+
     // Setup a TimerEvent for sending updates
     m_timerEvent.object = this;
     m_timerEvent.method = (MenloEventMethod)&WeatherStationApp::TimerEvent;
 
+    // 30 seconds default
     m_timerEvent.m_interval = m_config.updateInterval;
     m_timerEvent.m_dueTime = 0L; // indicate not registered
 
@@ -261,6 +301,7 @@ WeatherStationApp::Initialize(
     m_sampleEvent.object = this;
     m_sampleEvent.method = (MenloEventMethod)&WeatherStationApp::SampleTimerEvent;
 
+    // 1 second default
     m_sampleEvent.m_interval = m_config.sampleInterval;
     m_sampleEvent.m_dueTime = 0L; // indicate not registered
 
@@ -270,8 +311,10 @@ WeatherStationApp::Initialize(
     // Note: "this" is used to refer to this class (WeatherStationApp) since
     // the handlers are on this class.
     //
+    parms.ModuleName = (PGM_P)weather_module_name_string;
     parms.stringTable = (PGM_P)weather_string_table;
     parms.functionTable = (PGM_P)weather_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = weather_index_table;
     parms.sizeTable = weather_size_table;
@@ -349,12 +392,20 @@ WeatherStationApp::Initialize(
     return 0;
 }
 
+//
+// This is part of the Poll() processing loop
+//
 unsigned long
 WeatherStationApp::PollEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
 {
     unsigned long waitTime = MAX_POLL_TIME;
 
     //DBG_PRINT("WeatherStationApp PollEvent");
+
+    if (m_hardware == NULL) {
+        xDBG_PRINT("WeatherStationApp PollEvent no m_hardware configured");
+        return waitTime;
+    }
 
     waitTime = m_hardware->PollSensors();
 
@@ -384,6 +435,8 @@ WeatherStationApp::PollEvent(MenloDispatchObject* sender, MenloEventArgs* eventA
 // This is the event in which the current sensor readings and
 // averages are sent on the communications channel in the configured
 // format.
+//
+// Default 30 second interval
 //
 unsigned long
 WeatherStationApp::TimerEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
@@ -442,12 +495,19 @@ WeatherStationApp::TimerEvent(MenloDispatchObject* sender, MenloEventArgs* event
 // This is separate from the time in which sensor updates are sent,
 // which are typically less frequent.
 //
+// Default 1 second interval
+//
 unsigned long
 WeatherStationApp::SampleTimerEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
 {
     DBG_PRINT("WeatherStationApp SampleTimerEvent");
 
-    m_hardware->SampleSensors();
+    if (m_hardware != NULL) {
+        m_hardware->SampleSensors();
+    }
+    else {
+        DBG_PRINT("WeatherStationApp SampleTimerEvent no hardware configured");
+    }
 
     // The timer sets the poll time for us based on programmed interval
     return MAX_POLL_TIME;
@@ -487,8 +547,10 @@ WeatherStationApp::ProcessAppCommands(MenloDweet* dweet, char* name, char* value
     // class instance as this function performs the specialization
     // required for DweetSensor
     //
+    parms.ModuleName = (PGM_P)weather_module_name_string;
     parms.stringTable = (PGM_P)weather_string_table;
     parms.functionTable = (PGM_P)weather_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = weather_index_table;
     parms.sizeTable = weather_size_table;
@@ -785,6 +847,9 @@ WeatherStationApp::WindDirection(char* buf, int size, bool isSet)
     return 0;
 }
 
+//
+// Get Temperature.
+//
 int
 WeatherStationApp::Temperature(char* buf, int size, bool isSet)
 {
@@ -796,6 +861,25 @@ WeatherStationApp::Temperature(char* buf, int size, bool isSet)
     // Size is validated by the common dispatcher to the size
     // set in the configuration table.
     //
+
+    //
+    // m_hardware initialized in WeatherStationApp::Initialize()
+    //
+    // This invokes the legacy 16 bit in scaled version
+    // of temperature.
+    //
+    // See Smartpux/SparkCore/particle/MenloParticleWeather/WeatherShieldPhoton.h,
+    // WeatherShieldPhoton.cpp.
+    //
+    // Core weather on Particle returns a float, but DWEET
+    // code is historically built for Arduino with scaled
+    // 16 bit integers in 4 ASCII hex digits.
+    //
+    // The interface invoked here is for the DWEET legacy
+    // 16 bit integers and are scaled according to the
+    // value type.
+    //
+
     value = m_hardware->GetTemperatureF();
 
     // 4 hex chars without '\0'
@@ -1030,6 +1114,15 @@ int
 WeatherStationApp::SendSensorsAsNMEA()
 {
     WeatherStationReadings readings;
+
+    //
+    // If a Dweet output channel is not configured to send the
+    // NMEA 0183 readings there is nothing to do.
+    //
+    if (m_dweet == NULL) {
+        // Nothing to do
+        return 0;
+    }
 
     //
     // Send current sensor readings out the channel

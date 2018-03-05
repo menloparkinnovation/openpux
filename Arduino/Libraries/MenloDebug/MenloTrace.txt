@@ -1,0 +1,86 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+Menlo Tracing Library
+05/08/2016
+
+Message Codes:
+
+Arduino/Libraries/MenloDebug/tracecodes.json documents the trace message codes
+
+This allows utilities to readily match message codes with string messages.
+
+========================
+Tracing Costs
+
+The AtMega328 represents the smallest microcontroller targeted by the
+MenloFramework and this target drives analysis of tracing costs.
+
+Larger platforms benefit by keeping tracing compact and efficient, though
+may have larger number per trace statement due to 32 bit data, (ARM), etc.
+
+Tracing costs 454 bytes code, 6 bytes data on AtMega 328 for the first
+simple no data trace statement.
+
+The Arduino/GCC linker will not link in the tracing support code
+unless a trace call is compiled. Macro's control this behavior for
+memory control.
+
+Each additional no argument trace statement consumes 8 bytes of code space.
+
+The first trace statement that includes int data consumes 48 bytes of code space.
+The linker will only link in this routine if its called.
+
+Each additional trace with int data consumes 12 bytes of code space.
+
+========================
+Tracing Overview/Design Philosophy:
+
+ Single byte trace message code.
+
+ High bit not set means no data follows. The code is the message.
+
+ High bit set means has data size byte following
+
+ The next byte is the size byte and is the size of the data that
+ follows in the buffer without null termination.
+
+ It's designed for low overhead to allow field logging and tracing.
+
+ Trace mask is optimized for single byte callsites on AtMega328's
+ and allows selective control of the limited trace buffer memory.
+
+ Target platform and/or communications transport specific routines
+ set and retrieve trace buffers. This keeps the overhead of the
+ tracing code small as its only concerned with tracing, while other
+ code is concerned with declaring the trace buffer memory, size,
+ and method of remote retrieval.
+
+ Trace routines that provide a buffer, or can take over the log
+ for specific debugging tracing.
+
+ Storage costs is significantly smaller than trace messages with
+ strings and is really useful for AtMega328's with very limited
+ code space.
+
+Future:
+ Upper bits may be used in the future
+ to encode extended messages. In this case messages would be truncated
+ to 64 or 32 bytes to allow 512 or 1024 message codes expansion.

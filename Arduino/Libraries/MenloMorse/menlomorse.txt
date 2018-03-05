@@ -1,0 +1,82 @@
+
+07/20/2014
+
+MenloMorse design notes.
+
+Class to include in all projects, event driven.
+
+Use for light house emulation, messages, etc.
+
+From FenceLostLight.ino, IntegratedSensor.ino
+
+//
+// Default (4) Sensor Masks
+//
+// SensorMask0 lower 6 bits morse symbol and sequences (0-5)
+//
+//  Support morse for upper case ASCII letters and numbers
+//
+//  Other symbol fields can be used for long dashes, long dots,
+//  continous, special fader effects, etc.
+//
+//  ------------------- = continous
+//  - - - - = 4 morse dashes
+//
+//  Morse Interval:
+//
+//  dit interval is the flash interval in SensorMask1 lower byte
+//
+//  dah interval is 2X dit interval
+//
+//  dit interval is the spacing between flashes for a morse symbol, dit or dah
+//
+//  inter-symbol interval is 4x dit interval
+//
+//  Bit 6 - Occulate
+//
+//  Bit 7 - Send string in SensorMasks4-9 appended to symbol in SensorMask0
+//
+// SensorMask1
+//    - lower byte is flash interval in 1/4 second intervals
+//       - for morse its the "dit" interval
+//
+//    - upper byte is delay between sequence in 1/2 second intervals
+//
+// SensorMask2 
+//    - lower byte red intensity
+//    - upper byte green intensity
+//
+// SensorMask3 
+//    - lower byte blue intensity
+//    - bits 8-14 unassigned
+//    - bit 15 (0x8000) set, Range Test Mode
+//
+//  The following are expansion, due for firmware update to
+//  http state machine and multiple packets in sensor transfer as required.
+//
+// SensorMask4 - SensorMask9
+//    - Each entry has two characters in the sequence
+//    - They are appended to the symbol in SensorMask4 lower 6 bits
+//    - lower byte, bits 0-5 is symbol 0 of character string
+//    - lower byte, bits 6-7 unassigned
+//    - upper byte, bits 0-5 is symbol 1 of character string
+//    - upper byte, bits 6-7 unassigned
+//
+// MenloSensorApp::AppProcess()
+//
+// Sensor Data
+//
+// SensorReading0 = Light
+// SensorReading1 = Temperature
+// SensorReading2 = Moisture
+// SensorReading3 = Humidity
+// SensorReading4 = Unassigned
+// SensorReading5 = SolarCell
+// SensorReading6 = Battery
+//
+// Range Test Mode:
+//
+// SensorReading7 = goodCloudCount
+// SensorReading8 = goodGatewayCount
+// SensorReading9 = badUpdateCount
+//

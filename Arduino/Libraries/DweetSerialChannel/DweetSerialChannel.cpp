@@ -98,7 +98,7 @@
 #endif
 
 //
-// called by DweetLightHouse.cpp
+// called by application.
 //
 int
 DweetSerialChannel::Initialize(
@@ -115,7 +115,7 @@ DweetSerialChannel::Initialize(
 
     result = m_nmea.Initialize(
         prefix,
-        m_outputBuffer,
+        (char*)m_outputBuffer,
         sizeof(m_outputBuffer)
         );
 
@@ -196,7 +196,7 @@ DweetSerialChannel::ProcessSerialInput()
             xDBG_PRINT("Dweet DispatchMessage");
 
             // MenloDweet.cpp
-            DispatchMessage(&m_inputBuffer[0], m_inputBufferIndex);
+            DispatchMessage((char*)&m_inputBuffer[0], m_inputBufferIndex);
 
             ResetWatchdog();
 

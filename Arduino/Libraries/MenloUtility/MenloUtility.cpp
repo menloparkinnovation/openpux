@@ -155,6 +155,30 @@ MenloUtility::UInt8ToHexBuffer(uint8_t i, char* buffer)
 }
 
 //
+// Convert buffer of binary data to an ASCII hex buffer
+// that is ASCII null ('\0') terminated.
+//
+// Note: buffer must be (2*size) + 1 to accommodate
+// the '\0' terminator. *** YOU HAVE BEEN WARNED ***
+//
+void
+MenloUtility::UInt8ToHexBuffer(uint8_t* data, int size, char* buffer)
+{
+    while(size-- > 0) {
+        UInt8ToHexBuffer(*data, buffer);
+
+        // Advance data consumed by *1*
+        data++;
+
+        // Advance buffer consumed by *2*
+        buffer += 2;
+    }
+
+    // ASCII null terminate the buffer
+    *buffer = '\0';
+}
+
+//
 // This returns exactly four ASCII characters
 // for an 16 bit input.
 //

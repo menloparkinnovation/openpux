@@ -1,0 +1,1144 @@
+07/03/2014
+
+MenloRadioNet
+
+The Menlo Radio Net is constructed from a set of low power nodes
+in which they can be expected to be mostly sleeping to save energy.
+
+The nodes are expected to be battery powered, and have a long battery
+replacement interval.
+
+Nodes may also be solar powered, or use scavanged energy in order
+to avoid battery replacements/manual re-charging when sufficient
+light/energy is available.
+
+The network is constructed from a series of point to point links that
+can transport small messages approximiately 32 bytes in size.
+
+Nodes are expected to be able to act as forwarders for nodes
+downstream from them towards upstream nodes. These nodes are known
+as gateways.
+
+With the nodes being mostly sleeping to save energy this means their
+radios are off until a specified time interval of which nodes may be
+contacted.
+
+The network primarily operates in a best effort store and forward
+mode in order to minimize the "on air" time of a given set of nodes
+and to deal with radio schedule differences across the network.
+
+Messages can be lost, due to nodes being powered down, failed, messages
+lost due to radio interference, etc.
+
+Each point to point link exchanges messages. No reply message means
+message was lost, and it is to be retried by an interval determined
+by the link layer.
+
+A return message from the point to point link may indicate that
+its buffer is full, a upper forwarding link is offline, etc.
+
+The return message contains a time when to try again, such
+as when the upper forwarding link may be available. A sensor
+may use this time for sending an urgent message, or wait for
+its normal programmed sleep/send interval based on its
+energy state.
+
+If a node has received a message for forwarding and has either
+buffered it or passed it on it sends a positive acknowledgement
+to the sender.
+
+Best efforts delivery model means that a sensor will positively
+acknowledge if it has successfully buffered, or forwarded up
+a message. It has no guarantees or knowledge the message will
+ever reach the final destination and stores no state or
+buffering of the message after the hand off.
+
+If a sensor knows it can't buffer, or deliver a message
+it sends this status in the reply to the sender so it
+can modify its retry/radio schedule.
+
+It's up to the application level to be concerned with
+any end-to-end ackknowledgements and re-transmissions.
+
+The networks actual organization is determined by the
+management protocol.
+
+Application Patterns:
+
+The application pattern is discussed early on in
+the description of MenloRadioNet. This is because
+the application pattern contributes to the networks
+simplicity by operating with a best efforts delivery
+model, rather than relying on network delivery
+guarantees.
+
+As this is a best efforts delivery model, its up to the
+application model to deal with any end-to-end application
+level acknowledgments. Such an application level is usually
+constructed from "indempotent" commands which do not corrupt
+sensor state if sent more than once due to lost end to end
+message or sensor action response replies.
+
+An application pattern for sending commands to sensors is
+to transmit the sensor action command into the network and
+then use future sensor state to determine if the sensors
+state has changed.
+
+For example an "Arm Alarm" command can be sent to a sensor,
+and future sensor state updates would eventually indicate
+"Alarm Armed". If this has not occurred during a time
+interval, the command can be sent again
+
+A typical implementation would have such a state as
+part of a "sensor state mask" which is returned to the
+sensor as its reply after a sensor update.
+
+An application pattern for a sensor that latches a critical
+state is to assign an event number to it, and forward it
+up the network. This event remains latched in the sensor
+and is included in all future sensor status messages.
+
+Eventually the application level can acknowledge this state
+and send an "Event Clear" message with the sequence number.
+Any events at or below that level can be cleared, but newer
+sequenced events will not be. This prevents events from
+being lost by the sensor.
+
+An example is a "sensor tripped event" message. This can be
+assigned an event ID and sent up the network. The application
+level will eventually send a "clear sensor tripped event <ID>"
+message to clear the event. It will re-send this as long
+as sensor status messages still indicate sensor tripped with
+the ID.
+
+A lossy implementation can avoid the event ID. For example
+its important to get a "Alarm Sensor Tripped" message, but
+whether you get multiple is not as important as the
+event state not being lost. A future clear action may
+clear a single Alarm Sensor Tripped, or multiple event
+occurances unless Event ID is provided.
+
+Network Organization:
+
+All network nodes decend from a root, or the hub.
+
+The network management software configures the
+network so that there are no cycles in the network.
+
+This is accomplished by building the network as
+a form of a tree.
+
+Messages flow down from the hub towards a targeted
+end node through any required gateways.
+
+Messages from nodes flow upwards towards the hub though
+any required gateways.
+
+The hub may have a fan out limit based on limitations
+of its radio, or the nodes within range.
+
+Nodes beyond its fan out, or its range, are communicated
+with through nodes acting as gateways.
+
+If multiple active hubs are present, they are separate networks
+and its the responsibility of the link layer to manage any potential
+radio interference.
+
+Network Hub:
+
+The network is organized with a root or hub whose
+NodeAddress is 0.
+
+Typically this hub acts as the gateway to the internet/Cloud and communicates
+over WiFi, Ethernet, CellModem, etc.
+
+This hub typically has more power available so that it may remain on the air
+for long periods of time in order to service the network. In many
+configurations its desirable to be "always on" so that it may be responsive to
+the network.
+
+A network hub could be battery or solar powered and have a schedule.
+
+A network hub could also utilize a low power processor to monitor the network,
+and wake the hub when activity is detected. This is because many internet
+gateway networks such as WiFi, CellModem, etc, have significantly higher energy
+requirements than the radio network. (300ma vs. 16ma).
+
+Forwarding:
+
+Nodes are expected to buffer messages for their direct
+peers downstream.
+
+This is to allow a minimization of radio on times as once
+the message is in the buffer the node may sleep till its
+next interval.
+
+The size of this message buffer is at least one message
+per direct downstream peer. More buffer depth is allowed,
+but a one message deep queue is required.
+
+Each downstream peer can have an upstream message, and a
+downstream message in the buffer.
+
+A node is not required to hold enough buffer memory
+for the child nodes of its direct downstream peers,
+though a node with deeper buffers can make for
+a more efficient network as scheduled transmissions
+can better batch together.
+
+Radio Schedules:
+
+Since nodes are mostly sleeping they communicate with
+their upstream peer according to a radio schedule.
+
+Many radios for low power sensor nodes take the same, or
+more energy to receive as transmit. For example the Nordic
+nRF24L01+ chip requires 16ma receive, 12ma transmit. So
+assuming that a sensor is "mostly listening, occasionally
+transmitting" is not a valid model to save energy in this space.
+
+Since nodes operate on a radio schedule, there is a requirement
+to get their clocks in sync. This allows the minimization
+of energy consumption in making a contact for the radio
+schedule.
+
+A clock synchronization protocol uses the sensor acknowledgment
+messages from its upstream peer which contains a view of
+that peers "time". The local sensor node uses this view of
+its upstream peers "time" to calibrate its own schedule with
+that peer.
+
+Network Management Protocol:
+
+The management protocol for the network is considered at a layer
+above, but uses the basic network to forward its management messages.
+
+It's expected that in many configurations the management protocol
+runs on a larger, mostly powered on "head end" node in order
+to simplify the software complexity and data storage requirements
+of the nodes participating in the network.
+
+For example, nodes participating in the network may only have
+simple routing tables which were sent to them by the management
+node over the network as the network is being constructed, or
+when the node joined the network.
+
+Nodes are expected to participate in a required subset of
+the network management messages in regards to discovery
+of peer nodes and forwarding them up to the management node
+in order to allow the network to be self configuring. This
+is because many nodes may be out of direct radio range
+from the management node.
+
+Nodes receive routing/forwarding information via the
+management protocol.
+
+The management protocol is repsonsible for avoiding
+network loops, and determining the final organization
+of the network be it a star, tree, etc.
+
+An advanced version of the protocol may provide backup
+node information to a node in order to contact the alternate
+node when the primary can't be contacted.
+
+The network management node is typically the head end, and
+can be expected to run a more powerful processor with
+larger memory storage so it can contain a "view" of
+the network.
+
+A simple implementation of the network management node may
+act as a gateway to network managing software running in a
+Cloud service, or on a local computer.
+
+Typically the network management node is a WiFi or other
+Internet/Cloud gateway to the Menlo Radio Network. As such
+it serves as the head end, and is typically a more powerful
+node that can remain on the air for longer intervals.
+
+The fact that it either plugs into wired Ethernet, or communicates
+regularly over WiFi means its energy availability is higher
+than the battery powered nodes.
+
+Discovery:
+
+A node not currently participating in the network can join it
+by sending out an announce message to a well known set
+of addresses.
+
+These addresses may be pre-configured, or well known
+discovery addresses. Typically a discovery packet
+is sent to a broadcast address such as 0xFF.
+
+Each node will have a unique serial number which it
+sends in the discovery message. If a node does not
+have a unique serial number, a separate protocol to
+be assigned one is run before performing discovery.
+
+All nodes capable of being gateways periodically listen
+for discovery messages, esp. when commanded to do so
+during "network build". These nodes forward any discovery
+messages upwards.
+
+Eventually the network management protocol receives the
+(forwarded) discovery message and assigns nodes to act
+as forwarders based on the network configuration. These
+forwarders receive network management messages informing
+them of this.
+
+Once the network is built, the node receives a discovery
+reply with the addresses and schedule for its forwarder
+node(s). At this point the node is part of the network,
+and may itself be asked to be a forwarder.
+
+A node that receives a discovery message does not overwrite
+it in its buffer if later discovery messages arrive. This
+prevents discovery messages from getting lost. By forwarding
+the discovery message eventually the node gets an assignment
+and stops broadcasting discovery messages. This allows other
+nodes in a busy environment the chance to get their
+discovery message through.
+
+Gateways:
+
+Nodes are capable of being gateways.
+
+Being a gateway has a burden on the energy consumption of the node, and
+its memory space.
+
+Gateways are ranked according to their energy supplies and buffer
+space. Higher ranked gateways have more energy and buffer space,
+are are preferred as gateways.
+
+The energy consumption comes from being on the air and processing messages
+more frequently than if it was just a node. As a result nodes with more
+energy available have higher gateway ranks.
+
+Nodes with larger buffer space have higher gateway rank since they may queue
+more messages during radio schedules and batch them. This saves total
+energy in the network by minimizing wakeups and re-transmissions for
+messages not delivered due to no buffer space in a gateway. This is
+important for gateways with larger numbers of nodes in their trees
+underneath.
+
+Nodes that can act as gateways indicate that fact along with their
+energy rank, fan out, and buffer space.
+
+The energy rank for a gateway is initially its factory configured
+energy rank based on its solar and battery capacity. It may in fact
+update itself to a lower energy rank over time as its battery
+deteriorates and/or its placed in a location without sufficient
+solar exposure.
+
+Network Build:
+
+A network is built from the top down starting with the hub.
+
+Nodes that are not configured as gateways do not forward discovery messages,
+preventing a meltdown of the network.
+
+The hub when starting up is the only "gateway" active, and starts responding to
+discovery messages from nodes that are within range.
+
+The hub will configure the nodes that are within range, and assign gateway
+status to the ones that are capable of being gateways.
+
+Nodes not capable of being gateways, or of low gateway rank, may get ignored to
+preserve any fan out limitations of the hub. These nodes will eventually be
+picked up by a gateway that is not the hub.
+
+Energy Management:
+
+The battery powered nodes have energy priority and the networks
+organization and radio schedules are set to optimize their
+energy usage requirements.
+
+This typically means having them "on air" for the shortest
+possible time, and as infrequently as possible.
+
+Radio schedules can be sent to prevent nodes interferring
+with each resulting in retries, as well at batching
+radio schedules to upstream forwarders.
+
+Keeping clocks close together is important to minimize
+the time a gateway has to be listening, but minimizing
+interference from multiple nodes attempting to contact
+the upstream forwarder.
+
+Some nodes may have more energy, larger batteries, solar
+panels, in a better location, etc. These nodes can be
+used to offset energy usage in their downstream nodes
+by shouldering more of the networks burden.
+
+Head end nodes, esp. internet/Cloud gateways are expected
+to have the highest energy available and to most be
+"always on". This is due to the energy requirements
+of Ethernet, WiFi, etc.
+
+Though it is possible a WiFi Cloud gateway is also
+battery/solar powered an must make the proper accomodations.
+
+Addressing:
+
+NodeAddress 0 is the root of a given network.
+
+Optimizations:
+
+A pass-through mode is an option for times when a chain of nodes
+are powered on, or a gateway node has sufficient power to always
+be listening, such as powered by a larger solar panel or AC
+power. In this case it can immediately forward a message up
+without buffering it. It can either delay its reply to its
+downstream node, or give it a reply message with a short re-contact
+interval. This case would be enhanced with a conditional message
+received acknowlegement, which means it has passed it on, but
+no one has buffered it yet.
+
+Packets:
+
+/*
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *      |      Link Layer        | Optional link layer (see Note 1)
+ *      --------------------------
+ *  0   | 0  0  0  0  0  0  0  0 | Application layer message (Reserved)
+ *      --------------------------
+ *  0   | 0  0  0  0  0  0  0  1 | Application layer messages
+ *      --------------------------
+ *      |          -             |
+ *      --------------------------
+ *      | 1  1  1  0  1  1  1  1 | Application layer messages
+ *      --------------------------
+ *      | 1  1  1  1  0  0  0  0 | Management layer messages (Link Layer)
+ *      --------------------------
+ *      | 1  1  1  1  0  0  0  1 | Management layer messages (Above link layer)
+ *      --------------------------
+ *      |          -             |
+ *      --------------------------
+ *      | 1  1  1  1  x  x  x  0 | Management layer messages
+ *      --------------------------
+ *      | 1  1  1  1  1  1  1  1 | Management Layer Message (Reserved)
+ *      --------------------------
+ *  1   |   Target NodeAddress   |
+ *      --------------------------
+ *  2   |   From NodeAddress     |
+ *      --------------------------
+ *  3   |   Message Defined      |
+ *      --------------------------
+ *  x   |         ...            | 
+ *      --------------------------
+ *  x   |                        | Byte MAX_PACKET_SIZE - 1
+ *      --------------------------
+ *
+ *    Byte 0   Packet Type
+ *             0x00 - 0xEF  // Application layer messages
+ *             0xFF - 0xF0  // Management layer messages
+ *
+ *    Byte 1   Target NodeAddress
+ *
+ *    Byte 2   From NodeAddress
+ *
+ *    Byte 3   Message defined
+ *     ...
+ *
+ * Note 1: The Link layer header is not defined as part of the
+ *         main MenloRadioNet protocol since most small radios
+ *         already provide one.
+ *
+ *         MenloRadioNet relies on the following from the link layer:
+ *
+ *           - Provides the address of the sending radio on receive
+ *           - Does not deliver corrupted messages with checksum/ECC errors
+ *
+ *         If a radio does not provide the previous, then the link
+ *         layer support for that radio needs to provide it.
+ *
+ *         MenloRadioNet does not rely on reliable delivery, though
+ *         radios with hardware level retry/ackknowledge may be more
+ *         energy efficient in a busy/noisy radio environment as
+ *         the radio can more efficiently avoid interference without
+ *         involvement of the host processor.
+ *
+ *         In addition such a network will be more responsive as it
+ *         does not relay on the longer cycle time of the upper
+ *         layer software retries in MenloRadioNet.
+ *
+ ***************************************************************************
+ *
+ *      Discovery
+ *
+ *      Sent by a node looking to join the network.
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  1  1  1  0 | 0xFE (Discovery)
+ *      --------------------------
+ *  1   | 0  0  0  0  0  0  0  0 | Target node address (Hub 0x00)
+ *      --------------------------
+ *  2   | 1  1  1  1  1  1  1  0 | From node address (unassigned 0xFE)
+ *      --------------------------
+ *  3   | 0  0  0  0  H  S  B  G | Node capabilities
+ *      --------------------------
+ *  4   | Serial Number Byte 0   | Byte 0 of node serial number
+ *      --------------------------
+ *  5   | Serial Number Byte 1   | 
+ *      --------------------------
+ *  6   | Serial Number Byte 2   | 
+ *      --------------------------
+ *  7   | Serial Number Byte 3   | Byte 3 of node serial number
+ *      --------------------------
+ *  8   | Factory Energy Rank    | Configured energy rank
+ *      --------------------------
+ *  9   | Deployed Energy Rank   | Actually experienced energy rank 
+ *      --------------------------
+ * 10   | Fan out Capability     | Number of child nodes when gateway
+ *      --------------------------
+ * 11   | Buffer Depth           | Buffer depth per child node when gateway
+ *      --------------------------
+ * 12   | Serial Number Byte 4   | Byte 4 of node serial number
+ *      --------------------------
+ * 13   | Serial Number Byte 5   | 
+ *      --------------------------
+ * 14   | Serial Number Byte 6   | 
+ *      --------------------------
+ * 15   | Serial Number Byte 7   | Byte 7 of node serial number
+ *      --------------------------
+ *
+ *  Notes:
+ *
+ *  Node Capabilities:
+ *
+ *  G - 1 == Supports gateway function
+ *      0 == Does not support gateway function
+ *
+ *  B - 1 == Battery powered
+ *    - 0 == Not battery powered
+ *
+ *      Battery powered means limited energy.
+ *
+ *      Not battery powered means a constant power source such as AC mains.
+ *
+ *  S - 1 == Solar powered
+ *      0 == Not solar powered.
+ *
+ *      S == 1, B == 1
+ *
+ *      Solar powered means that the on board battery is capable
+ *      of self recharge by solar, or scavenged energy over time.
+ *
+ *      S == 1, B == 0
+ *
+ *      Device is only available when solar power is present, or
+ *      scavenged energy. This would be considered an intermittent
+ *      device.
+ *
+ *  H - 1 == Capable of being a hub
+ *  H - 0 == Not capable of being a hub
+ *
+ *      A node capable of being a hub, or "head end" of the
+ *      network typically offers gateway access to the internet,
+ *      Cloud, or other local control or "master" network.
+ *
+ *      Typically one node capable of being a hub is configured
+ *      to act in that role.
+ *
+ *      Multiple nodes capable of being hubs could offer backup
+ *      services if a main hub goes down.
+ *
+ * Serial Number:
+ *
+ *  Nodes whose serial number does not fill all of the bytes
+ *  pad with zero.
+ *
+ *  The serial number is broken up into bytes 0 - 3 for nodes
+ *  who may have small radio packet sizes.
+ *
+ *  Larger serial number bytes are at the end of the packet.
+ *
+ * Energy Rank:
+ *
+ *  This is the nodes self rating of its energy status based
+ *  on how much on board battery its configured for.
+ *
+ *  The factory energy rank is the designed for duty cyle based
+ *  on the nodes power consumption, factory intended battery supply,
+ *  etc.
+ *
+ *  The deployed energy rank is a sensor determined energy rank based
+ *  on its own experience such as battery aging, solar energy cycle
+ *  based on number of sunny hours, placement location, etc.
+ *
+ *  Values from 1 (base 10) to 200 (base 10) is multipled by
+ *  0.5% to calculate the time the device can be expected to be powered
+ *  on the air.
+ *
+ *  Example: 200(10) or 0xC8(16) represent 100%
+ *
+ *  The smallest value 0x01 represents 18 seconds per hour.
+ *
+ *  To represent even smaller values for very low power sensors,
+ *  values from 201 (base 10) - 250 (base 10) represent .5% / (value - 200).
+ *  
+ *  Example: 220 or 0xDC represent 0.025% (.5 / (220 - 200))
+ *
+ *  The smallest value (250 base 10) or 0xFA represents .01% or .36 seconds
+ *  an hour.
+ *
+ * Calculations:
+ *
+ *  Note: On air time is total on air time. A sensor could wakeup
+ *  more frequently but accomplish its message in a fraction of
+ *  a second if time intervals are synchronized correctly, there
+ *  is low interference, etc.
+ *
+ *  The model is a sensor that requires 20ma when operating.
+ *  This is represented by an actual low power, low cost sensor such as an
+ *  AtMega 328p at 8Mhz (4ma) communicating with an nRf24L01+ radio (16ma).
+ *
+ *  A coin cell battery is used to indicate the lower end of the energy
+ *  spectrum. Larger batteries such as "AA" cells have signifcantly more
+ *  energy.
+ *
+ *  A sensor device is responsible to advertise a duty cycle that takes
+ *  into account any solar replenishment if available. It may change
+ *  its internally programmed duty cycle over time based on actual
+ *  experience with its re-charge cycle which can be based on
+ *  changing environmental conditions. This is indicated by its
+ *  deployed rank vs. its default design rank.
+ *
+ *  On Air 18 seconds/hour
+ *
+ *  .02 * (18/3600) = 0.0001 A/H consumption per hour
+ *
+ *  Coin Cell battery is .11 A/H rechargable or .23 A/H disposable
+ *
+ *  .23 / .0001 == 2300 hours == 95 days
+ *
+ *  .11 / .0001 == 1100 hours == 45 days
+ *
+ *  On Air .36 seconds/hour (smallest value)
+ *
+ *  .02 * (.36/3600) = 0.000002 A/H consumption per hour
+ *
+ *  Coin Cell battery is .11 A/H rechargable or .23 A/H disposable
+ *
+ *  .23 / .000002 == 115000 hours == 4791 days (13 years)
+ *
+ *  .11 / .000002 == 55000  hours == 2291 days (6 years)
+ *
+ * Fanout Capability:
+ *
+ *   This represents the maximum fan out for the sensor. This
+ *   is the maximum number of child nodes it can support when
+ *   acting as a gateway.
+ *
+ *   Nodes not capable of being a gateway have a fan out count
+ *   of zero.
+ *
+ * Buffer Depth:
+ *
+ * This is the number of buffers per fan out device the node
+ * is capable of storing if acting as a gateway.
+ *
+ * A node with buffer depth == 1 has a buffer for each node
+ * offered in its fanout capability. 
+ *
+ ***************************************************************************
+ *
+ *      Discovery Acknowledge
+ *
+ *      Sent a hub to a sensor to assign its network parameters
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  1  1  0  1 | 0xFD
+ *      --------------------------
+ *  1   | 1  1  1  1  1  1  1  0 | To node address (unassigned 0xFE)
+ *      --------------------------
+ *  2   | 0  0  0  0  0  0  0  0 | From node address (Hub 0x00)
+ *      --------------------------
+ *  3   | Serial Number Byte 0   | Byte 0 of node serial number
+ *      --------------------------
+ *  4   | Serial Number Byte 1   | 
+ *      --------------------------
+ *  5   | Serial Number Byte 2   | 
+ *      --------------------------
+ *  6   | Serial Number Byte 3   | Byte 3 of node serial number
+ *      --------------------------
+ *  7   | Assigned NodeAddress   |
+ *      --------------------------
+ *  8   | Serial Number Byte 4   | Byte 4 of node serial number
+ *      --------------------------
+ *  9   | Serial Number Byte 5   | 
+ *      --------------------------
+ * 10   | Serial Number Byte 6   | 
+ *      --------------------------
+ * 11   | Serial Number Byte 7   | Byte 7 of node serial number
+ *      --------------------------
+ *
+ * Notes: 
+ *
+ * The Link layer must route the acknowledge to the proper requesting node.
+ *
+ * This could be done by broadcast, or a cache of which endpoint the Discovery
+ * message for the given serial number came in on.
+ *
+ * Since its a cache, a gateway can always resort to broadcast, or essentially
+ * a send on each of its child endpoints.
+ *
+ * The serial number allows nodes to reject assignment messages not intended
+ * for them.
+ *
+ * A gateway must forward discovery acknowledge messages to all of its
+ * child nodes according to its fan out. This may be avoided by nodes
+ * which have the memory to store which child node tree the serial
+ * number represents.
+ *
+ * Discovery acknowledge messages may only be passed down the network,
+ * not up or across to prevent network loops.
+ *
+ * A link layer assignment message may precede a Discovery Acknowledge
+ * message. This is network dependent.
+ *
+ ***************************************************************************
+ *
+ *      Message Acknowledge
+ *
+ *      Sent by a node to acknowledge receipt of a message.
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  1  1  0  0 | 0xFC
+ *      --------------------------
+ *  1   | x  x  x  x  x  x  x  x | To node address
+ *      --------------------------
+ *  2   | x  x  x  x  x  x  x  x | From node address
+ *      --------------------------
+ *  3   | 0  0  0  0  0  X  R  A | Acknowledge status
+ *      --------------------------
+ *  4   | x  x  x  x  x  x  x  x | Retry Time Byte 0
+ *      --------------------------
+ *  5   | x  x  x  x  x  x  x  x | Retry Time Byte 1
+ *      --------------------------
+ *  6   | x  x  x  x  x  x  x  x | Retry Time Byte 2
+ *      --------------------------
+ *  7   | x  x  x  x  x  x  x  x | Retry Time Byte 3
+ *      --------------------------
+ *  8   | x  x  x  x  x  x  x  x | Peer Clock Byte 0
+ *      --------------------------
+ *  9   | x  x  x  x  x  x  x  x | Peer Clock Byte 1
+ *      --------------------------
+ * 10   | x  x  x  x  x  x  x  x | Peer Clock Byte 2
+ *      --------------------------
+ * 12   | x  x  x  x  x  x  x  x | Peer Clock Byte 3
+ *      --------------------------
+ * 13   | x  x  x  x  x  x  x  x | 
+ *      --------------------------
+ * 14   | x  x  x  x  x  x  x  x | 
+ *      --------------------------
+ * 15   | x  x  x  x  x  x  x  x | 
+ *      --------------------------
+ *
+ * Notes:
+ *
+ *  This is not an application end to end acknowledge, or acknowledgement
+ *  that the target node address has received the message in any way.
+ *
+ *  It is a network layer message indicating that the next node has accepted
+ *  and buffered the message for eventual best effort forwarding, or it has
+ *  indicated in real time a status in which its not capable of doing so.
+ *
+ *  If its a retryable message, an estimated time is given in which to
+ *  retry which takes the gateways radio schedule into account.
+ *
+ *  In all replies the peer nodes clock value is shared to allow clocks
+ *  to more accurately synchronize their radio schedules.
+ *
+ *  Acknowledge Status:
+ *
+ *  A == Message accepted. This means the message has been queued, or passed
+ *       along. The node should not re-transmit the same message.
+ *
+ *  R == Retry the message. The retry time field contains the
+ *       amount of time till the next retry.
+ *
+ *       This is likely due to a lack of buffer space.
+ *
+ *  X == Message rejected, don't try and send it again.
+ *
+ * Retry Time:
+ *
+ *     Time in milliseconds till next retry.
+ *
+ *     This is a relative time to the peer clock
+ *     time provided.
+ *
+ * Peer Clock Time:
+ *
+ *     This is the clock counter value from the peer
+ *     node and is used to calibrate the radio schedules.
+ *
+ ***************************************************************************
+ *
+ *     Non-Accumulating Application Data Message
+ *
+ *     Sent by a node for an application message
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 0  0  0  0  0  0  0  1 | 0x01
+ *      --------------------------
+ *  1   | 0  0  0  0  0  0  0  0 | To node address (0x00 Hub)
+ *      --------------------------
+ *  2   | x  x  x  x  x  x  x  x | From node address
+ *      --------------------------
+ *  3   | x  x  x  x  x  x  x  x | Application Defined byte 0
+ *      --------------------------
+ *  4   |          ...           | Application Defined byte ...
+ *      --------------------------
+ * 31   | x  x  x  x  x  x  x  x | Application Defined byte 28
+ *      --------------------------
+ *
+ * Notes:
+ *
+ *  The non-accumulating application data message is buffered by
+ *  gateways in a non-lossy fashion.
+ *
+ *  If a gateway receives an application data message and its buffer
+ *  is full, it replies with an Acknowledge message with the A bit
+ *  clear and R bit set, and a schedule for when to retry.
+ *
+ *  It will not overwrite the buffer with another message of the same
+ *  type (Non-accumulating Application Data).
+ *
+ *  This type of message is useful to an application that is sending
+ *  events in which the occurance does not want to be lost or overwritten
+ *  by later events.
+ *
+ ***************************************************************************
+ *
+ *     Accumulating Application Data Message
+ *
+ *     Sent by a node for an application message
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 0  0  0  0  0  0  1  0 | 0x02
+ *      --------------------------
+ *  1   | 0  0  0  0  0  0  0  0 | To node address (0x00 Hub)
+ *      --------------------------
+ *  2   | x  x  x  x  x  x  x  x | From node address
+ *      --------------------------
+ *  3   | x  x  x  x  x  x  x  x | Application Defined byte 0
+ *      --------------------------
+ *  4   |          ...           | Application Defined byte ...
+ *      --------------------------
+ * 31   | x  x  x  x  x  x  x  x | Application Defined byte 28
+ *      --------------------------
+ *
+ * Notes:
+ *
+ *  The accumulating application data message is buffered by
+ *  gateways in a lossy fashion in which later messages of the
+ *  same time overwrite previous ones from the same node address.
+ *
+ *  If a gateway receives an lossy application data message and its buffer
+ *  is full, it overwrites the existing buffer entry with the latest message
+ *  from the node replies with an Acknowledge message with the A bit set.
+ *
+ *  It will overwrite the buffer with another message of the same
+ *  type (Accumulating Application Data).
+ *
+ *  This type of message is useful to an application that is updating
+ *  pure sensor readings in which the latest values are more relevant.
+ *
+ *
+ ***************************************************************************
+ *
+ * Link layer messages
+ *
+ *
+ * These link layer messages are specific to the Nordic nRf34L01+ radios.
+ *
+ * Other radios would have their own design as required as this link
+ * layer design it optimized for the operation modes and constraints
+ * of these radios.
+ *
+ * Design Space for nRf24L01+:
+ *
+ *   - 256 kb/s data rate is more resilient in a lossy environment and
+ *     has more range.
+ *
+ *   - 1 mb/s data rate is more energy efficient if data loss is not
+ *     a problem in the deployed environment.
+ *
+ *   - They have a programmable 5 byte link layer address.
+ *
+ *   - Unique link layer addresses are required to ensure wrong messages
+ *     are not received.
+ *
+ *   - RF channel assignments are used to avoid interference in a dense
+ *     network, or a 2.4Ghz environment with other radiators such as WiFi,
+ *     Bluetooth, microwave ovens, etc. (ISM band)
+ *
+ *   - The channel assignment must be in a legal range for the country
+ *     the sensor is deployed in.
+ *
+ *   - They have an efficient means of deploying in a small star
+ *     network configuration with a parent node and up to five (5)
+ *     child nodes.
+ *
+ *   - Restrictions exist for the addressing of the child nodes in which
+ *     they share the first four bytes with the parent.
+ *
+ *   - They support hardware retries, and hardware backoff/delay functions
+ *     on packet loss/interference. These features are more energy efficient
+ *     when deployed in the radio than in the host microcontroller.
+ *
+ *   - They support hardware ECC.
+ *
+ *   - They have a 13ma transmit, 16ma receive profile.
+ *
+ *   - They have adjustable power level which can be used in highly complex
+ *     networks to minimize interference.
+ *
+ *   - Lower power levels save energy. (Need to see how much)
+ *
+ * Initial Channel Assignment and data rate:
+ *
+ * For discovery, channel xxx at 256 kb/s data rate is used to
+ * maximize range. The choosen channel is legal world wide.
+ *
+ * Network operation messages may re-program the network for
+ * higher data rates and/or an alternate channel.
+ *
+ * Initial address assignment:
+ *
+ * The nRf24L01+ radios have a five (5) byte address.
+ *
+ * The first three bytes by default will be "MLO" (0x4D, 0x4C, 0x4F)
+ *
+ * Additional unique networks will either assign an alternate channel, or
+ * redefine the third byte "O". It's the responsibility of the upper level
+ * management software to reconfigure such networks, and ensure discovery
+ * assignments from node serial numbers are assigned to the proper network
+ * after configuration.
+ *
+ * The fourth byte will be a star number for a given nRf24L01+ supported
+ * star configuration. 0xFF is the default for discovery. After discovery this
+ * number will represent the node address of the parent in the star.
+ *
+ * The fifth byte will be the node address.
+ *
+ * This fits into the addressing model of the nRf24L01+ when it has up to
+ * five (5) child nodes. These child nodes share the first four bytes of their
+ * parent's radio address, with the single fifth byte assignable per node.
+ *
+ * By keeping this final byte address and the node address the same simplifies
+ * the understanding of the network.
+ *
+ * The discovery address will be 0x4D, 0x4C, 0x4F, 0xFF, 0xFF (MLO + 0xFF + 0xFF)
+ *
+ * Gateways need to re-program the addresses in their radios to receive
+ * discovery messages and to reply to discovery messages.
+ *
+ * Address Assignments:
+ *
+ * The default network name is "MLO".
+ *
+ * Devices in a star have a star number. This represents the
+ * node address of the parent/root of the star.
+ *
+ ***************************************************************************
+ *
+ *      Link Layer Address Assignment
+ *
+ *  The nRf24L01+ has a 32 byte maximum packet size. This is used
+ *  for its link level address assignments.
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  0  0  0  0 | Link Layer Message (0xF0)
+ *      --------------------------
+ *  1   | x  x  x  x  x  x  x  x | Target node address
+ *      --------------------------
+ *  2   | x  x  x  x  x  x  x  x | From node address
+ *      --------------------------
+ *  3   | 0  0  0  0  0  0  0  1 | Link Layer Message Type address assignment
+ *      --------------------------
+ *  4   | 0  0  0  0  0  0  0  0 | Flags
+ *      --------------------------
+ *  5   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 0
+ *      --------------------------
+ *  6   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 1
+ *      --------------------------
+ *  7   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 2
+ *      --------------------------
+ *  8   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 3
+ *      --------------------------
+ *  9   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 4
+ *      --------------------------
+ * 10   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 5
+ *      --------------------------
+ * 11   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 6
+ *      --------------------------
+ * 12   | x  x  x  x  x  x  x  x | Assigned Link Layer Address Byte 7
+ *      --------------------------
+ * 13   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 0
+ *      --------------------------
+ * 14   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 1
+ *      --------------------------
+ * 15   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 2
+ *      --------------------------
+ * 16   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 3
+ *      --------------------------
+ * 17   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 4
+ *      --------------------------
+ * 18   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 5
+ *      --------------------------
+ * 19   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 6
+ *      --------------------------
+ * 20   | x  x  x  x  x  x  x  x | Parent Link Layer Address Byte 7
+ *      --------------------------
+ * 21   | Serial Number Byte 0   | Byte 0 of node serial number
+ *      --------------------------
+ * 22   | Serial Number Byte 1   | 
+ *      --------------------------
+ * 23   | Serial Number Byte 2   | 
+ *      --------------------------
+ * 24   | Serial Number Byte 3   | Byte 3 of node serial number
+ *      --------------------------
+ * 25   | Serial Number Byte 4   | Byte 4 of node serial number
+ *      --------------------------
+ * 26   | Serial Number Byte 5   | 
+ *      --------------------------
+ * 27   | Serial Number Byte 6   | 
+ *      --------------------------
+ * 28   | Serial Number Byte 7   | Byte 7 of node serial number
+ *      --------------------------
+ * 29   |      Pad Byte 0        | 
+ *      --------------------------
+ * 30   |      Pad Byte 1        | 
+ *      --------------------------
+ * 31   |      Pad Byte 2        |  Maximum nRf24L01+ packet size
+ *      --------------------------
+ *
+ *  Notes:
+ *
+ *  Byte 3 is the link layer message type.
+ *
+ *  Target and From node addresses are not used in nRf24L01+ link layer
+ *  assignments.
+ *
+ *  Assigned Link Layer Address Bytes 0 - 5 are used in the nRf24L01+
+ *  link layer.
+ *
+ *  Parent link layer address Bytes 0 - 5 are used in the nRF24L01+
+ *
+ *  The serial number allows the receiving node to distinguish if
+ *  the link layer reply is for itself in a broadcast environment.
+ *
+ ***************************************************************************
+ */
+
+/*
+ ***************************************************************************
+ *
+ *      Link Layer Message Template
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  0  0  0  0 | Link Layer Message
+ *      --------------------------
+ *  1   | x  x  x  x  x  x  x  x | Target node address
+ *      --------------------------
+ *  2   | x  x  x  x  x  x  x  x | From node address
+ *      --------------------------
+ *  x   |  Link Layer Defined    | 
+ *      --------------------------
+ *
+ ***************************************************************************
+ */
+
+/*
+ ***************************************************************************
+ *
+ *      Management Layer Message Template
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  x  x  x  x | Management layer messages
+ *      --------------------------
+ *  1   | 0  0  0  0  0  0  0  0 | Target node address
+ *      --------------------------
+ *  2   | 1  1  1  1  1  1  1  0 | From node address
+ *      --------------------------
+ *  3   |                        | 
+ *      --------------------------
+ *  x   |                        | 
+ *      --------------------------
+ *
+ ***************************************************************************
+ */
+
+/*
+ ***************************************************************************
+ *
+ *      Template
+ *
+ *      Words
+ *
+ *        7  6  5  4  3  2  1  0
+ * Byte
+ *      --------------------------
+ *  0   | 1  1  1  1  1  1  0  1 | 0xFD
+ *      --------------------------
+ *  1   | x  x  x  x  x  x  x  x | To node address
+ *      --------------------------
+ *  2   | 0  0  0  0  0  0  0  0 | From node address (Hub 0x00)
+ *      --------------------------
+ *
+ ***************************************************************************
+ */
+
+Message Number Assignments:
+
+0xFF - Management Layer Message (Reserved)
+
+0xFE - Discovery
+
+0xFD - Discovery Acknowledge
+
+0xFC - Message Acknowledge
+
+0xF0 - Link Layer Message
+
+       Byte 3 == 0x00 -> Link Layer reserved.
+       Byte 3 == 0x01 -> Link Layer Address Assignment
+
+0x00 - Application Layer Message (Reserved)
+
+0x01 - Non-Accumulating Application Data Message
+
+0x02 - Accumulating Application Data Message
+
+Node Address Assignments:
+
+0x00 - Root or host node
+
+0x01 - Beginning of sensor node address range
+
+0xFE - End of sensor node address range
+
+0xFF - Discovery/broadcast
+
+TODO: 
+     - Routing

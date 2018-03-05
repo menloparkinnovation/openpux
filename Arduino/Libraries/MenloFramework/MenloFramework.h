@@ -1,4 +1,20 @@
 
+//
+// 05/30/2017
+//
+// Collect optional defines here that define code size
+//  - Note: turned them off on 05/30/2017.
+//
+
+// Libaries/Mirf/Mirf.cpp
+//#define DUMP_REGISTERS_ENABLED 1
+
+// Libraries/OS_nRF24L01/OS_nRF24L01.cpp
+//#define RDBG_PRINT_ENABLED 1
+
+// OS_nRF24L01.cpp (controls full Dweet)
+//#define RADIO_FULL_FUNCTION
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *

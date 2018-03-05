@@ -1,4 +1,16 @@
 
+//
+// TODO:
+//
+// 05/26/2016
+//
+// As a result of the ESP8266 port:
+//
+// block writes and commit of EEPROM.
+//
+// watchdog timer support.
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -30,6 +42,16 @@
 #ifndef MenloPlatform_h
 #define MenloPlatform_h
 
+//
+// BIG_MEM was introduced 03/06/2016 to allow additional options
+// in the core framework for the larger processors not as restricted
+// as an AtMega328.
+//
+// BIG_MEM essentially means more than 2K of RAM, 32K of flash.
+//
+// All of the Arms, x86, and Arduino "MEGA" series qualify.
+//
+
 #if defined(ARDUINO) && ARDUINO >= 100
 
 //
@@ -39,6 +61,7 @@
 // Arduino Due (ARM SAM) and family
 // RFDuino 32 bit ARM and BLE
 // Edison 32 Bit x86 and WiFi/BLE on Linux
+// Esp8266 with Arduino plugin.
 //
 
 // Main Arduino C++ include header for all projects
@@ -59,11 +82,25 @@
 // Processor/Board specific header/platform selection
 //
 
+#if defined(ESP8266)
+
+//
+// ESP8266 processor.
+//
+
+#define MENLO_ESP8266 1
+
+#include "MenloPlatformEsp8266.h"
+
+#else // ESP8266
+
 #if defined(TEENSYDUINO) && TEENSYDUINO == 123
 
 #define MENLO_BOARD_TEENSY31 1
 
 #include "MenloPlatformTeensy31.h"
+
+#define BIG_MEM 1
 
 #else
 #ifdef ARDUINO_ARCH_SAM
@@ -75,11 +112,28 @@
 // Arduino Due
 #define MENLO_BOARD_DUE  1
 
+#define BIG_MEM 1
+
 #include "MenloPlatformArm.h"
+
+// Code space strings "F(x)" macro is missing in Due
+#define F(string) string
 
 #else // ARDUINO_ARCH_SAM (Due)
 
-#ifdef NRF51_H // ARM  on Nordic Bluetooth chip
+#ifdef __RFduino__
+
+//
+// RFDuino: ARM  on Nordic Bluetooth chip
+//
+
+//
+// 03/13/2015 with Arduino 1.6.8 and RFDuino 1.6.6 add-in
+//
+// -DARDUINO_RFduino -DARDUINO_ARCH_RFDUINO -D__RFduino__
+//
+// Note: Only __RFduino__ is defined for application file builds.
+//
 
 //
 // RFduino leverages the Arduino Due's ARM build
@@ -94,6 +148,8 @@
 #define MENLO_BOARD_RFDUINO  1
 
 #include "MenloPlatformArm.h"
+
+#define BIG_MEM 1
 
 #elif defined(__ARDUINO_X86__) // X86 on Intel Edison
 
@@ -115,6 +171,8 @@
 
 #include "MenloPlatformX86.h"
 
+#define BIG_MEM 1
+
 #else // AtMega is the default after all others
 
 //
@@ -134,6 +192,13 @@
 
 #define MENLO_BOARD_UNO 1
 
+//
+// These have the smallest memory. This results in some
+// larger options not being compiled to save space.
+//
+// ATMega328
+#define BIG_MEM 0
+
 // Watchdog
 #include <avr/wdt.h>
 
@@ -152,8 +217,12 @@ void ResetWatchdog();
 #endif // else Atmega
 #endif // ARDUINO_ARCH_SAM
 #endif // defined(TEENSYDUINO) && TEENSYDUINO == 123
+#endif // defined(ESP8266)
 
 #elif defined(SPARK) // Non-Arduino platform
+
+// SparkCore is now Particle Core, Particle Photon, Particle Electron
+// SPARK_PLATFORM is now defined as well in the build environment.
 
 // ARM with WiFi, no Arduino (has compat lib)
 
@@ -171,9 +240,21 @@ void ResetWatchdog();
 
 #define MENLO_BOARD_SPARKCORE 1
 
+#define BIG_MEM 1
+
+// Requires PGM Routines
+#define REQUIRES_PGM_ROUTINES 1
+
+// This order is important since this brings in Arduino types such as uint8_t, etc.
 #include "MenloPlatformSparkCore.h"
 
-#endif // SPARK
+// EEPROM emulator, code space string routines, macros
+#include "MenloPlatformArm.h"
+
+// Milliseconds timer function
+#define GET_MILLISECONDS() millis()
+
+#endif // SPARK/Particle/Photon/Electron
 
 //
 // The following is compiled for all processors

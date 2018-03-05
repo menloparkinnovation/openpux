@@ -1,0 +1,92 @@
+
+New Configuration Design
+03/08/2016
+
+Move from a model with absolute allocations to allocation by a byte
+programm identifier.
+
+Each module/subsystem/program starts logically at "0", with its
+virtual configuration address being at its program identifier
+index.
+
+An allocation table compactly represents the mappings from program
+identifiers to allocation entries in the table.
+
+Build the per subsystem data checksum into the model with it
+at the begining.
+
+Build a default data provisioning and allocation model.
+
+The new model dynamically allocates EEPROM storage as subsystems
+initialize.
+
+Configuration entries use a subsystem or module identifier in the
+range from 0 - 254 (0x0 - 0xFE). This is an index into an allocation
+table.
+
+The allocation table is in the front of the storage area (address 0)
+and has the following format:
+
+The index table checksum is calculated across the header and all
+of the entry records represented in byte 0.
+
+Header has:
+
+byte 0 - number of entries
+byte 1 - flags, magic word "C" (0x43)
+
+byte 2 - index table checksum low
+byte 3 - index table checksum high
+
+The allocation table has a series of allocation records that
+follow the header, up to the number of entries indicated in
+byte 0.
+
+Each Entry record has:
+
+byte n   - programid/index value
+
+byte n+1 - size of entry. Could be shifted by 2, 4, 8, 16 depending on
+           size of EEPROM. For a 1024 byte EEPROM this is shifted by 2
+           (multipy by 4). This means a minimum entry is 4 bytes for a
+           subsystem. Ok since 2 bytes is checksum and this represents
+           2 bytes of useful data for the smallest subsystem block.
+
+byte n+2   Entry starting address low byte
+byte n+3   Entry starting address hight byte
+
+Data block are allocated from the top down to allow the index
+table to grow up. Once a new block would overlap with the entry
+table the storage is full.
+
+The data block always starts with the two byte checksum of
+the entry. The size comes from its entry table where the
+address was retrieved from.
+
+byte e+0 data block checksum low byte
+byte e+1 data block checmsum high byte
+
+Code will automatically (re) initialize the table header if its found to have
+an invalid checksum.
+
+Code will report entry not found for entries not present in the table.
+
+Separate code validates the checksum for a data block and an application
+can query the status of its data block.
+
+There is a provision for applications to initialize their data block
+the first time, and possibly provide initial data.
+
+Default initialization data is 0's.
+
+Not sure if higher level byte, word, long32, long64, string value
+routines should be provided due to code space concerns.
+
+A mechanism needs to be provided to build the allocated table and
+data blocks with default "factory data" that could be programmed into
+EEPROM during manufacturing programming without having to boot up
+and run the Dweet configuration for each subsystem.
+
+
+
+

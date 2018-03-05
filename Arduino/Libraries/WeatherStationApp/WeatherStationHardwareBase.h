@@ -61,6 +61,31 @@ struct WeatherStationSensors {
   int altitude;
 };
 
+//
+// This is an optional struct for architectures that
+// return full precision float values.
+//
+// This supports the SparkFun Photon WeatherShield
+//
+struct WeatherStationSensors_Float {
+
+  // Ints
+  int winddirection;
+  int windgustdirection;
+  int soilmoisture;
+
+  int freememory;
+
+  // Floats
+  float windspeed;
+  float windgust;
+  float rainfall;
+  float humidity;
+  float temperature;
+  float barometer;
+  float soiltemperature;
+};
+
 struct WeatherStationGpsData;
 
 //
@@ -69,7 +94,7 @@ struct WeatherStationGpsData;
 // In addition WeatherStationApp determines when environmental
 // readings are done.
 //
-class WeatherStationHardwareBase  {
+class WeatherStationHardwareBase : public MenloObject {
 
 public:
 
@@ -83,12 +108,22 @@ public:
     //
     // Example: streaming GPS data.
     //
+    // Returns the number of milliseconds till next call,
+    // or MAX_POLL_TIME if it does not need service due to
+    // being interrupt driven, etc.
+    //
     virtual unsigned long PollSensors() = 0;
 
     //
     // Application configured sensor read/averaging interval
     //
     // Example: Averaging WindSpeed over time
+    //
+    // Returns the number of milliseconds till next call,
+    // or MAX_POLL_TIME if it does not need service due to
+    // being interrupt driven, etc.
+    //
+    // This is called at a default 1 second interval.
     //
     virtual unsigned long SampleSensors() = 0;
 
@@ -101,6 +136,18 @@ public:
 
     // Sensor busy/available status
     virtual bool SensorBusy() = 0;
+
+    //
+    // Sensor readings
+    //
+    // Returns temporary structure whose values are
+    // valid till the next call.
+    //
+    // This is done to minimize stack memory.
+    //
+    virtual WeatherStationSensors_Float*  GetReadings_Float() {
+        return NULL;
+    }
 
     //
     // Sensor readings

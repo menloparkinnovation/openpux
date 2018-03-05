@@ -1,4 +1,12 @@
 
+//
+// 05/21/2017
+//
+// Cost is 4K code, few hundred bytes RAM.
+//
+// See MenloRadio.h for tradeoffs.
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -30,6 +38,14 @@
 #include "MenloRadio.h"
 
 #define MENLO_RADIO_SERIAL_OUTPUT_PACE (0) // 0
+
+//
+// MenloRadio.h defines the basic packet type
+// and type space allocations.
+//
+// This allows multiple projects/protocols to be active on the
+// same radios at the same time.
+//
 
 //
 // MenloRadioSerial sends unmodified 8 bit serial streams in the
@@ -141,8 +157,10 @@ struct MenloRadioSerialDataLineStatus {
 // the application program/sensor data handler.
 //
 
-#define MENLO_RADIO_SERIAL_SENSORDATA 0xC2
-#define MENLO_RADIO_SERIAL_SENSORDATA_OVERHEAD 1
+// TODO: removed. MenloRadio.h defines these baselines now.
+// Only MenloRadioSerialProtocol should have encodings here.
+//#define MENLO_RADIO_SERIAL_SENSORDATA 0xC2
+//#define MENLO_RADIO_SERIAL_SENSORDATA_OVERHEAD 1
 
 //
 // Note: By convention applications can use data[0]
@@ -154,17 +172,23 @@ struct MenloRadioSerialDataLineStatus {
 //
 
 // Libraries/LightHouseApp.h
-#define LIGHTHOUSE_SENSOR_DATA_SUBTYPE  0xFF
+// TODO: remove
+//#define LIGHTHOUSE_SENSOR_DATA_SUBTYPE  0xFF
 
 // Libraries/MotionLightApp.h
-#define MOTIONLIGHT_SENSOR_DATA_SUBTYPE 0xFE
+// TODO: remove
+//#define MOTIONLIGHT_SENSOR_DATA_SUBTYPE 0xFE
 
-struct MenloRadioSerialSensorData {
-  uint8_t type;
-  uint8_t data[31];
-};
+// Arduino/MenloRadioDweetSensor/SensorRadioHardware.h
+// TODO: remove
+//#define SENSOR_DATA_SUBTYPE      0xFD
 
-#define MENLO_RADIO_SERIAL_SENSORDATA_SIZE sizeof(struct MenloRadioSerialSensorData)
+// TODO: remove
+//struct MenloRadioSerialSensorData {
+//  uint8_t type;
+//  uint8_t data[31];
+//};
+//#define MENLO_RADIO_SERIAL_SENSORDATA_SIZE sizeof(struct MenloRadioSerialSensorData)
 
 //
 // MenloRadioSerial implements the same contracts

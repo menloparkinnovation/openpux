@@ -69,7 +69,7 @@ class DweetRadio : public MenloObject {
   // Returns 1 if the command is recognized.
   // Returns 0 if not.
   //
-  int ProcessRadioCommands(char* name, char* value);
+  int ProcessRadioCommands(MenloDweet* dweet, char* name, char* value);
 
   bool
   ProcessToRadioBuffer(
@@ -79,7 +79,7 @@ class DweetRadio : public MenloObject {
       uint8_t radioBufferLength
       );
 
-  int ProcessRadioTransmit(char* name, char* value);
+  int ProcessRadioTransmit(MenloDweet* dweet, char* name, char* value);
 
   void
   SendRadioReceiveDweet(
@@ -98,7 +98,10 @@ class DweetRadio : public MenloObject {
 
   //
   // DweetRadio is a client of MenloDweet for unhandled Dweet events
-  //  
+  // to support radio configuration Dweet messages.
+  //
+  // These messages may arrive on any transport.
+  //
 
   // Event registration
   MenloDweetEventRegistration m_dweetEvent;

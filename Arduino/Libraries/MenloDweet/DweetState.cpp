@@ -36,6 +36,34 @@
 
 #include <MenloConfigStore.h>
 
+//
+// Set this to trace errors. Useful for debugging new application configurations
+// or corrupted EEPROM storage values.
+//
+#if MASTER_DEBUG_DWEET_ERROR_PATHS // Set in MenloDebug.h
+#define DBG_PRINT_ERROR_ENABLED 1
+#else
+#define DBG_PRINT_ERROR_ENABLED 0
+#endif
+
+#if DBG_PRINT_ERROR_ENABLED
+#define eDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define eDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define eDBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define eDBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define eDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define eDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define eDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define eDBG_PRINT(x)
+#define eDBG_PRINT_STRING(x)
+#define eDBG_PRINT_HEX_STRING(x, l)
+#define eDBG_PRINT_HEX_STRING_NNL(x, l)
+#define eDBG_PRINT_NNL(x)
+#define eDBG_PRINT_INT(x)
+#define eDBG_PRINT_INT_NNL(x)
+#endif
+
 #define DBG_PRINT_ENABLED 0
 
 #if DBG_PRINT_ENABLED
@@ -155,6 +183,9 @@ MenloDweet::DispatchFunctionFromTable(
 // If it succeeeds the new setting is saved to the power on
 // persistent storage.
 //
+// ProcessAppCommands() // app.cpp
+//   ProcessStateCommandsTable() // DweetState.cpp
+//
 int
 MenloDweet::ProcessStateCommandsTable(
     struct StateSettingsParameters* parms
@@ -162,7 +193,6 @@ MenloDweet::ProcessStateCommandsTable(
 {
     PGM_P replyType;
     int index;
-    int dataIndex;
     bool isSet;
     int retVal;
     int configDataLength;
@@ -171,12 +201,32 @@ MenloDweet::ProcessStateCommandsTable(
     char* argumentBuffer = NULL;
     bool isSetConfig = false;
 
-    DBG_PRINT("DweetState dispatch state function");
+    xDBG_PRINT_NNL("DweetState dispatch state function from ");
 
+#if XDBG_PRINT_ENABLED
+    if (parms->ModuleName != NULL) {
+        MenloDebug::Print_P(parms->ModuleName);
+    }
+#endif
+
+#if MASTER_DEBUG_DETAILED_MEMORY_TRACING
     // Check memory
     MenloMemoryMonitor::CheckMemory(LineNumberBaseDweet + __LINE__);
+#endif
+
+    // "message": "ProcessStateCommandsTable: module="
+    SHIP_TRACE_STRING(TRACE_DWEET, 0x97, parms->ModuleName);
+
+    //  "message": "ProcessStateCommandsTable: name="
+    SHIP_TRACE_STRING(TRACE_DWEET, 0x99, parms->name);
+
+    // "message": "ProcessStateCommandsTable: value="
+    SHIP_TRACE_STRING(TRACE_DWEET, 0x98, parms->value);
 
     if (strncmp_P(parms->name, dweet_getconfig_string, 9) == 0)  {
+
+        // "message": "ProcessStateCommandsTable: GETCONFIG"
+        SHIP_TRACE(TRACE_DWEET, 0x26);
 
         //
         // GETCONFIG=
@@ -184,8 +234,9 @@ MenloDweet::ProcessStateCommandsTable(
         // Read from the persistent storage to return the power on
         // state setting.
         //
-        xDBG_PRINT("GETCONFIG table");
+        //xDBG_PRINT("GETCONFIG table");
 
+        // DweetConfig.cpp
         retVal = ProcessGetConfigCommandsTable(
             parms->stringTable,
             parms->indexTable,
@@ -208,7 +259,10 @@ MenloDweet::ProcessStateCommandsTable(
         // the permanent storage.
         //
 
-        xDBG_PRINT("SETCONFIG table");
+        // "message": "ProcessStateCommandsTable SETCONFIG"
+        SHIP_TRACE(TRACE_DWEET, 0x38);
+
+        xDBG_PRINT("SETCONFIG table1");
 
         isSet = true;
         isSetConfig = true;
@@ -230,16 +284,27 @@ MenloDweet::ProcessStateCommandsTable(
         // Fall through to further processing
     }
     else if (strncmp_P(parms->name, dweet_getstate_string, 8) == 0)  {
+
+        // "message": "ProcessStateCommandsTable: GETSTATE"
+        SHIP_TRACE(TRACE_DWEET, 0x28);
+
         // GETSTATE=VALUE
         isSet = false;
         replyType = dweet_getstate_string;
     }
     else if (strncmp_P(parms->name, dweet_setstate_string, 8) == 0)  {
+
+        // "message": "ProcessStateCommandsTable: SETSTATE"
+        SHIP_TRACE(TRACE_DWEET, 0x29);
+
         // SETSTATE=
         isSet = true;
         replyType = dweet_setstate_string;
     }
     else {
+        // "message": "ProcessStateCommandsTable: Not Recognized"
+        SHIP_TRACE(TRACE_DWEET, 0x30);
+
         // Continue looking for a handler
         return 0;
     }
@@ -249,18 +314,21 @@ MenloDweet::ProcessStateCommandsTable(
     // each active state request.
     //
 
-    xDBG_PRINT_NNL("name is ");
+    xDBG_PRINT_NNL("name ");
     xDBG_PRINT_STRING(parms->name);
 
-    xDBG_PRINT_NNL("value is ");
+    xDBG_PRINT_NNL("value ");
     xDBG_PRINT_STRING(parms->value);
 
-    // Look for the entry
+    // Look for the entry, in MenloDweet.cpp
     index = LookupStringPrefixTableIndex(parms->stringTable, parms->tableEntries, parms->value);
 
     if (index == (-1)) {
         // No matching entry, continue looking for a handler
-        xDBG_PRINT("statecommands no matching entry in table");
+        xDBG_PRINT("no entry");
+
+        // "message": "ProcessStateCommandsTable: No entry in table"
+        SHIP_TRACE(TRACE_DWEET, 0x23);
         return 0;
     }
 
@@ -272,10 +340,10 @@ MenloDweet::ProcessStateCommandsTable(
         //
         xDBG_PRINT("SetState ProcessItemAction");
 
-        xDBG_PRINT_NNL("name is ");
+        xDBG_PRINT_NNL("name ");
         xDBG_PRINT_STRING(parms->name);
 
-        xDBG_PRINT_NNL("value is ");
+        xDBG_PRINT_NNL("value ");
         xDBG_PRINT_STRING(parms->value);
 
         //
@@ -283,9 +351,16 @@ MenloDweet::ProcessStateCommandsTable(
         // once we know we have a match, which we did above with
         // LookupStringPrefixTableIndex()
         //
+        // NOTE: This modifies the buffer! The in place string is now
+        // modified and will fail calls which require parameters
+        // action the action value.
+        //
         if (ProcessItemAction(parms->value, &item, &argumentBuffer) == 0) {
 
-            xDBG_PRINT("ProcessItemAction error");
+            xDBG_PRINT("error");
+
+            // "message": "ProcessStateCommandsTable: ProcessItemAction error"
+            SHIP_TRACE(TRACE_DWEET, 0x24);
 
             // error, not item:action format
             SendDweetItemReplyType_P(
@@ -297,7 +372,9 @@ MenloDweet::ProcessStateCommandsTable(
             return 1;
         }
 
-        xDBG_PRINT("ProcessItemAction returned success");
+        // value becomes item, argumentBuffer
+        //xDBG_PRINT_NNL("ItemAction success value ");
+        //xDBG_PRINT_STRING(parms->value);
     }
     else {
         // value is the object being requested
@@ -307,13 +384,15 @@ MenloDweet::ProcessStateCommandsTable(
 
     configDataLength = pgm_read_word(&parms->sizeTable[index]);
 
-    xDBG_PRINT("calling function dispatch");
-
     //
     // Now dispatch to the right function handler
     //
 
+    //
     // DweetState.cpp
+    //
+    // Invoke the SetState handler function.
+    //
     retVal = MenloDweet::DispatchFunctionFromTable(
         parms->functionTable,
         parms->object,
@@ -330,7 +409,9 @@ MenloDweet::ProcessStateCommandsTable(
 
             //
             // Since we have split the value string into item:value
-            // we must pass the components on
+            // we must pass the components on.
+            //
+            // DweetConfig.cpp
             //
             retVal = ProcessSetConfigCommandsTable(
                 parms->stringTable,
@@ -345,9 +426,15 @@ MenloDweet::ProcessStateCommandsTable(
                 argumentBuffer
                 );
 
+              xDBG_PRINT_NNL("SetConfigRet ");
+              xDBG_PRINT_INT(retVal);
+
              // ProcessSetConfigCommandsTable sends the Dweet reply
              return retVal;
         }
+
+        // "message": "ProcessStateCommandsTable: SetState function failed retVal="
+        SHIP_TRACE_INT(TRACE_DWEET, 0x95, retVal);
 
         //
         // A SETSTATE function was specified, but it failed.
@@ -369,9 +456,10 @@ MenloDweet::ProcessStateCommandsTable(
         MenloUtility::UInt16ToHexBuffer(retVal, &errorBuffer[0]);
         errorBuffer[4] = '\0';
 
-        SendDweetItemReplyType_P(
+        SendDweetItemValueReplyType(
             replyType,
-            dweet_error_string,
+            dweet_error_string, // "_ERROR="
+            item,
             errorBuffer
             );
 
@@ -392,6 +480,79 @@ MenloDweet::ProcessStateCommandsTable(
 }
 
 //
+// This loads a default setting from the table for the given index
+//
+int
+MenloDweet::LoadDefaultSettingFromTable(
+    struct StateSettingsParameters* parms,
+    int index
+    )
+{
+#if DWEET_STATE_ENABLE_DEFAULT_TABLE_SUPPORT
+    int configDataIndex;
+    int configDataLength;
+    int defaultDataIndex;
+    int defaultTableIndex;
+    char* defaultDataPtr;
+    int retVal;
+
+    if (parms->defaultsTable == NULL) {
+        return 0;
+    }
+
+    // Get the configuration data index and length for the entry
+    configDataIndex = pgm_read_word(&parms->indexTable[index]);
+    configDataLength = pgm_read_word(&parms->sizeTable[index]);
+
+    //
+    // Lookup the data index in the defaults table and see if an entry
+    // has been provided.
+    //
+    // The defaults table is not in order to allow it to be sparse since
+    // not all values need an automatic default setting.
+    //
+    for (defaultTableIndex = 0;; defaultTableIndex++) {
+
+        defaultDataIndex =
+            pgm_read_word((const int*)(&parms->defaultsTable[defaultTableIndex].configIndex));
+
+        if (defaultDataIndex == 0) {
+            // No entry found in defaultsTable
+            return 0;
+        }
+
+        if (defaultDataIndex == index) {
+            break;
+        }
+    }
+
+    defaultDataPtr =
+        (char*)pgm_read_ptr((const int*)(&parms->defaultsTable[defaultTableIndex].address));
+
+    // Get the config data from the default data pointer
+    memcpy(&parms->workingBuffer[0], defaultDataPtr, configDataLength);
+
+    ConfigStore.ProcessConfigBufferForValidChars(&parms->workingBuffer[0], configDataLength);
+
+    parms->workingBuffer[configDataLength] = '\0';
+
+    // Now try and set it on the object using the SETSTATE function
+    retVal = MenloDweet::DispatchFunctionFromTable(
+        parms->functionTable,
+        parms->object,
+        index,
+        parms->workingBuffer,
+        configDataLength,
+        true
+        );
+
+    return retVal;
+#else
+    return 0;
+#endif
+}
+
+//
 // Load configuration settings re-using CONFIG and STATE commands
 // tables of an application module.
 //
@@ -405,7 +566,13 @@ MenloDweet::LoadConfigurationSettingsTable(
     int configDataLength;
     int retVal;
     bool result;
+    bool useDefaults = false;
     int cachedError = 0;
+
+    xDBG_PRINT("LoadConfigurationSettingsTable entered");
+
+    //  "message": "Loading configurations settings for module="
+    SHIP_TRACE_STRING(TRACE_ALWAYS, 0x84, parms->ModuleName);
 
     //
     // First validate the checksum range
@@ -417,12 +584,30 @@ MenloDweet::LoadConfigurationSettingsTable(
         );
 
     if (!result) {
+
+        // "message": "Checksum failure loading configuration settings"
+        SHIP_TRACE(TRACE_ALWAYS, 0x35);
+
         xDBG_PRINT("Load Config Settings checksum range invalid");
-        return DWEET_INVALID_CHECKSUM;
+
+        // If a defaults table is not supplied, nothing more we can do
+        if (parms->defaultsTable == NULL) {
+            return DWEET_INVALID_CHECKSUM;
+        }
+
+        // We load default settings supplied by the caller
+        useDefaults = true;
+
+        // "message": "Using caller supplied defaults"
+        SHIP_TRACE(TRACE_ALWAYS, 0x34);
+
+        xDBG_PRINT("Load Config Settings using caller supplied defaults");
     }
     else {
         xDBG_PRINT("Load Config Settings checksum is valid");
     }
+
+    xDBG_PRINT("Looking up table entries");
 
     //
     // For each entry read its CONFIG index + size and
@@ -441,20 +626,27 @@ MenloDweet::LoadConfigurationSettingsTable(
             continue;
         }
 
-        // Get the config data
-        ConfigStore.ReadConfig(configDataIndex, (uint8_t*)&parms->workingBuffer[0], configDataLength);
-        ConfigStore.ProcessConfigBufferForValidChars(&parms->workingBuffer[0], configDataLength);
-        parms->workingBuffer[configDataLength] = '\0';
+        if (useDefaults) {
+            // Checksum is invalid, use the defaults where available
+            retVal = LoadDefaultSettingFromTable(parms, index);
+        }
+        else {
 
-        // Now try and set it on the object using the SETSTATE function
-        retVal = MenloDweet::DispatchFunctionFromTable(
-            parms->functionTable,
-            parms->object,
-            index,
-            parms->workingBuffer,
-            configDataLength,
-            true
-            );
+            // Get the config data
+            ConfigStore.ReadConfig(configDataIndex, (uint8_t*)&parms->workingBuffer[0], configDataLength);
+            ConfigStore.ProcessConfigBufferForValidChars(&parms->workingBuffer[0], configDataLength);
+            parms->workingBuffer[configDataLength] = '\0';
+
+            // Now try and set it on the object using the SETSTATE function
+            retVal = MenloDweet::DispatchFunctionFromTable(
+                parms->functionTable,
+                parms->object,
+                index,
+                parms->workingBuffer,
+                configDataLength,
+                true
+                );
+        }
 
 #if XDBG_PRINT_ENABLED
         if (retVal == DWEET_NO_FUNCTION) {
@@ -482,20 +674,50 @@ MenloDweet::LoadConfigurationSettingsTable(
             // The application class then rejects the out of range value.
             //
 
-            MenloDebug::PrintNoNewline(F("Config Error "));
-            MenloDebug::PrintHexNoNewline(retVal);
-            MenloDebug::PrintNoNewline(F(" index "));
-            MenloDebug::PrintHex(index);
+            // "message": "Set Property Failure loading configuration settings module="
+            SHIP_TRACE_STRING(TRACE_ALWAYS, 0x82, parms->ModuleName);
+
+            // "message": "Set Property failure CONFIG_STORE index="
+            SHIP_TRACE_INT(TRACE_ALWAYS, 0x85, index);
+
+            // "message": "Set Property Failure loading configuration settings result="
+            SHIP_TRACE_INT(TRACE_ALWAYS, 0x83, retVal);
+
+            eDBG_PRINT_NNL("Config Error ");
+            eDBG_PRINT_INT_NNL(retVal);
+            eDBG_PRINT_NNL(" index ");
+            eDBG_PRINT_INT_NNL(index);
 
             // To help with diagnostics see if there is a string table entry
             if (parms->stringTable != NULL) {
                 p = (PGM_P)MenloPlatform::GetStringPointerFromStringArray((char**)parms->stringTable, index);
                 if (p != NULL) {
-                   MenloDebug::PrintNoNewline(F("name "));
-                   MenloDebug::Print_P(p); // need to be PGM_P
+                   eDBG_PRINT_NNL("name ");
+                   eDBG_PRINT_STRING(p); // need to be PGM_P
+
+                   // "message": "Set Property failure property name="
+                   SHIP_TRACE_STRING(TRACE_ALWAYS, 0x86, p);
                 }
             }
+
+            //
+            // If a defaults table is supplied, and we are not already
+            // using it, attempt to use the default setting.
+            //
+            if (!useDefaults && (parms->defaultsTable != NULL)) {
+                retVal = LoadDefaultSettingFromTable(parms, index);
+
+                // "message": "Loaded Set Property parameter from default table entry"
+                SHIP_TRACE(TRACE_ALWAYS, 0x36);
+
+                xDBG_PRINT("Loaded parameter from defaults table");
+            }
         }
+    }
+
+    if (cachedError == 0) {
+        // "message": "All settings are valid and loaded successfully."
+        SHIP_TRACE(TRACE_ALWAYS, 0x37);
     }
 
     return cachedError;

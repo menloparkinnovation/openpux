@@ -96,6 +96,8 @@
 //   dweet GETSTATE=BLINKINTERVAL
 //
 
+const char blink_module_name_string[] PROGMEM = "DweetBlinkApp";
+
 const char dweet_blinkinterval_string[] PROGMEM = "BLINKINTERVAL";
 
 const char* const blink_string_table[] PROGMEM =
@@ -179,6 +181,9 @@ DweetBlinkApp::Initialize(BlinkConfiguration* config)
 
     m_config = *config;
 
+    // Setup Dweet handler callback
+    DweetApp::Initialize();
+
     // Setup a TimerEvent for the requested period
     m_timerEvent.object = this;
     m_timerEvent.method = (MenloEventMethod)&DweetBlinkApp::TimerEvent;
@@ -196,8 +201,10 @@ DweetBlinkApp::Initialize(BlinkConfiguration* config)
     // Note: "this" is used to refer to this class (DweetBlink) since
     // the handlers are on this class.
     //
+    parms.ModuleName = (PGM_P)blink_module_name_string;
     parms.stringTable = (PGM_P)blink_string_table;
     parms.functionTable = (PGM_P)blink_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = blink_index_table;
     parms.sizeTable = blink_size_table;
@@ -304,8 +311,10 @@ DweetBlinkApp::ProcessAppCommands(MenloDweet* dweet, char* name, char* value)
     // class instance as this function performs the specialization
     // required for DweetSensor
     //
+    parms.ModuleName = (PGM_P)blink_module_name_string;
     parms.stringTable = (PGM_P)blink_string_table;
     parms.functionTable = (PGM_P)blink_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = blink_index_table;
     parms.sizeTable = blink_size_table;

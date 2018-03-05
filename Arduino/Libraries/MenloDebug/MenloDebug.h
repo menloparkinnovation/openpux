@@ -1,4 +1,14 @@
 
+//
+// Where various internal debug settings may be set
+//
+// This is generally left on since its cost is small and list corruptions
+// can be very hard to debug.
+//
+// MenloDispatchObject.h
+// #define MENLOEVENT_DEBUG 1
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -30,6 +40,28 @@
 #ifndef MenloDebug_h
 #define MenloDebug_h
 
+//
+// Master Debug for on off
+//
+// This is really an effort to enable controlled debugging
+// for small memory controllers.
+//
+
+#if defined(ESP8266)
+// Debugging ESP8266 platform
+#define MASTER_DEBUG 1
+#define MASTER_DEBUG_DETAILED 1
+#define MASTER_DEBUG_DETAILED_MEMORY_TRACING 1
+#define MASTER_DEBUG_ERROR_PATHS 1
+#define MASTER_DEBUG_DWEET_ERROR_PATHS 1
+#else
+#define MASTER_DEBUG 0
+#define MASTER_DEBUG_DETAILED 0
+#define MASTER_DEBUG_DETAILED_MEMORY_TRACING 0
+#define MASTER_DEBUG_ERROR_PATHS 0
+#define MASTER_DEBUG_DWEET_ERROR_PATHS 0
+#endif
+
 #include <MenloPlatform.h>
 #include <MenloObject.h>
 #include <MenloNMEA0183Stream.h>
@@ -55,53 +87,72 @@
 // assertion mechanisms in various libraries.
 //
 
-#if MENLO_ATMEGA
-extern "C" void MenloDebug_AssertionFailed(const __FlashStringHelper* file, int line);
-#else
-extern "C" void MenloDebug_AssertionFailed(const char* file, int line);
-#endif
+extern "C" void MenloDebug_AssertionFailed(int module, int line);
 
 #define DEBUG_FALSE 0
 
 #if DEBUG
-#define DEBUG_ASSERT(x) { if(!(x)) MenloDebug_AssertionFailed(F(__FILE__), __LINE__); }
+#define DEBUG_ASSERT(module, x) { if(!(x)) MenloDebug_AssertionFailed(module, __LINE__); }
 #else
 #define DEBUG_ASSERT(x) 
 #endif
 
 //
-// This includes the entire source path in the generated object
-// code in the text section of the microcontroller. Not a good idea.
+// Tracing Defines
 //
-// SHIP_ASSERT is always present, and will result in a halt
-//#define DEBUG_SHIP_ASSERT(x) { if(!(x)) MenloDebug_AssertionFailed(F(__FILE__), __LINE__); }
 
-// 8 bit trace message
-#define DEBUG_MAKE_TRACE_MSG(ModuleId, MessageId) (ModuleId | (MessageId & 0x0F))
+#define TRACE_ALWAYS    0x01
+#define TRACE_FRAMEWORK 0x02
+#define TRACE_DWEET     0x04
+#define TRACE_RADIO     0x08
+#define TRACE_APP1      0x10
+#define TRACE_APP2      0x20
+#define TRACE_APP3      0x40
+#define TRACE_APP4      0x80
 
-// 16 bit trace message
-#define DEBUG_MAKE_TRACE_MSG16(ModuleId, MessageId) ((uint8_t)((ModuleId << 8) | (MessageId & 0xFF)))
+//
+// These tracing templates are selectively compiled based
+// on the size of the target platform, and/or project
+// settings.
+//
+// This allows general field tracing to be available for
+// platforms that can afford the small overhead, but compile
+// out for large projects on tiny platforms that may use
+// very selective tracing.
+//
+
+#if BIG_MEM
+#define SHIP_TRACE_ENABLED 1
+#else
+#define SHIP_TRACE_ENABLED 0
+#endif
+
+#if SHIP_TRACE_ENABLED
+#define SHIP_TRACE(l, x)           (MenloDebug::Trace(l, x))
+#define SHIP_TRACE_STRING(l, x, d) (MenloDebug::TraceString(l, x, d))
+#define SHIP_TRACE_INT(l, x, d)    (MenloDebug::TraceInt(l, x, d))
+#define SHIP_TRACE_LONG(l, x, d)   (MenloDebug::TraceLong(l, x, d))
+#define SHIP_TRACE_BYTE(l, x, d)   (MenloDebug::TraceByte(l, x, d))
+#else
+#define SHIP_TRACE(l, x)
+#define SHIP_TRACE_STRING(l, x, d)
+#define SHIP_TRACE_INT(l, x, d)
+#define SHIP_TRACE_LONG(l, x, d)
+#define SHIP_TRACE_BYTE(l, x, d)
+#endif
 
 //
-// This allows a string to be associated with a message.
+// Note: Introducing Trace() calls adds 1622 bytes to AtMega328
+// builds. If all Trace() calls are not compiled by conditional
+// macro's this code is not referenced.
 //
-// The message string is not compiled into the target microcontroller
-// to save space.
+// Core tracing is on by default when BIG_MEM is defined, as these
+// are represented as larger program space microcontrollers that
+// can support field tracing.
 //
-// Other processing could be used to scan a code base and build
-// a dictionary of message id's to debug strings.
+// Smaller applications can support field tracing with AtMega328's
+// by accounting for this overhead.
 //
-// Could also use compiler specific debug data emit functions
-// which provide the information in the program symbols, but
-// not in the code downloaded to the target.
-//
-// DEBUG_TRACE_MESSAGE(MODULE_MENLODEBUG, 1, "MessageString");
-//
-#define DEBUG_TRACE_MSG16(ModuleId, MessageId, Message)   \
-  DebugPrintHex(DEBUG_MAKE_TRACE_MSG(ModuleId, MessageId))
-
-// Encode two error codes into upper/lower nibbles of a byte
-#define DEBUG_MAKE_ERROR_CODE(Major, Minor) ((uint8_t)((Major << 4) | (Minor & 0x0F)))
 
 // Debug class that can be called from C++
 class MenloDebug : MenloObject {
@@ -116,39 +167,12 @@ class MenloDebug : MenloObject {
   // Allows setting a Prefix in front of new messages
   static void SetPrefix(char*);
 
-  // Single byte trace for smallest overhead
-  static void Trace(uint8_t);
-
-  //
-  // Trace is used to log a word which is composed of a module ID
-  // and a module specific message ID.
-  // 
-  static void Trace16(unsigned short);
-
-  static uint8_t GetTraceLevel();
-
-  static void SetTraceLevel(uint8_t level);
-
   //
   // Set synchronous output. Useful when a hard to debug
   // crash or reset occurs before debugging messages have
   // been sent out the serial port.
   //
   static uint8_t SetSynchronous(uint8_t syncOn);
-
-  //
-  // This variant of Trace allows a line to be output/recorded.
-  //
-#if defined(MENLO_ATMEGA)
-  static void TracePrint(unsigned short, const __FlashStringHelper*);
-#endif
-  static void TracePrint(unsigned short, char*);
-
-  //
-  // Record/output hex number
-  //
-  static void TraceHex(unsigned short traceID, int number);
-  static void TracePrintHex(unsigned short traceID, int number);
 
   // Panic with code. No return.
   static void Panic(uint8_t code);
@@ -172,8 +196,37 @@ class MenloDebug : MenloObject {
   // Note: This is deprecated and replace by the C++
   // overload version of Print(int), PrintNoNewline(int)
   //
+
+  //
+  // Note: This always prints 16 bits "0000" even if the
+  // architecture is a 32 bit int.
+  //
   static size_t PrintHex(int number);
   static size_t PrintHexNoNewline(int number);
+
+  //
+  // This will print the natural size of a pointer as int16 or int32
+  //
+  static size_t PrintHexPtr(void* ptr);
+  static size_t PrintHexPtrNoNewline(void* ptr);
+
+  static size_t PrintHexByte(uint8_t number);
+  static size_t PrintHexByteNoNewline(uint8_t number);
+
+//
+// Always defined now. AtMega328 will not link routines into your
+// code unless called on Arduino IDE 1.6.8 or later.
+//
+// Costs 174 bytes of code space for first call/reference, none
+// after, except for call site invoke code.
+//
+//#if defined(MENLO_BOARD_RFDUINO) || (MENLO_ESP8266) || (MENLO_ARM32)
+  //
+  // For 32 bit architectures print the natural value in one call.
+  //
+  static size_t PrintHex32(uint32_t number);
+  static size_t PrintHex32NoNewline(uint32_t number);
+//#endif
 
   //
   // Print a hex string representing binary data.
@@ -201,7 +254,8 @@ class MenloDebug : MenloObject {
 
   static size_t Print(const char* string, int value);
 
-#if defined(MENLO_ATMEGA)
+#if defined(MENLO_ATMEGA) || (MENLO_BOARD_RFDUINO) || (MENLO_ESP8266) || (MENLO_ARM32)
+
   //
   // AtMega's with Harvard architecture and little RAM place
   // most strings in code space, which must be accessed using
@@ -211,10 +265,21 @@ class MenloDebug : MenloObject {
   //
   // Print(F("string"));
   //
+  // Other architectures even though ARM or Tensilica based provide
+  // similar routines for accessing strings in flash memory, which
+  // may have restrictions compared to general load/store instructions.
+  //
+
   static size_t Print_P(PGM_P);
   static size_t Print(const __FlashStringHelper*);
   static size_t Print(const __FlashStringHelper* string, int value);
   static size_t PrintNoNewline(const __FlashStringHelper* string);
+
+  static void TraceString(uint8_t level, uint8_t code, PGM_P string);
+#else
+  static size_t Print_P(PGM_P s) {
+      return MenloDebug::Print(s);
+  }
 #endif
 
   //
@@ -226,6 +291,53 @@ class MenloDebug : MenloObject {
   // such as signing onto WiFi, etc.
   //
   static void FlashCode(uint8_t code);
+
+  //
+  // Tracing
+  //
+  // Note: update tracecodes.json to indicate mapping from trace
+  // code and data to its message and data type.
+  //
+
+  static uint8_t GetTraceMask();
+
+  static void SetTraceMask(uint8_t mask);
+
+  static void SetTraceBuffer(uint8_t* buffer, int size, int index);
+
+  static void GetTraceBuffer(uint8_t** buffer, int* size, int* index);
+
+  static void SetFormatBuffer(uint8_t* formatBuffer, int formatBufferSize);
+
+  static void GetFormatBuffer(uint8_t** buffer, int* size);
+
+  //
+  // The upper bit of the trace code is reserved to indicate
+  // whether it has data (bit 7 == 1) or not (bit 7 == 0).
+  //
+  // This is set automatically by the trace routines so don't use
+  // it in your modules or message confusion may result.
+  //
+
+  //
+  // Simplest trace with just a code
+  //
+  static void Trace(uint8_t level, uint8_t code);
+
+  // Trace with a buffer and size
+  static void Trace(uint8_t level, uint8_t code, uint8_t size, uint8_t* data);
+
+  //
+  // Trace functions with simple data
+  //
+
+  static void TraceByte(uint8_t level, uint8_t code, uint8_t data);
+  static void TraceInt(uint8_t level, uint8_t code, int data);
+  static void TraceLong(uint8_t level, uint8_t code, unsigned long data);
+  static void TraceString(uint8_t level, uint8_t code, char* data);
+
+  // TraceMask is public to allow efficient macro testing
+  static uint8_t TraceMask;
 
  protected:
 
@@ -246,9 +358,6 @@ class MenloDebug : MenloObject {
   // Data
   //
 
-  // TraceLevel
-  static uint8_t TraceLevel;
-
   // Synchronous
   static uint8_t Synchronous;
 
@@ -257,6 +366,13 @@ class MenloDebug : MenloObject {
 
   // Display loops during a panic before reset
   static uint8_t PanicDisplayLoops;
+
+  static uint8_t* TraceBuffer;
+  static int TraceBufferSize;
+  static int TraceBufferIndex;
+
+  static uint8_t* TraceFormatBuffer;
+  static int TraceFormatBufferSize;
 
   //
   // If a prefix is configured its placed in front of each

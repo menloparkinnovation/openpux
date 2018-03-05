@@ -129,6 +129,10 @@ LightHouseApp::Initialize(
     // Setup the environmental monitoring timer
     //
 
+    //
+    // It's critical that this is not zero or you will have a timer loop
+    // which will cause a watchdog reset
+    //
     m_monitorInterval = LIGHTHOUSEAPP_DEFAULT_INTERVAL;
 
     // Standard args
@@ -155,7 +159,9 @@ LightHouseApp::Initialize(
     m_lightHouse.RegisterLightStateEvent(&m_lightStateEvent);
 
     // Timer
-    m_timer.RegisterIntervalTimer(&m_timerEvent);
+    if (m_timerEvent.m_interval != 0) {
+        m_timer.RegisterIntervalTimer(&m_timerEvent);
+    }
 
     // Indicate we are initialized and can perform async processing
     m_initialized = true;
@@ -299,7 +305,16 @@ LightHouseApp::SetLightSequence(char* strArg, bool persistent)
             strArg[size - 1] = '\0';
         }
 
+        //
+        // LightHouseConfig.h
+        //
         ConfigStore.WriteConfig(LIGHT_SEQUENCE, (uint8_t*)strArg, size + 1);
+
+        ConfigStore.CalculateAndStoreCheckSumRange(
+            LIGHT_CHECKSUM,
+            LIGHT_CHECKSUM_BEGIN,
+            LIGHT_CHECKSUM_END - LIGHT_CHECKSUM_BEGIN
+            );
     }
 
     return true;
@@ -317,10 +332,10 @@ LightHouseApp::LightStateEvent(MenloDispatchObject* sender, MenloEventArgs* even
   // If the light on level is greater than current ambient light
   // we do not enable the light
   //
-  // Values 0x0 and 0xFFFF are always enabled due to either no
+  // Values 0x0 and (-1) are always enabled due to either no
   // sensor, or not being initialized in the EEPROM.
   //
-  if ((m_lightOnLevel == 0xFFFF) ||
+  if ((m_lightOnLevel == (-1)) ||
       (m_lightOnLevel == 0) ||
       (m_lightLevel < m_lightOnLevel)) {
 
@@ -367,8 +382,8 @@ LightHouseApp::TimerEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs
 	    // Queue a radio sensor update packet if configured
 	    //
 
-	    data.type = LIGHTHOUSE_SENSOR_DATA_PACKET;
-            data.subType = LIGHTHOUSE_SENSOR_DATA_SUBTYPE;
+	    data.type = MENLO_RADIO_SENSOR_DATA;
+            data.flags = MENLO_RADIO_APPLICATION_LIGHT_HOUSE;
 
 	    data.light = sensors.lightIntensity;
 	    data.battery = sensors.battery;
@@ -474,15 +489,19 @@ LightHouseApp::SensorUpdateRate(uint16_t* value, bool isSet)
     //
 
     if (m_initialized) {
+
         // Unregister our current timer
         xDBG_PRINT("SENSORRATE Unregistering timer");
-        m_timer.UnregisterIntervalTimer(&m_timerEvent);
+
+        if (m_timer.IsTimerRegistered(&m_timerEvent)) {
+            m_timer.UnregisterIntervalTimer(&m_timerEvent);
+        }
     }
 
     // Update interval
     m_timerEvent.m_interval = m_monitorInterval;
 
-    if (m_initialized) {
+    if (m_initialized && (m_timerEvent.m_interval != 0)) {
         // Re-register timer
         xDBG_PRINT("SENSORRATE Re-registering timer");
         m_timer.RegisterIntervalTimer(&m_timerEvent);

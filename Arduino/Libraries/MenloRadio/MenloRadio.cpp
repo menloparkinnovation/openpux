@@ -31,7 +31,7 @@
 #include <alloca.h>
 
 //
-// Include Menlo Debug library support
+// MenloFramework
 //
 #include <MenloPlatform.h>
 #include <MenloUtility.h>
@@ -162,7 +162,7 @@ MenloRadio::Poll()
   // radio for receive data.
   //
   if (m_eventList.HasListeners() && ReceiveDataReady()) {
-       m_radioActivity = true; // Indicate activity to the power time
+       m_radioActivity = true; // Indicate activity to the power timer
        m_receiveEventSignaled = true;
   }
 
@@ -475,6 +475,7 @@ MenloRadio::ProcessAttentionSend()
     uint8_t* buf = (uint8_t*)alloca(GetPacketSize());
 
     // Verify we did not overflow the stack here with alloca()
+    // Values are in MenloPanicCodes.h
     MenloMemoryMonitor::CheckMemory(LineNumberBaseMenloRadio + __LINE__);
 
     if (!m_sendRadioAttention) return;

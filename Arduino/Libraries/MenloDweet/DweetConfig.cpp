@@ -30,10 +30,28 @@
 #include "MenloPlatform.h"
 #include "MenloPower.h"
 #include "MenloDebug.h"
+#include "MenloMemoryMonitor.h"
 #include "MenloNMEA0183.h"
 #include "MenloDweet.h"
 
 #include <MenloConfigStore.h>
+
+// Debug tracing for development
+#define DBG_TRACE_ENABLED 0
+
+#if DBG_TRACE_ENABLED
+#define DBG_TRACE(l, x)           (MenloDebug::Trace(l, x))
+#define DBG_TRACE_STRING(l, x, d) (MenloDebug::TraceString(l, x, d))
+#define DBG_TRACE_INT(l, x, d)    (MenloDebug::TraceInt(l, x, d))
+#define DBG_TRACE_LONG(l, x, d)   (MenloDebug::TraceLong(l, x, d))
+#define DBG_TRACE_BYTE(l, x, d)   (MenloDebug::TraceByte(l, x, d))
+#else
+#define DBG_TRACE(l, x)
+#define DBG_TRACE_STRING(l, x, d)
+#define DBG_TRACE_INT(l, x, d)
+#define DBG_TRACE_LONG(l, x, d)
+#define DBG_TRACE_BYTE(l, x, d)
+#endif
 
 #define DBG_PRINT_ENABLED 0
 
@@ -78,6 +96,8 @@
 //
 // Strings are declared once and re-used to save program space
 //
+const char config_module_name_string[] PROGMEM = "DweetConfig";
+
 const char dweet_model_string[] PROGMEM = "MODEL";
 const char dweet_name_string[] PROGMEM = "NAME";
 const char dweet_serial_string[] PROGMEM = "SERIAL";
@@ -281,9 +301,10 @@ MenloDweet::ProcessBuiltInCommands(char* name, char* value)
     // up to the configured length.
     //
 
+    parms.ModuleName = (PGM_P)config_module_name_string;
     parms.stringTable = (PGM_P)config_string_table;
-    //parms.functionTable = (PGM_P)NULL; // No function table
     parms.functionTable = (PGM_P)config_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = config_index_table;
     parms.sizeTable = config_size_table;
@@ -332,6 +353,7 @@ MenloDweet::ProcessGetConfigCommandsTable(
     }
 
     // Look for the entry
+    // MenloDweet.cpp
     index = LookupStringPrefixTableIndex(configTable, tableEntries, value);
     if (index == (-1)) {
         // No matching entry, continue looking for a handler
@@ -401,12 +423,18 @@ MenloDweet::ProcessSetConfigCommandsTable(
     char* action               // action/value such as 01
     )
 {
-    PGM_P p;
     int index;
-    int length;
     int configDataIndex;
     int configDataLength;
     int bufferLength;
+
+#if MASTER_DEBUG_DETAILED_MEMORY_TRACING
+    //
+    // Suspect overflows here on Uno, but not a lot of memory left.
+    // This call takes 10 bytes on AtMega328.
+    //
+    MenloMemoryMonitor::CheckMemory(__LINE__);
+#endif
 
     // SETCONFIG=
     if (strncmp_P(name, dweet_setconfig_string, 9) != 0)  {
@@ -414,24 +442,28 @@ MenloDweet::ProcessSetConfigCommandsTable(
         return 0;
     }
 
-    xDBG_PRINT_NNL("SETCONFIG value is ");
-    xDBG_PRINT_STRING(value);
+    xDBG_PRINT_NNL("SETCONFIG item is ");
+    xDBG_PRINT_STRING(item);
 
     // Look for the entry
     index = LookupStringPrefixTableIndex(configTable, tableEntries, item);
     if (index == (-1)) {
         xDBG_PRINT("SETCONFIG no table entry");
         // No matching entry, continue looking for a handler
+
+        // "message": "ProcessSetConfigCommandsTable: No SETCONFIG entry in table"
+        SHIP_TRACE(TRACE_DWEET, 0x20);
         return 0;
     }
 
+    // Debug code
     // MenloPlatform.h
-    p = (PGM_P)MenloPlatform::GetStringPointerFromStringArray((char**)configTable, index);
-
-    length = strlen_P(p);
-
-    xDBG_PRINT_NNL("length is ");
-    xDBG_PRINT_INT(length);
+    //int length;
+    //PGM_P p;
+    //p = (PGM_P)MenloPlatform::GetStringPointerFromStringArray((char**)configTable, index);
+    //length = strlen_P(p);
+    //xDBG_PRINT_NNL("length is ");
+    //xDBG_PRINT_INT(length);
 
     configDataIndex = pgm_read_word(&indexTable[index]);
     configDataLength = pgm_read_word(&sizeTable[index]);
@@ -443,6 +475,8 @@ MenloDweet::ProcessSetConfigCommandsTable(
     if ((configDataIndex == 0) || (configDataLength == 0)) {
         // We matched on the string, but did not handle. Allow app override.
         xDBG_PRINT("SETCONFIG no config data index or length");
+        // "message": "ProcessSetConfigCommandsTable: No GET/SET CONFIG supported for entry"
+        SHIP_TRACE(TRACE_DWEET, 0x21);
         return 0;
     }
 
@@ -457,7 +491,10 @@ MenloDweet::ProcessSetConfigCommandsTable(
     // Don't let invalid config chars be written to the store
     if (ConfigStore.ConfigBufferHasInvalidChars(action, bufferLength)) {
 
-        xDBG_PRINT("SETCONFIG buffer has invalid config chars");
+        MenloDebug::Print(F("SETCONFIG invalid chars"));
+
+        // "message": "ProcessSetConfigCommandsTable: SETCONFIG has invalid chars"
+        SHIP_TRACE(TRACE_DWEET, 0x22);
 
         SendDweetItemValueReplyType(
             dweet_setconfig_string,
@@ -466,6 +503,7 @@ MenloDweet::ProcessSetConfigCommandsTable(
             action
             );
 
+        // Handled
         return 1;
     }
 

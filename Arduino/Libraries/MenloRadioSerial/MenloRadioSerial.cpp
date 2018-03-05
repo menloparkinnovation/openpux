@@ -1,4 +1,12 @@
 
+//
+// 05/21/2017
+//
+// Cost is 4K code, few hundred bytes RAM.
+//
+// See MenloRadio.h for tradeoffs.
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -179,8 +187,11 @@ MenloRadioSerial::EnableReceive(bool value)
 
       //
       // This is kind of a hack since we don't subclass MenloObject
-      // due to subclassing Stream. But only the pointer value is
-      // used here. No MenloObject fields or methods are referenced.
+      // due to subclassing Arduino Stream to get Arduino serial port
+      // semantics.
+      //
+      // But only the pointer value is used here.
+      // No MenloObject fields or methods are referenced.
       //
       m_radioEvent.object = (MenloObject*)this;
 
@@ -529,13 +540,22 @@ MenloRadioSerial::ReceiveDataIndication(uint8_t* buf, uint8_t bufSize)
   }
 
   //
-  // Upper packet type bits set means its a sub-type
+  // Upper bits == 0xC0 means an extended packet type
+  // with the lower 5 bits defining it.
   //
-  if (PACKET_TYPE_MASK(buf[0]) == PACKET_TYPE) {
+  // The type mask macro's must be used to ensure the encoding
+  // of the sequence bit (5) is not included in the comparison.
+  //
+  if (PACKET_TYPE_MASK(buf[0]) == PACKET_TYPE_EXTENDED) {
 
+      //
+      // Lower 5 subtypes bits == 0x01 is link control
+      //
       if (PACKET_SUBTYPE_MASK(buf[0] == MENLO_RADIO_LINKCONTROL)) {
 
+          //
           // Link control packet
+          //
 
           if (buf[1] & RADIO_LINKCONTROL_SYNC) {
 	      //
@@ -545,18 +565,6 @@ MenloRadioSerial::ReceiveDataIndication(uint8_t* buf, uint8_t bufSize)
               //
 	      RDBG_PRINT("Radio sync received");
           }
-      }
-      else if (PACKET_SUBTYPE_MASK(buf[0] == MENLO_RADIO_SERIAL_SENSORDATA)) {
-
-        //
-	// Right now we do nothing with receive of sensor data. This is
-	// handled just by the gateway today.
-        //
-        // Note: The GCC compiler appears to be smart enough to leave
-	// this dead if out. Its still here to validate the macro
-	// expansion which can be used by other modules.
-        //
-        RDBG_PRINT("Radio sensor data received");
       }
       else {
           RDBG_PRINT("RS not packet");

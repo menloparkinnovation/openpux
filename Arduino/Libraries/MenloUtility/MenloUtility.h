@@ -60,6 +60,15 @@ class MenloUtility {
   static void UInt8ToHexBuffer(uint8_t c, char* buffer);
 
   //
+  // Convert buffer of binary data to an ASCII hex buffer
+  // that is ASCII null ('\0') terminated.
+  //
+  // Note: buffer must be (2*size) + 1 to accommodate
+  // the '\0' terminator. *** YOU HAVE BEEN WARNED ***
+  //
+  static void UInt8ToHexBuffer(uint8_t* data, int size, char* buffer);
+
+  //
   // Convert uint16_t to four ASCII hex digits
   // The buffer takes four characters and is not NULL terminated
   //

@@ -99,35 +99,11 @@ DweetSerialApp::Initialize(DweetSerialAppConfiguration* config)
     ResetWatchdog();
 
     //
-    // Setup our event handlers for each transport
-    //
-    m_serialDweetEvent.object = this;
-    m_serialDweetEvent.method = (MenloEventMethod)&DweetSerialApp::DweetEvent;
-
-    //
-    // Set our application object which will be invoked when
-    // Dweet's arrive. This must be done before registering
-    // any event handlers.
-    //
-    m_dweetApp = config->dweetApp;
-
-    //
     // Initialize Dweet with the NMEA0183 handler over hardware Serial 0
     //
     m_dweetSerialChannel.Initialize(&Serial, m_dweetPrefix);
 
-    //
-    // Register our Dweet event handler on serial
-    //
-    m_dweetSerialChannel.RegisterUnhandledDweetEvent(&m_serialDweetEvent);
-
     ResetWatchdog();
-
-    // Initialize Arduino commands on the serial interface
-    //m_dweetArduino.Initialize(&m_dweetSerialChannel);
-
-    // Initialize Debug commands on the serial interface
-    //m_dweetDebug.Initialize(&m_dweetSerialChannel);
 
     //
     // We check the memory monitor at the end of initialization
@@ -136,39 +112,4 @@ DweetSerialApp::Initialize(DweetSerialAppConfiguration* config)
     MenloMemoryMonitor::CheckMemory(LineNumberBaseDweetSerialApp + __LINE__);
 
     return 0;
-}
-
-//
-//
-// This event is a listener for Dweets to see if any are targeted
-// to this module.
-//
-// This allows composition of Dweet handlers through registered events
-// vrs. class relationships.
-//
-// This may be invoked by multiple transports since the common function
-// is used in all Dweet transport event registrations for this module.
-//
-unsigned long
-DweetSerialApp::DweetEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
-{
-    MenloDweetEventArgs* dweetArgs = (MenloDweetEventArgs*)eventArgs;
-
-    // Check memory
-    MenloMemoryMonitor::CheckMemory(LineNumberBaseDweetSerialApp + __LINE__);
-
-    DBG_PRINT("DweetSerialApp DweetEvent");
-
-    if (m_dweetApp->ProcessAppCommands(
-            dweetArgs->dweet, dweetArgs->name, dweetArgs->value) == 0) {
-
-        // Not handled
-        DBG_PRINT("DweetSerialApp DweetEvent NOT HANDLED");
-        return MAX_POLL_TIME;
-    }
-    else {
-        // handled
-        DBG_PRINT("DweetSerialApp DweetEvent WAS HANDLED");
-        return 0;
-    }
 }

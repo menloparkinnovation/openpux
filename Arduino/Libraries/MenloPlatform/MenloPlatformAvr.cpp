@@ -36,16 +36,79 @@
 // maintainable.
 //
 
+//
+// Experimental feature
+//
+// Note: Something in the Arduino environment is already claiming
+// this vector.
+//
+#define WATCHDOG_INTERRUPT_ENABLED 0
+
 #if MENLO_ATMEGA
 
-void ResetWatchdog()
+#if WATCHDOG_INTERRUPT_ENABLED
+
+// Program counter size differs from AtMega328 and "Mega" with large code space.
+#if defined(__AVR_ATmega2560__)
+#define PROGRAM_COUNTER_SIZE 3 // size in bytes
+#else
+#define PROGRAM_COUNTER_SIZE 2 // size in bytes
+#endif
+
+//
+// Capture the PC when the watchdog interrupt goes off
+//
+// Note: byte order is reversed on AtMega's
+//
+unsigned long g_watchdogPC = 0;
+
+//
+// This is invoked by the watchdog interrupt which can be
+// used as an early warning
+//
+// Symbol for linking is:
+//
+// __vector_6
+//
+ISR(WDT_vect, ISR_NAKED)
 {
-  wdt_reset(); // Tell watchdog we are still alive
+    register uint8_t* stackptr;
+
+    // get stack pointer
+    stackptr = (uint8_t*)SP;
+
+    // AVR ISR's have the return address just above the current SP
+    stackptr++;
+
+    // Capture the previous PC that got interrupted
+    memcpy(&g_watchdogPC, stackptr, PROGRAM_COUNTER_SIZE);
+
+    //
+    // TODO: Write diagnostics to the EEPROM to have the error PC value
+    // survive the reset
+    //
+    // MenloConfigStore.h
+    // EEPROM_DIAGNOSTICS_ERROR_CODE
+    // EEPROM_DIAGNOSTICS_ERROR_PC
+    // EEPROM_DIAGNOSTICS_ERROR_WATCHDOG
+    //
 }
+
+#endif // WATCHDOG_INTERRUPT_ENABLED
 
 void EnableWatchdog()
 {
   wdt_enable(WDTO_8S);
+
+#if WATCHDOG_INTERRUPT_ENABLED
+  // Enable Watchdog ISR
+  WDTCSR |= _BV(WDIE);
+#endif
+}
+
+void ResetWatchdog()
+{
+  wdt_reset(); // Tell watchdog we are still alive
 }
 
 //

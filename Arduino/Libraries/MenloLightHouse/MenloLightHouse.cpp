@@ -28,6 +28,40 @@
 #include <MenloMemoryMonitor.h>
 #include <MenloLightHouse.h>
 
+#define DBG_PRINT_ENABLED 0
+
+#if DBG_PRINT_ENABLED
+#define DBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define DBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define DBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define DBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define DBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define DBG_PRINT(x)
+#define DBG_PRINT_NNL(x)
+#define DBG_PRINT_INT(x)
+#define DBG_PRINT_INT_NNL(x)
+#endif
+
+//
+// Allows selective print when debugging but just placing
+// an "x" in front of what you want output.
+//
+#define XDBG_PRINT_ENABLED 0
+
+#if XDBG_PRINT_ENABLED
+#define xDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define xDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define xDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define xDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define xDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define xDBG_PRINT(x)
+#define xDBG_PRINT_NNL(x)
+#define xDBG_PRINT_INT(x)
+#define xDBG_PRINT_INT_NNL(x)
+#endif
+
 MenloLightHouse::MenloLightHouse()
 {
   m_sequence = NULL;
@@ -124,6 +158,8 @@ MenloLightHouse::Poll()
 unsigned long
 MenloLightHouse::TimerEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
 {
+  xDBG_PRINT("MenloLightHouse::TimerEvent");
+
   // Check memory
   MenloMemoryMonitor::CheckMemory(__LINE__);
 

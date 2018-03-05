@@ -64,7 +64,7 @@
 //
 
 // TOP_INDEX is defined in MenloConfigStore.h
-#define APP_STORAGE_BASE_INDEX TOP_INDEX
+#define APP_STORAGE_BASE_INDEX WEATHER_MODULE_BASE_INDEX
 
 #define WEATHER_INTERVAL_INDEX        APP_STORAGE_BASE_INDEX
 #define WEATHER_INTERVAL_SIZE         9 // 00000000'\0'
@@ -91,6 +91,8 @@
 // The first saved value is the start of the Weather checksum range
 #define WEATHER_CHECKSUM_BEGIN         WEATHER_INTERVAL_INDEX
 #define WEATHER_CHECKSUM_SIZE          2
+
+// 46 bytes 03/06/2016
 
 // End of range for Weather checksum is the start of the checksum storage location
 #define WEATHER_CHECKSUM_END  WEATHER_CHECKSUM
@@ -301,11 +303,6 @@ private:
     //
     //               Typical periods would be 1-30 seconds.
     // 
-
-    //
-    // Dweet channel support over serial.
-    //
-    DweetSerialChannel m_dweetSerialChannel;
 
     // Dweet Serial Channel Event registration
     MenloDweetEventRegistration m_serialDweetEvent;

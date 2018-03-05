@@ -30,6 +30,50 @@
 #include <MenloMemoryMonitor.h>
 #include <MenloTimer.h>
 
+#define DBG_PRINT_ENABLED 0
+
+#if DBG_PRINT_ENABLED
+#define DBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define DBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define DBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define DBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define DBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define DBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define DBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define DBG_PRINT(x)
+#define DBG_PRINT_STRING(x)
+#define DBG_PRINT_HEX_STRING(x, l)
+#define DBG_PRINT_HEX_STRING_NNL(x, l)
+#define DBG_PRINT_NNL(x)
+#define DBG_PRINT_INT(x)
+#define DBG_PRINT_INT_NNL(x)
+#endif
+
+//
+// Allows selective print when debugging but just placing
+// an "x" in front of what you want output.
+//
+#define XDBG_PRINT_ENABLED 0
+
+#if XDBG_PRINT_ENABLED
+#define xDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define xDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define xDBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define xDBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define xDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define xDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define xDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define xDBG_PRINT(x)
+#define xDBG_PRINT_STRING(x)
+#define xDBG_PRINT_HEX_STRING(x, l)
+#define xDBG_PRINT_HEX_STRING_NNL(x, l)
+#define xDBG_PRINT_NNL(x)
+#define xDBG_PRINT_INT(x)
+#define xDBG_PRINT_INT_NNL(x)
+#endif
+
 MenloTimer::MenloTimer()
 {
   // Default timer interval
@@ -56,6 +100,8 @@ MenloTimer::DispatchSingleEvent(
     MenloEventRegistration* event
     )
 {
+  xDBG_PRINT("MenloTimer::DispatchSingleEvent");
+
   // Invoke base event dispatcher
   return m_timerList.DispatchSingleEvent(sender, eventArgs, event);
 }

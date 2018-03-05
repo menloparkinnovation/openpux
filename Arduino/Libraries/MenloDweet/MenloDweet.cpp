@@ -79,6 +79,33 @@
 #define xDBG_PRINT_INT_NNL(x)
 #endif
 
+#define ZDBG_PRINT_ENABLED 0
+
+#if ZDBG_PRINT_ENABLED
+#define zDBG_PRINT(x)         (MenloDebug::Print(F(x)))
+#define zDBG_PRINT_STRING(x)  (MenloDebug::Print(x))
+#define zDBG_PRINT_HEX_STRING(x, l)  (MenloDebug::PrintHexString(x, l))
+#define zDBG_PRINT_HEX_STRING_NNL(x, l)  (MenloDebug::PrintHexStringNoNewline(x, l))
+#define zDBG_PRINT_NNL(x)     (MenloDebug::PrintNoNewline(F(x)))
+#define zDBG_PRINT_INT(x)     (MenloDebug::PrintHex(x))
+#define zDBG_PRINT_INT_NNL(x) (MenloDebug::PrintHexNoNewline(x))
+#else
+#define zDBG_PRINT(x)
+#define zDBG_PRINT_STRING(x)
+#define zDBG_PRINT_HEX_STRING(x, l)
+#define zDBG_PRINT_HEX_STRING_NNL(x, l)
+#define zDBG_PRINT_NNL(x)
+#define zDBG_PRINT_INT(x)
+#define zDBG_PRINT_INT_NNL(x)
+#endif
+
+//
+// These are static to allow global registrations of DWEET
+// and NMEA0183 events.
+//
+MenloEvent MenloDweet::s_eventList;
+MenloEvent MenloDweet::s_nmeaEventList;
+
 MenloDweet::MenloDweet()
 {
   m_ignoreChecksumErrors = false;
@@ -105,6 +132,18 @@ MenloDweet::Initialize(MenloNMEA0183* nmea, Stream* port)
   return 0;
 }
 
+size_t
+MenloDweet::WritePort(const uint8_t *buffer, size_t size)
+{
+    //
+    // Caller is expected to override this function if m_port == NULL
+    // at initialize.
+    //
+    // Note: Saving the test and return value saves 10 bytes on AtMega328
+    //
+    return m_port->write(buffer, size);
+}
+
 //
 // Invoked from ProcessUnrecognizedCommand()
 //
@@ -125,7 +164,8 @@ MenloDweet::EmitUnhandledDweetEvent(char* name, char* value)
 
   DBG_PRINT("MenloDweet: Emitting Unhandled Event");
 
-  if (!m_eventList.HasListeners()) {
+  if (!s_eventList.HasListeners()) {
+    SHIP_TRACE(TRACE_DWEET, 0x33);
     DBG_PRINT("MenloDweet: No listeners");
     return 0; // no handlers registered
   }
@@ -151,7 +191,17 @@ MenloDweet::EmitUnhandledDweetEvent(char* name, char* value)
   //                 are responsible for what it means for any common
   //                 I/O buffers used.
   //
-  pollInterval = m_eventList.DispatchEvents(this, &eventArgs);
+  // Note: All registered handlers are visited, even if one handles it
+  // early on. This is because the MenloEvent dispatch code always visits
+  // every registered entry in the list, and the individual modules
+  // configuration tables determine which module handles any given
+  // Dweet event.
+  //
+  // Because of this any module that starts processing an event
+  // and modifies the buffer in place to separate item, action, value
+  // damages the buffer for future events.
+  //
+  pollInterval = s_eventList.DispatchEvents(this, &eventArgs);
   if (pollInterval == 0) {
     DBG_PRINT("MenloDweet: identified handler");
     return 1; // One or more identified as a handler
@@ -163,18 +213,18 @@ MenloDweet::EmitUnhandledDweetEvent(char* name, char* value)
 }
 
 void
-MenloDweet::RegisterUnhandledDweetEvent(MenloDweetEventRegistration* callback)
+MenloDweet::RegisterGlobalUnhandledDweetEvent(MenloDweetEventRegistration* callback)
 {
   // Add to event list
-  m_eventList.Register(callback);
+  s_eventList.Register(callback);
   return;
 }
 
 void
-MenloDweet::RegisterNMEAMessageEvent(MenloNMEAMessageEventRegistration* callback)
+MenloDweet::RegisterGlobalNMEAMessageEvent(MenloNMEAMessageEventRegistration* callback)
 {
   // Add to event list
-  m_nmeaEventList.Register(callback);
+  s_nmeaEventList.Register(callback);
   return;
 }
 
@@ -184,7 +234,12 @@ MenloDweet::RegisterNMEAMessageEvent(MenloNMEAMessageEventRegistration* callback
 // This is the raw set of characters ending with '\n' which indicates
 // a possble NMEA 0183 message.
 //
-// Called from DweetSerialChannel.cpp, ProcessSerialInput()
+// Called from channel handlers such as:
+//   DweetSerialChannel.cpp, ProcessSerialInput()
+//   DweetParticleChannel.cpp, DweetReceived()
+//
+// A return value of 0 means the Dweet message was not recognized
+// and processed by any of the application listeners or subsystems.
 //
 int
 MenloDweet::DispatchMessage(char* buffer, int length)
@@ -249,7 +304,7 @@ MenloDweet::EmitNMEAMessageEvent(char* prefix, char* cmds, char* buffer)
     unsigned long pollInterval;
     MenloNMEAMessageEventArgs eventArgs;
 
-    if (!m_nmeaEventList.HasListeners()) {
+    if (!s_nmeaEventList.HasListeners()) {
         DBG_PRINT("MenloDweet: No listeners for NMEA Message Event");
         return 0; // no handlers registered
     }
@@ -262,7 +317,7 @@ MenloDweet::EmitNMEAMessageEvent(char* prefix, char* cmds, char* buffer)
     //
     // Send event to listeners
     //
-    pollInterval = m_nmeaEventList.DispatchEvents(this, &eventArgs);
+    pollInterval = s_nmeaEventList.DispatchEvents(this, &eventArgs);
 
     return pollInterval;
 }
@@ -288,17 +343,7 @@ MenloDweet::SendDweetCommand(char* command)
        return result;
     }
 
-    str = m_nmea->generateSentence();
-    if (str == NULL) {
-       return 0;
-    }
-
-    result = strlen(str);
-
-    // Send it out
-    m_port->write(str, result);
-
-    return 1;
+    return SendDweetCommandComplete();
 }
 
 int
@@ -322,15 +367,26 @@ MenloDweet::SendDweetCommand_P(PGM_P command)
        return result;
     }
 
+    return SendDweetCommandComplete();
+}
+
+int
+MenloDweet::SendDweetCommandComplete()
+{
+    char *str;
+    int length;
+
+    // Send the current NMEA 0183 sentence
     str = m_nmea->generateSentence();
     if (str == NULL) {
-        return 0;
+       DBG_PRINT("error generating NMEA0183 sentence");
+       return 0;
     }
 
-    result = strlen(str);
+    length = strlen(str);
 
     // Send it out
-    m_port->write(str, result);
+    WritePort((const uint8_t*)str, length);
 
     return 1;
 }
@@ -375,27 +431,6 @@ int
 MenloDweet::SendDweetCommandPart_P(PGM_P command)
 {
     return m_nmea->addCommandPart_P(command);
-}
-
-int
-MenloDweet::SendDweetCommandComplete()
-{
-    char *str;
-    int length;
-
-    // Send the current NMEA 0183 sentence
-    str = m_nmea->generateSentence();
-    if (str == NULL) {
-       DBG_PRINT("error generating NMEA0183 sentence");
-       return 0;
-    }
-
-    length = strlen(str);
-
-    // Send it out
-    m_port->write(str, length);
-
-    return 1;
 }
 
 //
@@ -504,12 +539,17 @@ MenloDweet::ProcessDweetCommand(char* cmd) {
 //
 //  str - value portion of Dweet command string
 //
-//  item - pointer to location to return NULL terminated action string
+//  item - pointer to location to return NULL terminated item string
 //
 //  action - pointer to location to return NULL terminated action string
 //
 //  Note: this modifies the buffer in place by setting '\0' string
 //  terminators.
+//
+//  LIGHTCOLOR:00.FF.00
+//
+//  item = "LIGHTCOLOR";
+//  action = "00.FF.00";
 //
 int
 MenloDweet::ProcessItemAction(char* str, char** item, char** action) {
@@ -687,7 +727,7 @@ MenloDweet::ProcessAppCommands(char* name, char* value)
 int
 MenloDweet::DispatchDweetCommand(char* name, char* value) {
 
-    xDBG_PRINT("MenloDweet DispatchDweetCommand");
+    xDBG_PRINT("DispatchDweetCommand");
 
     if (ProcessAppCommands(name, value)) {
        xDBG_PRINT("App handled");
@@ -696,7 +736,7 @@ MenloDweet::DispatchDweetCommand(char* name, char* value) {
        xDBG_PRINT("BuiltIn command handled");
     }
     else {
-        xDBG_PRINT("unhandled");
+       xDBG_PRINT("unhandled");
 
         // No one recognized it.
 
@@ -708,7 +748,7 @@ MenloDweet::DispatchDweetCommand(char* name, char* value) {
         return ProcessUnrecognizedCommand(name, value);
     }
     
-    // if anyone handled it it falls through
+    // if anyone handled it falls through to here.
     return 1;
 }
 
@@ -752,6 +792,19 @@ MenloDweet::ProcessUnrecognizedCommand(char* name, char* value)
 }
 
 //
+// Worker function try and save some code space.
+//
+// Actually increased code space by 14 bytes
+//
+//void
+//MenloDweet::SendDweetCommandPreamble_P(PGM_P command)
+//{
+//    SendDweetCommandStart();
+//    SendDweetCommandPart_P(command);
+//    SendDweetCommandPart_P(dweet_reply_string);
+//}
+
+//
 // Marshal a reply that has an address, data value.
 //
 // This routine uses a combination of code space and
@@ -770,6 +823,7 @@ MenloDweet::SendDweetItemValueReply(
     SendDweetCommandStart();
     SendDweetCommandPart_P(command);
     SendDweetCommandPart_P(dweet_reply_string);
+
     SendDweetCommandPart(item);
     SendDweetCommandPart_P(PSTR(":"));
     SendDweetCommandPart(value);
@@ -788,6 +842,7 @@ MenloDweet::SendDweetItemValueReply_P(
     SendDweetCommandStart();
     SendDweetCommandPart_P(command);
     SendDweetCommandPart_P(dweet_reply_string);
+
     SendDweetCommandPart_P(item);
     SendDweetCommandPart_P(PSTR(":"));
     SendDweetCommandPart(value);
@@ -806,6 +861,7 @@ MenloDweet::SendDweetItemValueReply_PP(
     SendDweetCommandStart();
     SendDweetCommandPart_P(command);
     SendDweetCommandPart_P(dweet_reply_string);
+
     SendDweetCommandPart_P(item);
     SendDweetCommandPart_P(PSTR(":"));
     SendDweetCommandPart_P(value);
@@ -823,6 +879,7 @@ MenloDweet::SendDweetItemReply(
     SendDweetCommandStart();
     SendDweetCommandPart_P(command);
     SendDweetCommandPart_P(dweet_reply_string);
+
     SendDweetCommandPart(item);
     SendDweetCommandComplete();
 
@@ -868,6 +925,7 @@ MenloDweet::SendDweetItemValueInt8StringReply(
     SendDweetCommandStart();
     SendDweetCommandPart_P(command);
     SendDweetCommandPart_P(dweet_reply_string);
+
     SendDweetCommandPart(item);
     SendDweetCommandPart_P(PSTR(":"));
 
@@ -1029,9 +1087,17 @@ MenloDweet::CalculateMaximumValueReply(
 //
 // Returns -1 for not found.
 //
-// The length of the string in the table determines
-// the comparison length. If the supplied compareString
-// is larger and the prefix matches, the index is returned.
+// compareString is of the format:
+//
+// "WINDSPEED"
+// "WINDSPEED:0A"
+// "WINDSPEEDEVENT:0A"
+//
+// "WINDSPEED" in a table should not match "WINDSPEEDEVENT", but
+// should match "WINDSPEED:0A" along with "WINDSPEED".
+//
+// So the length of the compare should be to either the '\0', or
+// the ':' separator.
 //
 int
 MenloDweet::LookupStringPrefixTableIndex(
@@ -1043,6 +1109,21 @@ MenloDweet::LookupStringPrefixTableIndex(
     PGM_P p;
     int index;
     int length;
+    int compareLength;
+    char* ptr;
+
+    //
+    // Get the effective length for compareString
+    //
+    ptr = strchr(compareString, ':');
+    if (ptr != NULL) {
+        // terminated by ':'
+        compareLength = ptr - compareString;
+    }
+    else {
+        // terminated by '\0'
+        compareLength = strlen(compareString);
+    }
 
     // Look for the entry
     for (index = 0; index < tableEntries; index++) {
@@ -1050,7 +1131,7 @@ MenloDweet::LookupStringPrefixTableIndex(
         // MenloPlatform.h
         p = (PGM_P)MenloPlatform::GetStringPointerFromStringArray((char**)stringTable, index);
 
-        // Get the length of the prefix string
+        // Get the length of the prefix string in the table
         length = strlen_P(p);
 
         xDBG_PRINT_NNL("prefixIndex compareString is ");
@@ -1059,12 +1140,16 @@ MenloDweet::LookupStringPrefixTableIndex(
         xDBG_PRINT_NNL("length is ");
         xDBG_PRINT_INT(length);
 
-        // If the prefix matches the input string, its a match
-        if (strncmp_P(compareString, p, length) == 0)  {
-            // found entry
-            xDBG_PRINT_NNL("prefixIndex entry found index is ");
-            xDBG_PRINT_INT(index);
-            return index;
+        // If different lengths, don't match
+        if (compareLength == length) {
+
+            // If the prefix matches the input string, its a match
+            if (strncmp_P(compareString, p, length) == 0)  {
+                // found entry
+                xDBG_PRINT_NNL("prefixIndex entry found index is ");
+                xDBG_PRINT_INT(index);
+                return index;
+            }
         }
     }
 

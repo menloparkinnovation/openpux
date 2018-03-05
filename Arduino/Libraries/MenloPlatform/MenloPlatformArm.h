@@ -30,9 +30,6 @@
 
 #if MENLO_ARM32
 
-// Code space strings "F(x)" macro is missing in the Due port
-#define F(string) string
-
 //
 // EEPROM emulation functions
 //
@@ -40,14 +37,33 @@
 uint8_t eeprom_read_byte(const uint8_t*);
 void eeprom_write_byte(const uint8_t*, uint8_t);
 
+#if MENLO_BOARD_RFDUINO
+// RFDuino has its own emulation for these routines
+#define strncmp_P strncmp
+#else
+
 //
 // Redefines for _P version of string routines
+//
+// Used by ARM DUE, etc.
 //
 
 #define strncmp_P strncmp
 
-#define Print_P Print
-
+// TODO: Does not build for SparkCore/ARM
+//#define Print_P Print
 #endif
+
+#if REQUIRES_PGM_ROUTINES
+
+#define PGM_P const char *
+
+uint16_t pgm_read_word(const int* ptr);
+
+void* pgm_read_ptr(const int* ptr);
+
+#endif // REQUIRES_EEPROM_ROUTINES
+
+#endif // MENLO_ARM32
 
 #endif // MenloPlatformArm_h

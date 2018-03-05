@@ -84,7 +84,8 @@ DweetDebug::Initialize(MenloDweet* dweet)
     //
     m_dweetEvent.object = this;
     m_dweetEvent.method = (MenloEventMethod)&DweetDebug::DweetEvent;
-    m_dweet->RegisterUnhandledDweetEvent(&m_dweetEvent);
+
+    MenloDweet::RegisterGlobalUnhandledDweetEvent(&m_dweetEvent);
 
     return 1;
 }
@@ -173,8 +174,8 @@ DweetDebug::ProcessDebugCommands(MenloDweet* dweet, char* name, char* value) {
             return 1;
         }
 
-        // value is tracelevel from 0-255
-        MenloDebug::SetTraceLevel((uint8_t)data);
+        // value is tracemask
+        MenloDebug::SetTraceMask((uint8_t)data);
 
         dweet->SendDweetItemReply(
             PSTR("SETTRACELEVEL"),

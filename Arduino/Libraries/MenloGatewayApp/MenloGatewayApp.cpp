@@ -95,6 +95,8 @@
 //   dweet GETSTATE=BLINKINTERVAL
 //
 
+const char gateway_module_name_string[] PROGMEM = "Gateway";
+
 const char dweet_blinkinterval_string[] PROGMEM = "BLINKINTERVAL";
 
 const char* const gateway_string_table[] PROGMEM =
@@ -122,7 +124,7 @@ PROGMEM const int gateway_size_table[] =
 
 //
 // Decode the interval which is up to 8 ASCII hex characters
-// representing the 32 bit interval.
+// representing the 32 bit interval in milliseconds.
 //
 int
 MenloGatewayApp::Interval(char* buf, int size, bool isSet)
@@ -149,7 +151,7 @@ MenloGatewayApp::Interval(char* buf, int size, bool isSet)
 
         m_timerEvent.m_interval = m_config.interval;
 
-        // Re-register timer not zero
+        // Re-register timer if not zero
         if (m_timerEvent.m_interval != 0) {
             m_timer.RegisterIntervalTimer(&m_timerEvent);
         }
@@ -198,8 +200,10 @@ MenloGatewayApp::Initialize(MenloGatewayConfiguration* config)
     // Note: "this" is used to refer to this class (DweetBlink) since
     // the handlers are on this class.
     //
+    parms.ModuleName = (PGM_P)gateway_module_name_string;
     parms.stringTable = (PGM_P)gateway_string_table;
     parms.functionTable = (PGM_P)gateway_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = gateway_index_table;
     parms.sizeTable = gateway_size_table;
@@ -235,7 +239,7 @@ MenloGatewayApp::Initialize(MenloGatewayConfiguration* config)
             // corrupted value.
             //
 
-            MenloDebug::Print(F("MenloGateway Stored settings are invalid"));
+            MenloDebug::Print(F("MenloGateway A stored property setting is invalid"));
         }
     }
     else {
@@ -310,8 +314,10 @@ MenloGatewayApp::ProcessAppCommands(MenloDweet* dweet, char* name, char* value)
     // class instance as this function performs the specialization
     // required for DweetSensor
     //
+    parms.ModuleName = (PGM_P)gateway_module_name_string;
     parms.stringTable = (PGM_P)gateway_string_table;
     parms.functionTable = (PGM_P)gateway_function_table;
+    parms.defaultsTable = NULL;
     parms.object =  this;
     parms.indexTable = gateway_index_table;
     parms.sizeTable = gateway_size_table;

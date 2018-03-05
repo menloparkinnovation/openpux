@@ -76,6 +76,12 @@ public:
     // Application command dispatcher. Invoked from DweetEvent
     // handler when Dweet's arrive for app to examine.
     //
+    // Returns 0 to mean the command was not recognized or processed
+    // and to continue searching for a handler.
+    //
+    // Return 1 if the command was processed an it should not continue
+    // looking for a handler.
+    //
     virtual int ProcessAppCommands(MenloDweet* dweet, char* name, char* value);
 
     //

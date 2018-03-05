@@ -1,4 +1,17 @@
 
+//
+// 05/30/2016
+//
+// This class is tried specifically to the Nordic nRF24L01+ support
+// on Arduino platforms.
+//
+// The new class DweetRadioSerialTransport.h allows generic use of
+// any radio through the MenloRadio* and DweetRadio* interfaces.
+//
+// The new class should be used for new projects. This class is kept in
+// place until all existing projects have migrated over.
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -127,10 +140,10 @@ DweetRadioSerialApp::Initialize(DweetRadioSerialAppConfiguration* config)
     //
     // Setup our event handlers for the radio serial transport
     //
-    m_radioSerialDweetEvent.object = this;
+    //m_radioSerialDweetEvent.object = this;
 
     // We use the common DweetEvent from our parent class DweetSerialApp
-    m_radioSerialDweetEvent.method = (MenloEventMethod)&DweetSerialApp::DweetEvent;
+    //m_radioSerialDweetEvent.method = (MenloEventMethod)&DweetSerialApp::DweetEvent;
 
     //
     // Initialize the radio.
@@ -207,13 +220,14 @@ DweetRadioSerialApp::Initialize(DweetRadioSerialAppConfiguration* config)
         //
         // Register our Dweet event handler on serial
         //
-        m_dweetRadioSerialChannel.RegisterUnhandledDweetEvent(&m_radioSerialDweetEvent);
+        //MenloDweet::RegisterGlobalUnhandledDweetEvent(&m_radioSerialDweetEvent);
 
         // Enable its radio receive events
         m_radioSerial.EnableReceive(true);
     }
 
-    MenloDebug::Print(F("DweetRadioSerialApp Initialized 05/03/2015"));
+    //MenloDebug::Print(F("DweetRadioSerialApp Initialized"));
+    //MenloDebug::PrintHex(sizeof(m_radioSerialInputBuffer));
 
     ResetWatchdog();
 

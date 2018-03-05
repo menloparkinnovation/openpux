@@ -148,6 +148,8 @@ const uint16_t LineNumberBaseMenloNRF24     = 17000;
 
 const uint16_t LineNumberBaseGatewayApp     = 18000;
 
+const uint16_t LineNumberBaseDweetWiFi      = 19000;
+
 //
 // Reserved for application components
 //

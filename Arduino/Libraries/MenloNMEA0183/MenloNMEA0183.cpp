@@ -1,3 +1,4 @@
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -197,8 +198,15 @@ MenloNMEA0183::addCommandStart()
      return 0;
    }
 
+#if OLD_WAY
    m_buffer[m_bufferIndex++] = ',';
    m_buffer[m_bufferIndex] = '\0';
+#else
+  char* ptr = &m_buffer[m_bufferIndex];
+   *ptr++ = ',';
+   m_bufferIndex++;
+   *ptr = '\0';
+#endif
 
    return 1;
 }
@@ -268,6 +276,7 @@ MenloNMEA0183::generateSentence()
   int length;
   unsigned char chksum;
   char buffer[2];
+  char* ptr;
 
   if (m_buffer == NULL) {
     return NULL;
@@ -280,9 +289,22 @@ MenloNMEA0183::generateSentence()
     return NULL;
   }
 
+  //
+  // Note: Using OLD_WAY costs 122 bytes of code space more than the alternative
+  // on AtMega328!
+  //
+
+
   // Add checksum symbol
+#if OLD_WAY
   m_buffer[m_bufferIndex++] = '*';
   m_buffer[m_bufferIndex] = '\0';
+#else
+  ptr = &m_buffer[m_bufferIndex];
+  *ptr++ = '*';
+  m_bufferIndex++;
+  *ptr = '\0';
+#endif
 
   // Calculate checksum
   if (!checksum(&m_buffer[0], &chksum)) {
@@ -297,11 +319,21 @@ MenloNMEA0183::generateSentence()
 
   MenloUtility::UInt8ToHexBuffer(chksum, &buffer[0]);
 
+#if OLD_WAY
   m_buffer[m_bufferIndex++] = buffer[0];
   m_buffer[m_bufferIndex++] = buffer[1];
   m_buffer[m_bufferIndex++] = '\r';
   m_buffer[m_bufferIndex++] = '\n';
   m_buffer[m_bufferIndex] = '\0';
+#else
+  *ptr++ = buffer[0];
+  *ptr++ = buffer[1];
+  *ptr++ = '\r';
+  *ptr++ = '\n';
+  *ptr = '\0';
+
+  m_bufferIndex += 4;
+#endif
 
   return m_buffer;
 }
@@ -444,6 +476,7 @@ MenloNMEA0183::parse(
 //
 // It does not actually validate this checksum, but returns
 // it to the caller.
+//
 //
 bool
 MenloNMEA0183::checksum(char* str, unsigned char* checksumOut)

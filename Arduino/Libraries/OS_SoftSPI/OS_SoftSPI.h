@@ -1,3 +1,4 @@
+
 /*
  * Copyright (c) 2010 by Cristian Maglie <c.maglie@bug.st>
  * SPI Master library for arduino.
@@ -30,9 +31,7 @@
 #ifndef _OS_SOFTSPI_H_INCLUDED
 #define _OS_SOFTSPI_H_INCLUDED
 
-#include <stdio.h>
 #include <Arduino.h>
-#include <avr/pgmspace.h>
 
 //
 // This class is designed to not collide with SPI.h
@@ -57,6 +56,9 @@
 // so we use compatible values to allow drop in replacement.
 //
 
+#if NOT_DEFINED_ANYMORE
+// Most platforms don't need anymore. This is here for custom purposes.
+
 #ifndef SPI_MODE0
 #define SPI_MODE0 0x00
 #endif
@@ -71,6 +73,8 @@
 
 #ifndef SPI_MODE3
 #define SPI_MODE3 0x0C
+#endif
+
 #endif
 
 //#define SPI_MODE_MASK 0x0C  // CPOL = bit 3, CPHA = bit 2 on SPCR
@@ -165,4 +169,4 @@ private:
 //   your project for non-interrupt mode
 //
 
-#endif
+#endif // OS_SOFTSPI_H_INCLUDED

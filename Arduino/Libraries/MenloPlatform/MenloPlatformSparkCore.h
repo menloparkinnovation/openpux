@@ -29,6 +29,7 @@
 #ifndef MenloPlatformSparkCore_h
 #define MenloPlatformSparkCore_h
 
+// SparkCore is now Particle Core, Particle Photon, Particle Electron
 #if MENLO_BOARD_SPARKCORE
 
 //
