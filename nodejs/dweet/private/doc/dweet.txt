@@ -1,0 +1,86 @@
+
+Roll up for Dweet
+03/02/2015
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+// Licensing example?
+https://github.com/synthetos/TinyG/wiki/TinyG-Licensing
+
+// Command line
+https://github.com/synthetos/TinyG/wiki/TinyG-Command-Line
+
+// This is an example of using JSON to talk to firmware
+// Could be a Dweet encoding model.
+// JSON operation to firmware
+https://github.com/synthetos/TinyG/wiki/JSON-Operation
+
+------------------------------------------------------------------------------
+KEYWORDS: Cloud in a Box
+03/16/2015
+
+Part of the Dweet model with C/C++ low level firmwware for microcontrollers
+and Node.js for gateway/Cloud service can accomodate "gateways" such
+as RaspberryPi, Edison, Galileo, etc. acting as devices/sensors themselves.
+
+The best architecture for this would be to use the environments "Arduino like"
+C/C++ environment to develop the application and access the hardware
+using the native interfaces, and then communicate to the Dweet gateway
+service written in Node.js over Dweets on local TCP, named pipe, HTTP, etc.
+
+This keeps the model intact, and allows functional, and language specialization
+since low level real time hardware communication may be best served by
+native code.
+
+This also accomodates platforms that provide a Java/C# interface to sensors
+in which these languages can operate in a similar manner. This side steps
+the whole problem of Javascript/V8, Java/JRE, C#/CLR runtime interop which
+can become a big, hairy mess fast. Keep each of these a separate Unix (Linux)
+or Win32 (Windows 10 IoT) process.
+
+Dweet yet again is the co-ordinating and interface mechanism.
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+

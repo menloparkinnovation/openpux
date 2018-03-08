@@ -2,19 +2,21 @@
   "name": "dweet",
   "version": "1.0.0",
   "description": "MenloFramework Dweet Device Control Utility",
-  "main": "dweet.js",
+  "main": "./lib/dweet",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1"
+    "gateway": "./start_gateway.sh",
+    "test": "node ./test.js test"
   },
-
   "author": "http://menloparkinnovation.com",
   "license": "MIT",
-
   "bin": {
     "dweet": "./bin/dweet"
   },
-  "main": "./lib/dweet",
   "directories": {
     "lib": "./lib"
+  },
+  "repository": {},
+  "dependencies": {
+    "serialport": "^2.0.7-beta5"
   }
 }

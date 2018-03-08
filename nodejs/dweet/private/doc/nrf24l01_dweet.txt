@@ -1,0 +1,191 @@
+
+/*
+ * Copyright (C) 2015 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+John Richardson
+02/14/2015
+
+Nordic nRF24L01+ specific Dweet Commands.
+
+These commands allow Dweets transported over another channel such as
+serial/USB, HTTP, to efficiently control a Nordic nRF24L01+ radio.
+
+This allows higher level programs to remotely send and receive binary
+nRF24L01+ radio messages and program and configure the radio. Other
+higher level protocols can developed using the lower level commands.
+
+The lower level radio command allow efficient custom binary protocols
+to still be used.
+
+The radio is considered stateful with separate messages to
+configure a target radio, transmit and receive addresses,
+data rates, payload sizes, etc.
+
+The radio channel number is used to both address transmitters
+and receivers depending on previously setup commands.
+
+Transmit nRF24L01+ packet:
+
+The two digit value represents a binary octet of 0-255 which
+is a radio/radio channel address. This address is established
+
+A maximum 32 byte radio message is 78 characters + "\r\n"
+
+The number of characters is used to determine the size of
+the message. They must be an even number of characters as
+they represent bytes.
+
+T == Transmit packet
+00: == radio/channel 0-255 to transmit on
+
+                   64 characters that represent 32 8 bit binary bytes
+$PDWT,T=00:0000000000000000000000000000000000000000000000000000000000000000*00
+
+If replies are configured, they do not include the data, just the radio
+channel. The format is:
+
+$PDWT,T_REPLY=00*00
+
+Receive nRF24L01+ packet:
+
+A maximum 32 byte radio message is 78 characters + "\r\n"
+
+The number of characters is used to determine the size of
+the message. They must be an even number of characters as
+they represent bytes.
+
+R == Receive packet
+00: == radio/channel 0-255 received from
+
+$PDWT,R=00:0000000000000000000000000000000000000000000000000000000000000000*00
+
+If replies are configured, they do not include the data, just the radio
+channel. The format is:
+
+$PDWT,R_REPLY=00*00
+
+nRF24L01+ configuration and setup commands
+
+Since setup packets are less frequent, and typicalled pulled from
+EEPROM at startup they can use the standard Dweet GETSTATE/SETSTATE,
+GETCONFIG/SETCONFIG formats.
+
+These are specific to a radio type, and update state.
+
+SETCONFIG messages are shown as examples here. But the same format
+applies for the standard Dweet configuration/state commands:
+
+GETSTATE = get volatile state
+GETSTATE = set volatile state
+
+GETCONFIG = get power on non-volatile config
+GETCONFIG = set power on non-volatile config
+
+For example to set the 5 byte binary transmitter address for NRF radio 00:
+
+                            10 characters == 5 byte binary transmitter address
+$PDWT,SETCONFIG=NRFTADDR:00:0000000000*00
+
+For example to set the 5 byte binary receiver address for NRF radios 1-5
+to support a star configuration for the above transmitter:
+
+                            10 characters == 5 byte binary receiver address
+$PDWT,SETCONFIG=NRFRADDR:01:0000000001*00
+$PDWT,SETCONFIG=NRFRADDR:02:0000000002*00
+$PDWT,SETCONFIG=NRFRADDR:03:0000000003*00
+$PDWT,SETCONFIG=NRFRADDR:04:0000000004*00
+$PDWT,SETCONFIG=NRFRADDR:05:0000000005*00
+
+Messages received from the above radios will arrive with their address:
+
+$PDWT,R=01:00000000*00
+
+Messages sent to those receiver addresses will be routed to them:
+
+$PDWT,T=00:00000000*00
+
+NRF radio setup:
+
+Set radio packet size (zz), speed (ss) channel (cc), retries (rr),
+    ecc (ee), power (pp)
+
+ - Note multiple small configs are in a single message
+   separated by "."
+
+$PDWT,SETCONFIG=NRFCONF:0:zz.ss.cc.rr.ee.pp*00
+
+NRF diagnostics/advanced
+
+Set internal registers.
+
+The supplied string is interpreted as internal register data
+
+$PDWT,SETCONFIG=NRFREG:0:000000000*00
+
+Radio Addressing/Channels
+
+Radio channel numbers are specific to a configuration and
+a radio.
+
+The nRF24L01+ radios have six addresses with the transmitter
+on 0, and up to five receivers in a star configuration from
+1 - 5.
+
+By default a device with a single addressable nRF24L01 radio
+would represent these channels as radio addresses 0-5.
+
+A second configurated nRF24L01+ radio would use the next
+channel block such as 6-11 (in binary). To support growth
+or ease of calculation it could use a model of:
+
+00 - 05 - nRF24L01+ number 0 channels 0-5
+
+10 - 15 - nRF24L01+ number 1 channels 0-5
+
+20 - 25 - nRF24L01+ number 2 channels 0-5
+
+                 ....
+
+This allows radios to be configured and addressed to support
+development of various star/mesh topologies.
+
+The radio numbers are specific to a target sensor/gateway
+as their hardware wiring represents which ones are addressed
+at what number. They don't have to be sequential and there
+can be gaps. It's outside this core protocol for configuration
+discovery of a given device as those are device hardware/resource
+queries.
+
+Remote Radios Through A Gateway:
+
+Radio numbers an be "virtual" and represent a remote radio
+with the current acting as a gateway. This is for development
+of advanced topologies. They are subject to a later design.
+
+For example a star of stars could be represented as:
+
+00 - 05 - radio 0's direct channels
+
+10 - 15 - radio 0's remote radio on channel 1
+
+20 - 25 - radio 0's remote radio on channel 2
+
+30 - 35 - radio 0's remote radio on channel 3
+
+                 ....

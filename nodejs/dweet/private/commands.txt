@@ -1,0 +1,176 @@
+
+see doc/command_summary.txt
+
+TODO: Roll up! 04/08/2016
+
+Dweet Commands
+
+Also see dweet.txt, "KEYWORDS: commands"
+
+#
+# This is a low level command which can be entered in the Arduino serial
+# monitor or a terminal such as screen, cu, etc.
+#
+# It's a valid Dweet/NMEA command with proper check sum which should
+# be answered by any board that has used the MenloFramework Dweet base
+# support libraries.
+#
+
+$PDWT,GETCONFIG=NAME*5D
+
+Reply will be: (not name and checksum will vary based on config)
+
+$PDWT,GETCONFIG_REPLY=NAME:RadioGateway1*52
+
+---
+transport/debug:
+
+?
+help
+
+shownmea
+showdweet
+settrace 10
+
+#
+# disable transport checksums. Use *00 for checksums when entering by hand.
+# Note: This message must have the correct checksum to turn off checksums
+# to ensure reliability of the protocol state.
+#
+$PDWT,SETSTATE=NOCHECKSUM:01*24
+
+---
+configuration:
+
+# Display settings
+getconfig name
+getconfig model
+getconfig serial
+
+# Setup manufacturing information
+setconfig name=LightHouse
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000002
+
+---
+radio configuration:
+
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIORXADDR:73656E7330
+dweet SETSTATE=RADIORXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIOTXADDR:6761746530
+dweet SETSTATE=RADIOTXADDR:6761746530
+
+# Default RADIOGATEWAY to off
+dweet SETCONFIG=RADIOGATEWAY:OFF
+dweet SETSTATE=RADIOGATEWAY:OFF
+
+# Configure Radio Power Timer for 250ms idle shutdown
+dweet SETSTATE=RADIOPOWERTIMER:FA
+dweet SETCONFIG=RADIOPOWERTIMER:FA
+
+# Configure Radio Power Timer for 5 second idle shutdown
+# 0x1388 is 5000 milliseconds
+#dweet SETSTATE=RADIOPOWERTIMER:1388
+#dweet SETCONFIG=RADIOPOWERTIMER:1388
+
+# Display settings
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+---
+radio gateway:
+
+# Open the gateway
+open /dev/cu.usbserial-A10132OT gate0
+
+dweet GETSTATE=RADIOCHANNEL
+dweet GETSTATE=RADIOTXADDR
+dweet GETSTATE=RADIORXADDR
+
+dweet GETSTATE=RADIOGATEWAY
+
+dweet SETSTATE=RADIOGATEWAY:ON
+
+radiogateway radio0 /dev/cu.usbserial-A10132OT
+
+who  // show which channels are available
+ gate0  /dev/ttyUSB0 // Linux/RaspberryPi
+ radio0 radio0
+
+switch radio0 // select radio0 as active to talk to remote sensor config
+
+switch gate0 // select gate0 as active to talk to gateway config
+
+dweet GETCONFIG=RADIOCHANNEL
+
+Packet Radio Specific Commands
+
+who  // show which channels are available
+ gate0  /dev/ttyUSB0 // Linux/RaspberryPi
+ radio0 radio0
+
+switch radio0 // select radio0 as active to talk to remote sensor config
+
+switch gate0 // select gate0 as active to talk to gateway config
+
+dweet GETSTATE=RADIOCHANNEL
+dweet GETSTATE=RADIOTXADDR
+dweet GETSTATE=RADIORXADDR
+dweet GETSTATE=RADIOGATEWAY
+
+# Turn on radio gateway
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# Configure gateway routine for Dweet command console
+# This makes radio0 currently selected.
+radiogateway radio0 /dev/cu.usbserial-A10132OT
+
+shownmea
+showdweet
+settrace 10
+
+LightHouse Application Commands
+
+#
+# set a lighthouse sequence
+#
+
+# Set sensor update rate to 30 seconds
+dweet SETCONFIG=SENSORRATE:001E
+dweet SETSTATE=SENSORRATE:001E
+
+# Default to light always on
+dweet SETCONFIG=LIGHTONLEVEL:FFFF
+dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+# Default to green buoy light
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+# Set LIGHTTICK to 250 ms which is 0x00FA
+dweet SETSTATE=LIGHTTICK:00FA
+dweet SETCONFIG=LIGHTTICK:00FA
+
+# Set light Period to 0
+dweet SETSTATE=LIGHTPERIOD:0000
+dweet SETCONFIG=LIGHTPERIOD:0000
+
+# Light ramp of zero (instant on/instant off)
+dweet SETSTATE=LIGHTRAMP:0000.0000
+dweet SETCONFIG=LIGHTRAMP:0000.0000
+
+# 1/4 second flash every 4 seconds
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+

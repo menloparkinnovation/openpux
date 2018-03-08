@@ -1,0 +1,4 @@
+# Comment
+open testdevice
+getconfig name
+radiogateway radio0 testdevice

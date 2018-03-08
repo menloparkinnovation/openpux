@@ -1,0 +1,156 @@
+
+NMEA 0183 History
+
+John Richardson 02/01/2015
+
+(This is an outline of a talk on the roots of Dweet)
+
+This may seem like a longish history, but the high end marine
+instrumentation environment of 1990 is applicable to todays maker/consumer
+Internet Of Things and the Cloud.
+
+What is NMEA 0183?
+
+My first exposure to NMEA 0183 was in high end networked marine instruments
+for a racing sailboat. These instruments where "state of the art" for 1989/1990.
+
+Such a system consists of many networked sensors positioned throughout the boat
+that broadcast information about boat speed, depth, compass direction,
+apparent wind speed, apparent wind angle, Loran/GPS position information, etc.
+In NMEA 0183 terms these are called "talkers".
+
+This information is then picked up at a "head unit" acting as a "listener"
+which then processes the information and re-broadcasts derived values
+as a "talker" itself.
+
+The raw information from the sensors, and more importantly the derived
+calculated information is then displayed by many networked "display units"
+positioned throughout the boat in the navigation station, helm, and
+useful areas such as mast head displays for the crew to keep their eyes
+on critical boat speed/wind direction parmeters. The system had various
+ways of configuring which information is displayed where at any given moment
+and can change based on the boats tactical situation.
+
+Given the technology of the day these are the technical parameters of the
+technology this system was built on.
+
+Remember, these instruments had to operate in a harsh marine environment
+(humid salt air) and provide moderate battery draw from the boats systems.
+When sailboats are racing, there is no motor, so all power comes from a storage
+battery.
+
+To provide protection from the environment devices tended to be sealed, even
+epoxy bedded to keep the salt air and moisture out. This impacts the tradeofs
+between power/cooling since thermal conduction through the case is the cooling
+model. In many instances, the device may be operating in an 80-90 degree
+environment as well due to sunlight exposure, sailing in the tropic's (:-)),
+etc.
+
+Higher power processors of the day (such as a 386/386sx) would not operate
+with low power draw in a sealed thermal conduction environment. Using
+an "embedded PC" with a high power processor, DRAM memory, hard drive, etc,
+was not an option for the main instrumentation system, and especially for
+its many sensors.
+
+Though on board ship "management PC's" started becoming popular in the
+early to mid 1990's first on power boats with the electrical supply
+and room, and then eventually on sailboats. The author himself did
+use a 386sx-16Mhz laptop with 2MB of RAM and MS-DOS to run self-written logging
+and tactical situation software that ran from a 12v storage battery shared
+with the instruments. This large 70-80 A/H lead acid battery provided
+enough power (barely) for an overnight race. (Mostly due to draw from
+navigation lights (pre-LED's!), Loran (Google it), etc.)
+
+Processors such as Z80's which were available in low power CMOS forms
+were used. Typical device configurations were a 2-4Mhz Z80 with 16k-32k of
+ROM/EEPROM and 2-8k of RAM. Non-volatile configuration storage was typically
+provided by battery backed "watch chip" popular in PC's of the day
+for system time of day clock and BIOS settings. These had on board about
+100-200 bytes of non-volatile RAM until the button cell battery died.
+
+NMEA 0183 is a "salty" prototocol. It has its origins in the marine
+instrument industry. NMEA stands for
+"National Marine Manufacturers Electronic Assocation" and is a standards
+group for marine instrumentation. Many of the standards developed by
+NMEA are also adopted by the aviation, military, and geo-location/survey
+as well. This makes these standards broadly used, and not just about boats.
+
+The principle problem NMEA 0183 was designed to solve was interoperation
+between networked instrumentation that mostly consists of "talkers" which
+provide position information (Loran, GPS, Satellite), various vehicle sensors
+vehicle speed, direction, altitude, and parameters of the environment such
+as barometric pressure, wind speed, wind direction, air/water temperature, etc.
+
+This information was then consumed by "listeners" which can display this
+data in multiple locations such as in a cockpit, auxilary operating
+station, etc. 
+
+(at the time of the mid-late 1980's) 
+
+NMEA 0183 has provisions for broadcast messages with "talkers" and "listeners"
+with embedded sender ID's and message names being used to distinguish talkers.
+This model is not used by Dweet since its oriented more towards broadcasts of
+continously updated information from a handful of well known talkers to
+potentially many listeners. This does not fit the command and control
+request/response usage that constitute basic Dweet operations.
+
+NMEA 0183 was choosen since its essentially a printable ASCII character
+based text protocol with built in framing markers and checksums. As such
+it operates in a serial port environment in which data may arrive at any
+time in any character group, occasional characters may be dropped or
+corrupted, and it operates over moderate speeds. It was designed for an era
+of Z80 processors with 16k of ROM and maybe 2-4k of RAM which fits nicely
+with todays small ($2.x US) microcontrollers such as the Atmel AtMega 328
+series used in the Arduino Uno, derivatives, and clones. The processors
+32k of on board flash, 2K of RAM, and 1K of EEPROM exactly fits the late
+1980's, early 1990's "higher end" networked marine instrument devices.
+
+Due to its adoption in the marine instrument industry, particularly
+navigation devices such as Loran and then GPS's, pretty much every
+consumer GPS communicates using the NMEA 0183 protocol with the GPS
+"vocabulary" in the sentences. So many embedded developers are already somewhat
+familar with the protocol if only due to direct reading of GPS serial message
+streams.
+
+Summarize on the end:
+
+The consumer opportunity:
+
+How is NMEA 0183 and todays Internet Of Things similar to
+the Delorean in "Back to the Future"?
+
+Back To the Future:
+
+ - Really fitting since 1985 is around the technology point!
+
+ - The Cloud is the "Flux Capacitor" that provides the quantum leap
+   to what was an old product configuration.
+
+   - The Delorean in many ways may have been an unreliable "bad car"
+     in many ways (sorry collectors! (Though you can sell me yours :-)),
+     but with the Flux Capacitor it was a different vehicle entirely.
+
+   - Todays technology means that "Deloreans" are available for $625
+     new vs. $25,000. With everyone owning a Flux Capacitor
+     (internet connection to the Cloud), their usefulness has skyrocketed!
+
+     - Z80, 16K SRAM, 32K EPROM, watchchip, board space ~= $100 in 1985
+
+     - AtMega 328 ~=$2.50 in 2015 price.
+
+   - How well would time travel Deloreans sell if they were priced at $625
+     and mass produced?
+
+     - Ok, take inflation into account. Delorean == Corvette more or less
+       in market price/target. So 2.32 * 625 == $1450. They would still sell.
+       
+ What has changed?
+
+  - Cost. Now really cheap for the sensors, chips, displays.
+
+  - Scale. Consumer rather than high end marine.
+
+  - Cloud. Networked services, vs. local processing and storage.
+
+  - Integration with the world, not just the local boat.
+

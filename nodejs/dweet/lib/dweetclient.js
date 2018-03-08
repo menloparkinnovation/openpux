@@ -622,16 +622,19 @@ DweetClient.prototype.loadDweetHandlers = function(options) {
 
     if (this.dweetHandlers != null) {
         // Already loaded
+	this.traceerror("loadDweetHandlers: already loaded");
         return true;
     }
 
     if (options.config == null) {
         // Not configured
+	this.traceerror("loadDweetHandlers: not configured");
         return true;
     }
 
     if (options.config.DweetHandlers.length == 0) {
         // Not configured
+	this.traceerror("loadDweetHandlers: not configured, length = 0");
         return true;
     }
 
@@ -644,6 +647,7 @@ DweetClient.prototype.loadDweetHandlers = function(options) {
         this.loadHandlerModule(options, handlers[index]);
 
         if (handlers[index].moduleInstance == null) {
+            this.traceerror("loadDweetHandlers: could not load module");
             return false;
         }
     }
@@ -771,6 +775,8 @@ DweetClient.prototype.loadHandlerModule = function(options, entry) {
 
         // Tell the module to register its event handlers
         entry.moduleInstance.register();
+
+     	this.tracelog("loadDweetHandlers: loaded module " + entry.module);
     }
     catch(e) {
         console.log("error loading module " + module + " e=" + e);

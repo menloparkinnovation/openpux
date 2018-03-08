@@ -1,0 +1,13 @@
+# Comment
+setconfig name=FencePost1
+getconfig name
+
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+dweet SETSTATE=LIGHTCOLOR:FF.00.00
+dweet SETCONFIG=LIGHTCOLOR:FF.00.00
+
+dweet GETCONFIG=LIGHTCOLOR
+
+quit

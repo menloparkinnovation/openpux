@@ -3,7 +3,7 @@ MenloFramework (TM)
 
 MenloFramework is a TradeMark (TM) of MenloPark Innovation LLC.
 
-This software is Copyright (C) 2015 MenloPark Innnovation LLC.
+This software is Copyright (C) 2018 MenloPark Innnovation LLC.
 menloparkinnovation@gmail.com
 
 This software is available under an Open Source or Commercial

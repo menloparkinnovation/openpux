@@ -152,9 +152,6 @@ MenloSmartpuxPhoton::Post(
 
     if (m_debug) {
         Serial.println("MenloSmartpux: Done posting document body");
-
-        // Hack! remove!
-        delay(1000);
     }
 
     //

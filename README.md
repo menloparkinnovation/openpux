@@ -2,12 +2,12 @@
 Openpux Internet Of Things (IOT) Framework
 ==========================================
 
-Copyright (C) 2014,2015 Menlo Park Innovation LLC
+Copyright (C) 2018 Menlo Park Innovation LLC
 
    menloparkinnovation.com
    menloparkinnovation@gmail.com
 
-> Last update 12/30/2015
+> Last update 03/07/2018
 
 # Openpux Sub Projects
 
@@ -15,8 +15,9 @@ Copyright (C) 2014,2015 Menlo Park Innovation LLC
 
   Node.js based IoT server with in memory or Amazon SimpleDB data stores.
 
-  > Future versions will support MongoDB for local persistent storage through
-  > the add-in data storage providers interface.
+  > Development is frozen, as a serverless version openpux4 is in development.
+  > Still useful as a local server for RaspberryPi, or small cloud IaaS VM's
+    such as AWS LightSail.
 
 ## nodejs/dweet:
 
@@ -30,7 +31,7 @@ Copyright (C) 2014,2015 Menlo Park Innovation LLC
   against Arduino IDE 1.6.4 and test/regression scripts are in tests/mac.
 
   > The framework architecture also supports ports to RFDuino (ARM/BLE),
-  > SparkCore, (Photon), and variants such as Galileo/Edison (x86/Linux).
+  > SparkCore, (Photon/Particle), and variants such as Galileo/Edison (x86/Linux).
 
   > Tested versions of these ports will be in future updates as re-validation
   > against the latest releases from these providers is in progress.

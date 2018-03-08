@@ -73,6 +73,8 @@ UserMain.prototype.userMain = function(config, args, callback) {
     var configFile = null;
     var openConsole = false;
     var stopOnError = true;
+
+    // Default tracing
     var trace = false;
     var traceerror = false;
 

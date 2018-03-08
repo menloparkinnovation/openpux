@@ -1,0 +1,1043 @@
+
+dweet notes.
+11/15/2015
+
+code/macgitrepos/Smartpux/nodejs/dweet
+
+code/macgitrepos/Smartpux/nodejs/dweet/scripts
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+----------------------------------------------------------------------------
+KEYWORDS: reserved characters
+KEYWORDS: precent encoding
+KEYWORDS: ascii table
+KEYWORDS: ascii chart
+KEYWORDS: percent encoding
+KEYWORDS: percentencoding
+KEYWORDS: allowed characters
+KEYWORDS: allowedcharacters
+06/20/2016
+
+In addition to NMEA 0183 restrictions, the following characters
+are used for Dweet semantics:
+
+=   // value assignment in commands
+:   // value name, value data separator
+
+.   // This is a generally allowed character, but is commonly
+    // used to separate portions of a value with multiple
+    // entries. For example: 00.00.00.00 for a sequence of
+    // 4 bytes treated separately. This parsing is done application
+    // specific on the value, and not part of the Dweet infrastructure,
+    // though helper routines could be available in some libraries.
+
+------
+See nmea.txt for details on NMEA 0183 specifics.
+
+Characters are limited to 7 bits.
+
+// Reserved characters that have protocol meaning are:
+
+'$' ',' '*' '\r' '\n'
+
+For my usages, I will use web/URL encoding percent encoding to represent
+these characters within a given sentence. Percent encoding can also be
+used for representing binary data and 8 bit characters as well.
+
+For sanity, I will stick to a-z, A-Z, 0-9, '=', '.' in command/response
+messages so they remain human readable without requiring percent escape/
+conversion.
+
+http://en.wikipedia.org/wiki/Percent-encoding
+
+
+//
+// Make this part of an encode command function.
+// Can decide whether to run everything through it.
+//
+
+'%'  = %25
+'$'  = %24
+','  = %2c
+'*'  = %2a
+'\r' = %0d
+'\n' = $0a
+
+------------------------------------------------------------------------------
+KEYWORDS: raw output
+KEYWORDS: raw input
+01/30/2016
+
+to see raw output/input from the device enter the following at dweet
+console prompt:
+
+shownmea
+
+// This will report general serial data strings as badcheck sum NMEA 0183 messages.
+
+------------------------------------------------------------------------------
+KEYWORDS: command summary
+KEYWORDS: commands
+KEYWORDS: cmds
+01/30/2016
+
+---
+transport/debug:
+
+shownmea
+showdweet
+settrace 10
+
+---
+configuration:
+
+# Display settings
+getconfig name
+getconfig model
+getconfig serial
+
+# Setup manufacturing information
+setconfig name=LightHouse
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000002
+
+---
+radio configuration:
+
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIORXADDR:73656E7330
+dweet SETSTATE=RADIORXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIOTXADDR:6761746530
+dweet SETSTATE=RADIOTXADDR:6761746530
+
+# Default RADIOGATEWAY to off
+dweet SETCONFIG=RADIOGATEWAY:OFF
+dweet SETSTATE=RADIOGATEWAY:OFF
+
+# Configure Radio Power Timer for 250ms idle shutdown
+dweet SETSTATE=RADIOPOWERTIMER:FA
+dweet SETCONFIG=RADIOPOWERTIMER:FA
+
+# Configure Radio Power Timer for 5 second idle shutdown
+# 0x1388 is 5000 milliseconds
+#dweet SETSTATE=RADIOPOWERTIMER:1388
+#dweet SETCONFIG=RADIOPOWERTIMER:1388
+
+# Display settings
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+---
+radio gateway:
+
+# Open the gateway
+open /dev/cu.usbserial-A10132OT gate0
+
+dweet GETSTATE=RADIOCHANNEL
+dweet GETSTATE=RADIOTXADDR
+dweet GETSTATE=RADIORXADDR
+
+dweet GETSTATE=RADIOGATEWAY
+
+dweet SETSTATE=RADIOGATEWAY:ON
+
+radiogateway radio0 /dev/cu.usbserial-A10132OT
+
+who  // show which channels are available
+ gate0  /dev/ttyUSB0 // Linux/RaspberryPi
+ radio0 radio0
+
+switch radio0 // select radio0 as active to talk to remote sensor config
+
+switch gate0 // select gate0 as active to talk to gateway config
+
+dweet GETCONFIG=RADIOCHANNEL
+
+---
+---
+---
+
+------------------------------------------------------------------------------
+KEYWORDS: radio commands
+KEYWORDS: gateway commands
+KEYWORDS: radiogateway
+KEYWORDS: radio gateway
+KEYWORDS: radioserial
+KEYWORDS: radio serial
+11/15/2015
+
+who  // show which channels are available
+ gate0  /dev/ttyUSB0 // Linux/RaspberryPi
+ radio0 radio0
+
+switch radio0 // select radio0 as active to talk to remote sensor config
+
+switch gate0 // select gate0 as active to talk to gateway config
+
+dweet GETCONFIG=RADIOCHANNEL
+
+shownmea
+showdweet
+settrace 10
+
+------------------------------------------------------------------------------
+KEYWORDS: lighthouse application commands
+01/30/2016
+
+#
+# set a lighthouse sequence
+#
+
+# Set sensor update rate to 30 seconds
+dweet SETCONFIG=SENSORRATE:001E
+dweet SETSTATE=SENSORRATE:001E
+
+# Default to light always on
+dweet SETCONFIG=LIGHTONLEVEL:FFFF
+dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+# Default to green buoy light
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+# Set LIGHTTICK to 250 ms which is 0x00FA
+dweet SETSTATE=LIGHTTICK:00FA
+dweet SETCONFIG=LIGHTTICK:00FA
+
+# Set light Period to 0
+dweet SETSTATE=LIGHTPERIOD:0000
+dweet SETCONFIG=LIGHTPERIOD:0000
+
+# Light ramp of zero (instant on/instant off)
+dweet SETSTATE=LIGHTRAMP:0000.0000
+dweet SETCONFIG=LIGHTRAMP:0000.0000
+
+# 1/4 second flash every 4 seconds
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+------------------------------------------------------------------------------
+KEYWORDS: mini_StartRadioGateway.dweet
+01/30/2016
+
+#
+# Startup RadioGateway on Arduino UNO and enter Dweet command console prompt.
+#
+
+# Open the target so we can monitor it through the Dweet console
+# If this is commented out the Arduino IDE serial monitor is used or
+# the device is being operated remotely soley through the radio serial gatewway.
+#open /dev/cu.usbserial-A10132OT sens0
+
+# Open the gateway
+open /dev/cu.usbserial-A10132OT gate0
+
+# See if configured
+# this can timeout on first connection due to board initialization so its
+# done twice.
+getconfig name
+
+getconfig name
+
+getconfig model
+getconfig serial
+
+# Display active radio settings
+#dweet GETSTATE=RADIOCHANNEL
+#dweet GETSTATE=RADIOTXADDR
+#dweet GETSTATE=RADIORXADDR
+dweet GETSTATE=RADIOGATEWAY
+
+# DEBUG: Set detailed tracing on the gateway channel
+#settrace 10
+
+# Turn on radio gateway
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# DEBUG: Show details of Dweet + NMEA 0183 exchanges
+#showdweet
+#shownmea
+
+# Configure gateway routine for Dweet command console
+# This makes radio0 currently selected.
+radiogateway radio0 /dev/cu.usbserial-A10132OT
+
+# DEBUG: Set detailed tracing on the radio serial channel
+#settrace 10
+
+------------------------------------------------------------------------------
+KEYWORDS: ConfigLightHouse.dweet
+01/30/2016
+
+#
+# LightHouse on Arduino UNO
+#
+
+# Setup manufacturing information
+setconfig name=LightHouse
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000002
+
+#
+# Setup the radio parameters
+#
+
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIORXADDR:73656E7330
+dweet SETSTATE=RADIORXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIOTXADDR:6761746530
+dweet SETSTATE=RADIOTXADDR:6761746530
+
+# Default RADIOGATEWAY to off
+dweet SETCONFIG=RADIOGATEWAY:OFF
+dweet SETSTATE=RADIOGATEWAY:OFF
+
+# Configure Radio Power Timer for 250ms idle shutdown
+dweet SETSTATE=RADIOPOWERTIMER:FA
+dweet SETCONFIG=RADIOPOWERTIMER:FA
+
+# Configure Radio Power Timer for 5 second idle shutdown
+# 0x1388 is 5000 milliseconds
+#dweet SETSTATE=RADIOPOWERTIMER:1388
+#dweet SETCONFIG=RADIOPOWERTIMER:1388
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+#
+# set a lighthouse sequence
+#
+
+# Set sensor update rate to 30 seconds
+dweet SETCONFIG=SENSORRATE:001E
+dweet SETSTATE=SENSORRATE:001E
+
+# Default to light always on
+dweet SETCONFIG=LIGHTONLEVEL:FFFF
+dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+# Default to green buoy light
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+# Set LIGHTTICK to 250 ms which is 0x00FA
+dweet SETSTATE=LIGHTTICK:00FA
+dweet SETCONFIG=LIGHTTICK:00FA
+
+# Set light Period to 0
+dweet SETSTATE=LIGHTPERIOD:0000
+dweet SETCONFIG=LIGHTPERIOD:0000
+
+# Light ramp of zero (instant on/instant off)
+dweet SETSTATE=LIGHTRAMP:0000.0000
+dweet SETCONFIG=LIGHTRAMP:0000.0000
+
+# 1/4 second flash every 4 seconds
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+quit
+
+------------------------------------------------------------------------------
+KEYWORDS: ConfigRadioGateway.dweet
+01/30/2016
+
+
+#
+# RadioGateway on Arduino UNO
+#
+
+# Setup manufacturing information
+setconfig name=RadioGateway1
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000001
+
+#
+# Setup the radio parameters
+#
+# Note: This uses low level direct "dweet xxx" commands until
+# the radio package is created which will allow "setconfig radiochannel=xx"
+#
+
+# Sometimes initial commands get dropped
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETCONFIG=RADIOCHANNEL:01
+
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIOTXADDR:73656E7330
+dweet SETSTATE=RADIOTXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIORXADDR:6761746530
+dweet SETSTATE=RADIORXADDR:6761746530
+
+# Configure Radio Power Timer to off (radio always on) for gateway
+dweet SETCONFIG=RADIOPOWERTIMER:00
+dweet SETSTATE=RADIOPOWERTIMER:00
+
+# Default Options to 0
+#dweet SETCONFIG=RADIOOPTIONS:00
+#dweet SETSTATE=RADIOOPTIONS:00
+
+# Default RADIOGATEWAY to on
+dweet SETCONFIG=RADIOGATEWAY:ON
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+#
+# Set lighthouse settings to get rid of invalid checksum message
+#
+dweet SETSTATE=LIGHTPERIOD:0000
+dweet SETCONFIG=LIGHTPERIOD:0000
+
+dweet SETSTATE=LIGHTTICK:00FA
+dweet SETCONFIG=LIGHTTICK:00FA
+
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+dweet SETSTATE=LIGHTRAMP:0000.0000
+dweet SETCONFIG=LIGHTRAMP:0000.0000
+
+dweet SETCONFIG=LIGHTONLEVEL:FFFF
+dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+dweet SETCONFIG=SENSORRATE:001E
+dweet SETSTATE=SENSORRATE:001E
+
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+quit
+
+------------------------------------------------------------------------------
+KEYWORDS: StartRadioGateway.dweet
+01/30/2016
+
+#
+# Startup RadioGateway on Arduino UNO and enter Dweet command console prompt.
+#
+
+# Open the target so we can monitor it through the Dweet console
+# If this is commented out the Arduino IDE serial monitor is used or
+# the device is being operated remotely soley through the radio serial gatewway.
+#open /dev/tty.usbmodem1411 sens0
+
+# Open the gateway
+open /dev/tty.usbmodem1421 gate0
+
+# See if configured
+# this can timeout on first connection due to board initialization so its
+# done twice.
+getconfig name
+
+getconfig name
+
+getconfig model
+getconfig serial
+
+# Display active radio settings
+#dweet GETSTATE=RADIOCHANNEL
+#dweet GETSTATE=RADIOTXADDR
+#dweet GETSTATE=RADIORXADDR
+dweet GETSTATE=RADIOGATEWAY
+
+# DEBUG: Set detailed tracing on the gateway channel
+#settrace 10
+
+# Turn on radio gateway
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# DEBUG: Show details of Dweet + NMEA 0183 exchanges
+#showdweet
+#shownmea
+
+# Configure gateway routine for Dweet command console
+# This makes radio0 currently selected.
+radiogateway radio0 /dev/tty.usbmodem1421
+
+# DEBUG: Set detailed tracing on the radio serial channel
+#settrace 10
+
+------------------------------------------------------------------------------
+KEYWORDS: launch script
+KEYWORDS: lighthouse launch script
+11/17/2015
+
+See
+
+scripts/pi_promini_startradiogateway.sh
+
+scripts/PiProMiniStartRadioGateway.dweet
+
+------------------------------------------------------------------------------
+KEYWORDS: TODO
+11/16/2015
+
+Add a radio status packet that is similar to radio receive data.
+  -  up to 32 bytes in size similar to a receive packet
+  -  own dweet code
+  -  can ask for it at any time
+  - send it on a periodic interval if no radio packets are received.
+    - can be used to debug reception issues, radio interference, etc.
+    - dump of all internal registers
+    - important info such as collision count, carrier sense, etc.
+
+Add JSON logging capabilities
+
+Update lighthouseapp.js for logging
+
+Update lighthouseapp.js for openpux client
+
+  - Implement a dynamic loading of openpuxclient.js from the server
+    to allow updates on the fly.
+
+  - Means I need a version specific handler to do the load, etc.
+
+Make dweet an app in openpux
+
+Add parameterization to .dweet scripts so that one script can be
+used for all different ports, configurations.
+
+  - Make dweet scripts javascripts that are require() loaded
+
+------------------------------------------------------------------------------
+KEYWORDS: run
+11/20/2015
+
+cd code/macgitrepos/Smartpux/nodejs/dweet
+
+scripts/promini_startradiogateway.sh
+
+  loads SCRIPT=$HOME/Dropbox/code/macgitrepos/Smartpux/Arduino/MenloGateway/lighthouseapp.js
+
+------------------------------------------------------------------------------
+KEYWORDS: testdevice
+KEYWORDS: dweettestdevice
+11/18/2015
+
+dweettestdevice.js
+
+Simulates a device. Responds to some canned commands.
+
+setupConversationalPackage
+
+getConfigHandler
+
+setConfigHandler
+
+------------------------------------------------------------------------------
+KEYWORDS: structure
+11/17/2015
+
+Top level is the arguments processing which process command line arguments.
+
+It then creates a dweetconsole() for interactive operation against its
+commands table.
+
+dweetclient.js implements actual dweet against the supplied commands table
+and parameters.
+
+dweetclient.js drives the state machine for serial port/nmea 0183 events.
+
+Other applications such as radio packet handling dervive from events emitted
+by the main dweet processor.
+
+------------------------------------------------------------------------------
+KEYWORDS: launching
+KEYWORDS: main
+11/17/2015
+
+dweet is launched form a shell script which loads lib/dweet.js and invokes launch()
+
+// bin/dweet
+#!/usr/bin/env node
+// --debug-brk
+
+require('../lib/dweet').launch();
+
+dweet.js
+
+  launch -> LaunchCommandLine()
+
+    // gets process.argv, and creates Dweet() instance on stdout, stderr
+    var args = process.argv.slice(1);
+    var dweet = createInstance(console.log, console.error);
+    dweet.RunCommandLineMain(args);
+
+
+------------------------------------------------------------------------------
+KEYWORDS: radio packet processing
+11/17/2015
+
+dweetclient.js
+
+  openPort()
+
+    DweetClient.prototype.openRadioSerial = function(portName, options, openCallback) {
+
+    // register to receive radio packet dweets
+    captured_this.dweetGatewayChannel.dweet.on('R', function(name, value, prefix) {
+
+radioserial.js
+  processPacketFromRadio()
+    // (packet[0] & 0xC0) == 0x40 is radio serial without status (all data after header)
+    // (packet[0] & 0xC0) == 0x80 is radio serial with status
+    // If not a radioserial packet in packet[0]
+        this.processNonRadioSerialPacket(packet);
+            this.emit('unhandled_packet', packet);
+
+------------------------------------------------------------------------------
+KEYWORDS: apphandler
+11/17/2015
+
+Radio Serial is the handler for all packets from the remote radio
+communicated over Dweet R + T NMEA sentences.
+
+apphandler is invoked for unhandled packets
+
+dweetclient.js
+
+dweetpackage.js - invoked when radio serial does not handle a packet.
+
+DweetClient.prototype.openRadioSerial = function(portName, options, openCallback) {
+
+    //
+    // Set the unhandled packet handler on RadioSerial
+    //
+    captured_this.dweetPacket = 
+        captured_this.dweetPacketFactory.createInstance(captured_this.trace, captured_this.traceerror);
+
+    //
+    // Register LigthHouse application handler on DweetPacket
+    //
+    captured_this.dweetPacket.registerApplicationHandler(options.apphandler);
+
+    captured_this.radioSerial.on ('unhandled_packet', function(packet) {
+
+        // TODO: Improve what a channel means
+        var channel = new Object();
+        channel.portNumber = 0;
+
+        captured_this.dweetPacket.processReceivedPacket(channel, packet);
+    });
+
+------------------------------------------------------------------------------
+KEYWORDS: install
+11/15/2015
+
+// First install serialport globally
+
+sudo npm install serialport -g
+
+cd nodejs/dweet
+
+// Now install dweet globally to make it available system wide
+npm install nodejs/dweet -g
+
+sudo npm install nodejs/dweet -g
+
+------------------------------------------------------------------------------
+KEYWORDS: Linux USB Serial Port
+KEYWORDS: RaspberryPi USB Serial Port
+11/28/2015
+
+// Linux/RaspberryPi
+
+/dev/ttyUSB0
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+dweet -verbose -traceerror -tracelog -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+------------------------------------------------------------------------------
+KEYWORDS: dweet weather station
+KEYWORDS: dweetweather
+KEYWORDS: lighthouse data
+KEYWORDS: weatherstation data
+KEYWORDS: sensor packet data
+KEYWORDS: gateway sensor packet data
+10/31/2015
+
+Smartpux/private/smartpux.txt
+
+//
+// Plug in mini-gateway
+//
+// Find port with ls -l /dev/tty.usb* such as
+//
+// /dev/tty.usbserial-A10132OT
+//
+Dropbox/code/macgitrepos/Smartpux/nodejs/dweet
+scripts/startweathergateway.sh
+
+Dropbox/code/macgitrepos/node_js/examples/radioserial/radioserial.js
+
+  RadioSerial.prototype.processNonRadioSerialPacket = function(packet) {
+
+------------------------------------------------------------------------------
+KEYWORDS: dweet.txt
+KEYWORDS: dweet
+KEYWORDS: Dweet
+08/18/2015
+
+// Current development directory
+Dropbox/code/macgitrepos/Smartpux/nodejs/dweet
+
+Dropbox/code/macgitrepos/Smartpux/nodejs/clientofdweet
+
+------------------------------------------------------------------------------
+KEYWORDS: Gateway
+KEYWORDS: MenloGateway
+KEYWORDS: Menlo Gateway
+KEYWORDS: dweet
+KEYWORDS: Dweet
+09/03/2015
+
+This is the Dweet gateway with customization files for the lighthouse, etc.
+
+code/macgitrepos/Smartpux/Arduino/MenloGateway
+code/macgitrepos/Smartpux/Arduino/MenloGateway/readme.txt
+
+code/macgitrepos/Smartpux/Arduino/MenloGateway/scripts/promini_startradiogatway.sh
+
+------------------------------------------------------------------------------
+KEYWORDS: dweet
+KEYWORDS: radio gateway
+KEYWORDS: radiogateway
+05/31/2015
+
+Dropbox/code/Smartpux/nodejs/dweet/scripts
+
+Watch open commands in the .dweet script.
+
+You can open a port from the command line, as a shell option, or from
+the .dweet script.
+
+------------------------------------------------------------------------------
+KEYWORDS: dweet
+KEYWORDS: R
+KEYWORDS: Radio packet receive dweets
+KEYWORDS: Dweet Receive Radio Packet
+05/23/2015
+
+Dropbox/code/Smartpux/nodejs/dweet/lib
+
+usermain.js
+  dweet.dweetMain()
+
+dweet.js
+  dweetMain()
+    dweetConsole.interactiveConsole()
+      openDweetClient()
+       // dweetclient.js
+       var client = dweetClientFactory.createInstance(trace, traceerror, prefix);
+
+dweethandler.js
+  DweetHandler.prototype.processCommandAsEvent = function(o, command, nv) {
+
+    this.emit("receive", "receive", null, command, o);
+
+    var cr = this.splitCommandEventReply(nv.name);
+
+    this.emit(cr.event, nv.name, nv.value, o.prefix, o);
+
+Smartpux/dweet/lib/dweetclient.js, line 358
+
+    //
+    // Register to receive radio Dweets which contain packets
+    // for RadioSerial.
+    //
+    captured_this.dweetGatewayChannel.dweet.on('R', function(name, value, prefix) {
+
+      var binaryBuffer = myutil.asciiHexStringToBinaryBuffer(value);
+      captured_this.radioSerial.processPacketFromRadio(binaryBuffer, function(error) {
+
+      code/node_js/examples/radioserial/radioserial.js
+
+        RadioSerial.prototype.processPacketFromRadio = function(packet, callback) {
+
+          this.processNonRadioSerialPacket(packet);
+
+          RadioSerial.prototype.processNonRadioSerialPacket = function(packet) {
+
+            var sensorData = this.processLightHouseData(packet);
+
+            this.translateLightHouseData(sensorData);
+
+            this.displayLightHouseData(packet, sensorData);
+
+            this.displayWeatherData(packet, sensorData);
+
+------------------------------------------------------------------------------
+KEYWORDS: dweet
+KEYWORDS: node.js
+KEYWORDS: node_js
+KEYWORDS: trace
+KEYWORDS: traceerror
+KEYWORDS: trace
+KEYWORDS: g_traceerror
+KEYWORDS: g_tracing
+KEYWORDS: verbose
+KEYWORDS: -verbose
+KEYWORDS: Dweet console launch
+KEYWORDS: Dweet console debug
+KEYWORDS: Dweet console verbose
+KEYWORDS: Dweet console trace
+KEYWORDS: Dweet console traceerror
+05/23/20153
+
+code/macgitrepos/Smartpux/nodejs/dweet
+
+// To run
+code/macgitrepos/Smartpux/nodejs/dweet
+
+dweet -verbose -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet -verbose -traceerror -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet -verbose -traceerror -tracelog -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet/lib/usermain.js
+
+  function userMain(config, args) {
+
+    // setup tracing
+    config.verbose = argsTable["verbose"].value;
+
+    if (argsTable["verbose"].value != false) {
+        console.log("verbose specified");
+        g_trace = true;
+        g_traceerror = true;
+    }
+
+    if (argsTable["tracelog"].value != false) {
+        g_trace = true;
+    }
+
+    if (argsTable["traceerror"].value != false) {
+        g_traceerror = true;
+    }
+
+    dweetArgs.trace = g_trace;
+    dweetArgs.traceerror = g_traceerror;
+
+    dweet.dweetMain(dweetArgs);
+
+      dweet/lib/dweet.js
+
+        dweetMain()
+
+          g_trace = args.trace;
+          g_traceerror = args.traceerror;
+
+          context.trace = g_trace;
+          context.traceerror = g_traceerror;
+
+          dweetConsole.interactiveConsole(context, function(error) {
+            process.exit(1);
+          });
+
+            dweet/lib/dweetconsole.js
+
+              DweetConsole.prototype.interactiveConsole = function(context, callback) {
+
+                openDweetClient(context.defaultPortName, context.tag, context.defaultPrefix,
+	          options, context.trace, context.traceerror, function(error, dweetClient) {
+
+                   function openDweetClient(portName, tag, prefix, options, trace, traceerror, callback) {
+
+                     var client = dweetClientFactory.createInstance(trace, traceerror, prefix);
+
+                       dweet/lib/dweetclient.js
+
+                         function DweetClient(trace, traceerror, prefix) {
+
+                           this.trace = trace;
+                           this.traceerrorValue = traceerror;
+
+------------------------------------------------------------------------------
+KEYWORDS: DweetSerialChannel
+05/04/2015
+
+DweetSerialChannel - Serial handler
+
+  - works for *both* serial port and MenloRadioSerial due to uniform
+    port* contract.
+
+------------------------------------------------------------------------------
+KEYWORDS: Example of Dweet event driven handler is DweetRadio
+
+Example of Dweet event driven handler is DweetRadio
+
+LightHouse.ino is the current DweetLightHouse under development.
+
+  code/macgitrepos/Smartpux/Arduino/LightHouse/LightHouse.ino
+
+------------------------------------------------------------------------------
+KEYWORDS: dweet weather station
+KEYWORDS: dweetweather
+KEYWORDS: lighthouse data
+KEYWORDS: weatherstation data
+KEYWORDS: sensor packet data
+KEYWORDS: gateway sensor packet data
+10/31/2015
+
+Dropbox/code/macgitrepos/Smartpux/nodejs/dweet
+
+//
+// Plug in mini-gateway
+//
+// Find port with ls -l /dev/tty.usb* such as
+//
+// /dev/tty.usbserial-A10132OT
+//
+Dropbox/code/macgitrepos/Smartpux/nodejs/dweet
+scripts/startweathergateway.sh
+
+Dropbox/code/macgitrepos/node_js/examples/radioserial/radioserial.js
+
+  RadioSerial.prototype.processNonRadioSerialPacket = function(packet) {
+
+------------------------------------------------------------------------------
+KEYWORDS: workflow.txt
+12/27/2015
+
+#
+# Run dweet
+#
+# Launch scripts are in scripts/...
+#
+
+dweet
+
+dweet -verbose -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet -verbose -traceerror -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+dweet -verbose -traceerror -tracelog -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+# *** WARNING ***
+#
+# Do not edit files in lib\*.js that are copied by
+# copybom.sh below. They will be overwritten.
+#
+# Edit them in their original source locations.
+#
+# These are library/infrastructure files re-used among
+# multiple projects.
+#
+# *** WARNING ***
+
+# Pull from libraries into the release
+scripts/copybom.sh
+
+# Refresh after development to place it in /usr/loca/bin/dweet
+sudo npm install . -g
+
+# Get node serialport npm first time
+sudo npm install serialport -g
+
+# Debugging
+dweet -verbose -console -script=DueStartRadioGateway.dweet /dev/tty.usbmodem1421
+
+# See roadmap.txt for various notes and code paths
+
+------------------------------------------------------------------------------
+KEYWORDS: readme.txt
+12/27/2015
+
+
+10/31/2015
+
+dweet - Configuration and Gateway Utility for IoT sensors built
+       using the MenoFramework.
+
+install:
+
+ npm install dweet -g
+
+ // from current directory;
+ npm install . -g
+
+ node serialport is also required:
+
+ // -g is not needed as its used locally
+ npm install serialport
+
+run:
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+
+------------------------------------------------------------------------------
+KEYWORDS: 
+

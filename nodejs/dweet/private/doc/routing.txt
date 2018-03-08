@@ -1,0 +1,160 @@
+
+Dweet Routing Protocol
+
+John Richardson 02/01/2015
+
+A routing sentence precedes a sentence that is to be routed.
+
+Routing sentences use the prefix $PRTE.
+
+Normal checksums for the two sentences:
+
+$PDWT,GETCONFIG=NAME*5D\r\n
+
+$PRTE,1,5D*53\r\n
+
+When the routing sentence is combined with the routed sentence
+we get:
+
+$PRTE,1,5D*53\r\n$PDWT,GETCONFIG=NAME*5E\r\n
+
+Note that the checksum of the routed sentence is now 5E which
+is its valid checksum of 5D incremented by one, and part of
+the payload of the routing header.
+
+When the sentence pair is received, the checksum of the routing sentence
+itself is first validated. If its good, the checksum inside the routing
+sentence is compared with the checksum of the following sentence after
+1 is subtracted. If they match the following sentence is paired with
+the routing sentence and is forwarded.
+
+Note: The checksum validator for the following sentence needs to
+be informed that its checksum is biased by +1 so that it can
+perform its normal sentence validation. Otherwise the sentence
+would be rejected as intended if a routing header is lost.
+
+Note: Each sentence of a routed pair both start with the
+sentence start delimiter $ and end with the sentence end
+delimiter of \r\n. This allows a common standard NMEA 0183 sized
+receive buffer to be used to receive both the routing sentence
+and the sentence to be routed. Its expected that firmware would
+record the routing information in a more compact format such
+as the port id, checksum (3 bytes total) and purge the routing sentence
+from the buffer allowing its use to receive the up to full length
+sentence to be routed.
+
+This design is targeted to microcontrollers with minimal space
+by re-using the single receive buffer, and not restrict the maximum
+sentence size based on routed, vs. non-routed transports which
+would have cascading effects all the way up to the application layer.
+
+Note: This example shows a simple routing sentence of a single
+port address. More complex routing sentences may be used to
+represent complex topologies, multiple paths, etc. The limit of
+any routing sentence is the normal NMEA 0183 payload limit of
+71 characters accounting for 82 bytes max - overheads.
+
+Of course smaller routing sentences are preferred for
+efficiency and transport reliability reasons. (Larger messages
+are more likely to be lost on a noisy radio link for example).
+
+Note: Simple "tag" based routing protocols can be built using
+a series of addresses in the routing header, with the last
+value always being the checksum of the following sentence.
+
+For example the follow will route across the path that consists
+of Port 1, Port 7, Port 5. Such a path could be an interconnected
+series of devices. It's up to higher level configuration to be
+concerned as to how such paths are discovered and/or configured.
+
+$PDWT,GETCONFIG=NAME*5D\r\n
+
+$PRTE,1,7,5,5D*51\r\n
+
+$PRTE,1,7,5,5D*51\r\n$PDWT,GETCONFIG=NAME*5E\r\n
+
+----------------------
+
+Dweet's basic sentence/message model is based on point to point connections.
+
+The Dweet connection model is one of a serial port in which the other peer
+being communicated with is well known based on the local port number the
+message arrived on. Message responses are sent to that same port. For example
+a typical Dweet microcontroller may implement from 1-4 physical serial ports,
+in addition to "virtual serial" ports routed over an on board radio, SPI,
+two-wire, etc.
+
+All ports, physical or virtual occupy a "Serial Port" number in a range from
+0-9, but may be higher for advanced gateways and hubs.
+
+Dweet's layer on top of NMEA 0183 which is used in a point to point fashion.
+
+NMEA 0183 has provisions for broadcast messages with "talkers" and "listeners"
+with embedded sender ID's and message names being used to distinguish talkers.
+This model is not used by Dweet since its oriented more towards broadcasts of
+continously updated information from a handful of well known talkers to
+potentially many listeners. This does not fit the command and control
+request/response usage that constitute basic Dweet operations.
+
+Routing Headers and Usage:
+
+A Dweet sentence that is to be routed is preceeded by a Dweet routing
+header. Dweet routing headers use the prefix "$PRTE" to indicate
+this is a routing sentence, and not a normal Dweet sentence.
+
+The Dweet routing header contains the address that the following
+Dweet sentence should be routed to. This address is a port number in
+the range of 0 - 255. It is not the protocols responsibility to
+assign these port numbers in that is part of the higher level
+configuration.
+
+In addition to the routing address, the valid checksum of the
+sentence to be routed is provided. This is used to validate
+that the next sentence is in fact the one to be routed. This is because
+the serial protocol could drop, or corrupt messages such that next
+valid message seen is a later message intended for a different address.
+
+To further protect against lost headers, the sentence being routed
+has its checksum "poisoned" by incrementing it by 1. This is so
+it will be seen as an invalid sentence if its header is lost.
+
+The routing protocol will restore this checksum by decrementing
+by 1 and then comparing it to the checksum contained in the
+routing sentence. Only if they match will the routing of the
+sentence be completed. On error both are dropped silently with
+no response, though an error log on a debug channel could occur
+provided it does not intermix with routing operations.
+
+Implementation note:
+
+  - Sentences to be routed strictly follow the routing header with
+    no other data or sentences allowed in between.
+
+  - If a valid routing header has been received and the next
+    sentence has a checksum error the routing operation is
+    cancelled.
+
+    Due to the sentence to be routed strictly following the routing
+    sentence any corruption of the next sentence means the current routing
+    operation can not be completed.
+
+    This provides additional protection of mis-routed sentences
+    and re-enforces the checksum compares.
+
+This pair of sentences routes the second sentence to Port 1
+
+
+A Dweet routine header consists of:
+
+$PRTE,address0,checksum_of_next_message*00\r\n
+
+ address0 - Address of target, usually a Serial Port number from 0 - 255
+
+ checksum_of_next_message - The next messages checksum.
+
+Example of address 0, with next message checksum of CC
+
+$PRTE,0,CC*00\r\n
+
+
+

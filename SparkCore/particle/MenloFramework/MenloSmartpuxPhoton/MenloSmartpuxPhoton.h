@@ -6,7 +6,7 @@
 //
 //   Openpux Internet Of Things (IOT) Framework.
 //
-//   Copyright (C) 2014,2015 Menlo Park Innovation LLC
+//   Copyright (C) 2015,2016 Menlo Park Innovation LLC
 //
 //   menloparkinnovation.com
 //   menloparkinnovation@gmail.com

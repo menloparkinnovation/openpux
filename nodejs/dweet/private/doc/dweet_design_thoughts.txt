@@ -1,0 +1,449 @@
+
+//
+// Why is this here?
+//
+// Because I don't want it separated since its
+// in a different file.
+//
+// It's easier to refer to when its in the code file.
+//
+// Its on the end of the code file so it does not mess
+// up the top of the file with pages of documentation.
+//
+
+//
+// Overall Design:
+//
+// Dweet's are designed to help resolve the IoT "last 100 feet".
+//
+// Dweet's are based on NMEA 0183 formatted messages.
+//
+// Typically they are used on serial ports, and this module support's
+// that usage directly.
+//
+// In addition, Dweet's may be marshalled to/from a buffer
+// to allow a caller to send them over alterate transports
+// such as HTTP, REST, SMS, etc.
+//
+// Since NMEA 0813 was designed over 20 years ago for small
+// low memory devices, it fits very well into Arduino's
+// and other small "Internet Of Things" modules. 
+//
+// Since messages are restricted to 7 bit ASCII with printable
+// characters, have a well defined format, and checksums
+// they work very well for machine to machine communication,
+// but in a human readable form.
+//
+// Many "last 100 feet" IoT scenarios use low power, low
+// speed radios, USB serial connections, module to module
+// serial interfaces such as UARTS, SPI, two wire, etc, a
+// uniform communication and control protocol that is
+// natively serial interfaces well with little code
+// mismatch.
+//
+// Since the traditional serial port contract is that data
+// can arrive at any character boundary in constantly
+// variable sizes, no framing is required of the various
+// transports in emulation of a higher level contract.
+// This allows adaption to low power radios with
+// small packet sizes (16 or 32 bytes for example),
+// radios with larger packet sizes, or even radios
+// that vary their packet size in the presence of interference
+// and low signal strength. This removes a lot of code complexity
+// and buffering that have to exist on the low cost sensor
+// device and its gateways.
+//
+// In addition DWEET's are designed to be able to be sent
+// over more modern internet protocols such as HTTP as
+// querystrings, GET, POST, or REST protocols using
+// the string itself, JSON, XML, etc. This is accomplished
+// either by a gateway on behalf of small battery powered
+// devices, or by higher power WiFi enabled devices themselves.
+//
+// Note: For URL queries Dweets use many characters that
+// require "escaping" and is handled by most common
+// web libraries including Node.js. (querystring.escape).
+//
+// The extra length added is not considered a burden for the
+// HTTP protocol which has over 80 bytes in its minimal header
+// set anyway!
+//
+// Escape/unescape can be avoided if the Dweet is sent as
+// an HTTP POST content body instead of as a query string.
+//
+// In addition the character set and message length limits
+// fit within SMS (text messaging) limits so direct communication
+// with the device from any cellphone may be accomplished with
+// the proper gateway. Such an SMS gateway can be from a low
+// cost on board cell phone modem, or a gateway through an
+// internet protocol such as TWILIO, Azure, Amazon, etc.
+//
+// In many cases where WiFi or a direct network connection
+// is not available for a device and/or gateway, SMS text
+// messaging is a reliable, low cost option over a full
+// data plan and IP based networking. Dweets naturally
+// fit within this model.
+//
+// It's straightfoward to create modern cellphone applications
+// and/or web pages to access SMS text messages with commands
+// to control a device. Human readable command sentences
+// are easily translated into formatted DWEET messages
+// by the UI software.
+//
+// Message routining and forwarding are considered higher
+// level protocol considerations that encapsulate the
+// Dweet messages. A given device implementation may design
+// its messages to address potentially multiple "listeners"
+// and "responders" as per the NMEA 0183 protocol. But specifying
+// this behavior is outside of the Dweet protocol.
+//
+
+//
+// Standard Dweet Message Patterns
+//
+// These common patterns make it easier to use Dweet across
+// different devices by mapping to similar concepts.
+//
+// Typically these use the standard Dweet prefix $PDWT, but could
+// use a specific one if required for device isolation.
+//
+
+//
+// Request/Reply pattern
+//
+// The Dweet model is that asynchronous messages flow
+// from a requestor to a device, and in addition asynchronous
+// messages flow from the device to the requesstor.
+//
+// There is no relationship, or coupling between Dweet
+// commands sent in an incoming request and the "next" or
+// "future" Dweet messages sent from the device to
+// the requestor.
+//
+// This could be due to buffering, previous device state
+// transitions, communications/update priority, lost messages,
+// re-transmits, etc. It's also possible for an operation to take
+// a while on the device, while the device provides a scheduled
+// message send in the meantime.
+//
+// In addition specific Dweet commands are packed into
+// outgoing Dweet sentences to improve communications
+// efficiency. There can be no assumption that a given
+// command will arrive in its own sentence, or in
+// a sentence with a regular pattern, such as which
+// neighbors got on the "bus" at the time it left the station.
+//
+// Many Dweets request some action and return a result. These
+// are separate messages from the requestor to the device,
+// and from the device to the requestor. There are no
+// guarantees that these messages arrive, are not duplicated
+// due to re-transmissions, or a response is lost.
+//
+// As a result an application needs to design its messages
+// with this in mind and either design its device behavior
+// to work with indempotent messages, or implement its own
+// higher level message delivery/state assurance protocol.
+//
+// Within this framework is very common to send a Dweet
+// message and expect a return result, even if its
+// some sort of acknowledgement that the device is
+// in the desired target state. An example would be
+// "SETALARM=ON" and SETALARM=OFF".
+//
+// There are two ways to implement this:
+//
+// 1) If the current alarm status is something regularly transmitted
+//    or queried an "ALARMSTATUS=ON" Dweet can be queued for
+//    later send.
+//
+//    An application that wants to reliably set the alarm
+//    can continue to send indempotent "SETALARM=ON" commands
+//    until it receives an "ALARMSTATUS=ON" Dweet message.
+//
+//    This is common example of an indempotent design of a
+//    device target state.
+//
+// 2) If the request does not have naturally occuring visible
+//    state then a "reply" Dweet command is queued to be
+//    sent.
+//
+//    "READMEMORY1=00" would retrieve the memory byte at address
+//    00 and queue a "READMEMORY1_REPLY=00:00 Dweet. Notice that
+//    the address requested is included in the reply since other
+//    READMEMORY1= commands may already have been asynchronous
+//    sent.
+//
+//    By having separate messages there is no confusion as to
+//    which messages are requests and which messages are responses.
+//
+//    A reply shorthand could be used such as "!READMEMORY1=00:00"
+//    which saves characters and processing.
+//
+// Unknown Commands:
+//
+//  Unknown commands are ignored and dropped. They are not
+//  replied to.
+//
+//  Responses to unknown commands are avoided to prevent
+//  network flooding with unknown responses, etc.
+//
+//  If you need to know if a given command is implemented, query
+//  the "GETCONFIG=VERSION", or implement your own positive
+//  acknowledgement query command support function.
+//
+
+//
+// Conversational Mode Dweets
+//
+// Conversational mode Dweets are intended to be human readable
+// and constructable. These may be used through an interactive
+// gateway to talk directly to a device, or accessed through
+// a programmed/scripted service.
+//
+// Using human understandable conversational mode not only opens
+// up direct user interaction with a device, it also makes it
+// easier for non-embedded systems programmers developing
+// application scenarios to access a given devices command
+// set and capabilities.
+//
+// These are some common operations, but its intended that this
+// pattern is extended as required to support a given device
+// in a human accessible format.
+//
+//  Configuration:
+//
+//  "SETCONFIG=Name:Value"
+//  "GETCONFIG=Name"
+//  "GETCONFIG_REPLY=Name:Value"
+//
+//     Examples:
+//
+//     "SETCONFIG=LowTempAlarm:ON"
+//     "GETCONFIG=HighTempAlarm"
+//     "GETCONFIG_REPLY=HighTempAlarm:ON"
+//
+
+//
+// Debugging/Low Level Dweets:
+//
+//   These Dweets are useful for debugging and for performing
+//   operations in the field in which a firmware update it not
+//   practical.
+//
+//   Deployments may disable some of these in order to prevent
+//   devices from being corrupted. It may be controlled by
+//   a jumper or switch on some hardware, or be dependent on
+//   the transport the command arrives on.
+//
+//   For example a device connected to a physical serial or
+//   USB port may always respond to debugger commands, while it will
+//   typically ignore them over a radio transport. A soft setting
+//   (sent on the serial/USB port) can control whether radio
+//   based debugging is supported. To save I/O ports, jumper
+//   space an implementor can use an on board EEPROM to implement
+//   such soft switches.
+//
+//   Though not as efficient as a dedicated debug protocol, these
+//   debugging Dweets can be used to implement a debugger, such as
+//   a gateway to GDB or others.
+//
+//
+//  Note on 64 bit and large data types:
+//
+//  In all examples extending to large addresses and data types
+//  such as 64 bit is obvious, but watch the maximum sentence length.
+//
+//    64 bit worse case fits:
+//
+//    Note: '`' separating 64 bit address halfs is a common
+//          convention, but is not required for the protocol to save space.
+//
+//              21                       36  == 57 total
+//     $PDWT,WRITEPGMSPACE8=00000000`00000000:00000000`00000000*00
+//
+//  Read memory of 1, 2, or 4 bytes.
+//
+//  Address length as required for target. As an example, three
+//  different address lengths are given, though its not a
+//  requirement that the address length matches the data size
+//  read.
+//
+//  Note: For debugging Dweets the shorthand reply format "!" is
+//  used since the audience is more technical and it saves space
+//  rather than using conversational mode COMMAND_REPLY.
+//
+//  "READMEMORY1=00"   // read 1 byte with a byte address
+//  "READMEMORY2=0000" // read 2 bytes with a word address
+//  "READMEMORY4=00000000" // read 4 bytes with a 32 bit address
+//
+//  "!READMEMORY1=00:00"     // reply to READMEMORY1
+//  "!READMEMORY2=0000:0000"
+//  "!READMEMORY4=00000000:00000000"
+//
+//
+//  Write memory of 1, 2, or 4 bytes.
+//    Writes specify address:data using ':' as a separator.
+//
+//    Note: There are no replies. If you want to ensure a value
+//    is set issue a READMEMORYx Dweet following the write.
+//
+//    This pattern will hold true for all debugger write
+//    command Dweets.
+//
+//  "WRITEMEMORY1=00:00"   // write 1 byte with a byte address
+//  "WRITEMEMORY2=0000:0000" // write 2 bytes with a word address
+//  "WRITEMEMORY4=00000000:00000000" // write 4 bytes with a 32 bit address
+//
+//  Some devices have EEPROM or other non-volatile configuration stores.
+//  These commands allow reading/writing those directly.
+//
+//  Note: READCONFIG/WRITECONFIG without the size number are intended
+//  for non-debugging "conversational style" Dweets. See that section
+//  for more details.
+//
+//  "READCONFIG1=00"   // read 1 byte with a byte address
+//  "READCONFIG2=0000" // read 2 bytes with a word address
+//  "READCONFIG4=00000000" // read 4 bytes with a 32 bit address
+//
+//  "!READCONFIG1=00:00"   // reply
+//  "!READCONFIG2=0000:0000"
+//  "!READCONFIG4=00000000:00000000"
+//
+//  "WRITECONFIG1=00:00"   // write 1 byte with a byte address
+//  "WRITECONFIG2=0000:0000" // write 2 bytes with a word address
+//  "WRITECONFIG4=00000000:00000000" // write 4 bytes with a 32 bit address
+//
+//  Some devices have a separate "I/O Space" from their normal data addressable
+//  memory space. These commands support I/O space references.
+//
+//  "READIO1=00"   // read 1 byte with a byte address
+//  "READIO2=0000" // read 2 bytes with a word address
+//  "READIO4=00000000" // read 4 bytes with a 32 bit address
+//
+//  "!READIO1=00:00"   // reply
+//  "!READIO2=0000:0000"
+//  "!READIO4=00000000:00000000"
+//
+//  "WRITEIO1=00:00"   // write 1 byte with a byte address
+//  "WRITEIO2=0000:0000" // write 2 bytes with a word address
+//  "WRITEIO4=00000000:00000000" // write 4 bytes with a 32 bit address
+//
+//  Some devices has specific registers that are not accessible in
+//  any space (memory, I/O, program). On Intel processors these are
+//  called "Model Specific Registers" or MSR's. This is not unique
+//  to Intel, many processors have "on-board" registers which
+//  are not accessible except through special instructions. For
+//  example ARM has "control space" reference instructions.
+//
+//  These commands provide access to those registers. A device
+//  is free to format the address portion with either a number, or
+//  a name as it sees fit.
+//
+//  "READMSR1=00"   // read 1 byte with a byte address
+//  "READMSR2=0000" // read 2 bytes with a word address
+//  "READMSR4=CR8" // read 4 bytes of a specific register name
+//
+//  "!READMSR1=00:00"   // reply
+//  "!READMSR2=0000:0000"
+//  "!READMSR4=CR8:00000000"
+//
+//  "WRITEMSR1=00:00"   // write 1 byte with a byte address
+//  "WRITEMSR2=0000:0000" // write 2 bytes with a word address
+//  "WRITEMSR4=CR8:00000000" // write 4 bytes with a 32 bit address
+//
+//  Some devices allow reading their program space separately from their
+//  memory space.
+//
+//  Write commands are included, but typically must be updated as larger
+//  "flash blocks", which is outside of the Dweet protocol.
+//
+//  "READPGMSPACE1=00"   // read 1 byte with a byte address
+//  "READPGMSPACE2=0000" // read 2 bytes with a word address
+//  "READPGMSPACE4=00000000" // read 4 bytes with a 32 bit address
+//
+//  "!READPGMSPACE1=00:00"   // reply
+//  "!READPGMSPACE2=0000:0000"
+//  "!READPGMSPACE4=00000000:00000000"
+//
+//  "WRITEPGMSPACE1=00:00"   // write 1 byte with a byte address
+//  "WRITEPGMSPACE2=0000:0000" // write 2 bytes with a word address
+//  "WRITEPGMSPACE4=00000000:00000000" // write 4 bytes with a 32 bit address
+//
+
+//
+// 01/09/2015
+//
+// Dweet Routing:
+//
+// To give devices full advantage of the 80 char limit (actually 82 with \r\n)
+// Dweet routing is designed handle the full NMEA 0183 sentence limit
+// and require no addressing information within the NMEA 0183 sentence
+// itself.
+//
+// This way applications do not have to be adapted if routing/gateways
+// are introduced. It should be 100% transparent once address/routing
+// configuration has been setup.
+//
+// Another principle is that the sentence and its checksum are
+// not re-formated as its passed along without modification to
+// minimize processing.
+//
+// Instead of using more "efficient" binary protocols, the Dweet routing
+// standard uses only ASCII characters within the allowed character
+// set of NMEA 0183.
+//
+// Implementation:
+//
+// Dweet routing is a proprietary NMEA 0183 sentence itself.
+// 
+// It precedes the sentence that is being routed.
+//
+// $PDRT,COM3*00\r\n$PDWT,LIGHT=ON*00\r\n
+//
+// A line by line parser sees this as two lines.
+//
+// This is helpful for small devices performing routing
+// services by remembering the binary port address and re-using
+// the buffer for the string being routed.
+//
+// Design Issues:
+//
+//  How to ensure that the next message if for the routing
+//  command header. The next two messages could be dropped
+//  a valid NMEA 0183 sentence is presented for a different
+//  end point target.
+//
+//   Some solutions:
+//
+//     Include the checksum of the following sentence as a value
+//     in the routing header.
+//
+//        - This could be just the checksum as is.
+//        - Or the routing header checksum contains the checksum
+//          for whole string including the following.
+//
+//        - Both of these don't work for streaming mode in which
+//          a low memory controller "streams" it through and does
+//          not buffer the whole thing.
+//
+//   One solution that works for streaming mode but breaks the
+//   "do not touch" model is to update the check sum of NMEA 0183
+//   sentence being routed (the payload) to include the headers
+//   checksum sequence inside the string. The idea is that if
+//   the routing head is lost, the payload NMEA 0183 sentence
+//   is now "poisoned" with an improper checksum and will be
+//   dropped by a receiver/router.
+//
+//   The ingress router would re-calculate the proper checksum
+//   and update the sentence before delivering to the target
+//   or next router stage.
+//  
+//   If a lower level routine protocol such as Menlo Radio Serial(tm)
+//   or other form of "serial virtual channel" then this routing
+//   overhead is not required since the infrastructure would make
+//   it appear as if a virtual COM port is available end to end.
+//
+//   TODO: Think a bit more about the idea of a virtual COM port
+//   layer end to end...
+//
+

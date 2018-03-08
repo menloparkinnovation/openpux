@@ -222,6 +222,11 @@ DweetConsole.prototype.ContextInitialize = function(context) {
 //
 // Launch interactive console.
 //
+// call stack:
+// usermain.js, userMain
+//   dweetconsole.js, ConsoleMain()
+//     interactiveConsole()
+//
 // Note: it could be scripted, or from an interactive device such as stdin.
 //
 // context.trace

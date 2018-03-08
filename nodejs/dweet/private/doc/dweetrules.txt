@@ -1,0 +1,83 @@
+
+Dweet Command Rules
+
+John Richardson
+
+02/01/2015
+
+All Dweet commands and data must be ASCII printable characters.
+
+This is from NMEA 0183, and additional Dweet restrictions to keep it readable
+without data scopes, line monitors, etc.
+
+The characters "$,*\r\n" are not allowed. These are NMEA 0183 sentence
+structure characters.
+
+ Allowed:
+   'a-z', 'A-Z', '0-9', '!@#%^&(){}|;?/<>,.:;-_+=~"
+
+ Disallowed:
+   all else. note that " " is not in the allowed set.
+
+ Recommended:
+   Use english words. Don't make commands look like an accidental binary
+   dump, even if they are printables.
+
+The characters "_:" have special meaning in Dweet commands.
+
+"_" may not be used in COMMAND names.
+  - Used to separate COMMAND from replies.
+
+":" may not be used in COMMAND values.
+  - Used to separate name from value.
+
+Commands are in the following format(s):
+
+Note: Upper case is used for COMMAND's. Upper or
+lower case may be used for NAME:value, though upper
+case is typical for NAME.
+
+An implemention is free to ignore commands of non-upper
+case.
+
+COMMAND=NAME
+COMMAND=NAME:value
+
+Replies to the previous commands are:
+
+COMMAND=NAME
+COMMAND_REPLY=NAME       // if no value to be returned
+COMMAND_REPLY=NAME:value // if there is a value to be returned
+COMMAND_ERROR=NAME       // error
+COMMAND_UNSUP=NAME       // not supported by target
+
+COMMAND=NAME:value
+COMMAND_REPLY=NAME:value // success
+COMMAND_ERROR=NAME:value // error
+COMMAND_UNSUP=NAME:value // not supported by target
+
+NMEA 0183 Sentence Rules
+
+All Dweet commands are carried in NMEA 0183 sentences. As such NMEA 0183
+rules apply.
+
+$PDWT,COMMAND1_NAME:value,COMMAND2_NAME:value*00\r\n
+
+"$,*\r\n" are part of the NMEA 0183 sentence structure and can't be
+used for the payload portion. As such these are not allowed
+for Dweet commands and values.
+
+NMEA 0183 specifies only 7 bit characters. Dweet further restricts
+this to the "printables" set.
+
+Maximum line length is 82 characters including the \r\n. This
+is a maximum payload of 71 characters once the overhead of
+"$PDWT,*00\r\n" is subtracted.
+
+All Dweet commands and their responses must fit within this payload
+limit or will be dropped. This is since small devices have a maximum
+buffer of 82 bytes for processing NMEA 0183 sentences.
+
+(Actually 83 is used for a "safe" null terminator not part of the
+ protocol and place by receive code).
+

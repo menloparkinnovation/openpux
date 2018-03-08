@@ -1,4 +1,8 @@
 
+D9 - RED LED
+D5 - GREEN LED
+D6 - BLUE LED
+
 This is a shield for ArduinoProMini and SparkFun ProMicro.
 
 This one rotates the nRF24L01 to give a better overall formfactor.

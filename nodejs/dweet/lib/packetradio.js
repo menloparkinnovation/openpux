@@ -86,6 +86,8 @@ PacketRadio.prototype.registerForReceive = function(dweetChannel) {
 
     var self = this;
 
+    self.tracelog("packetradio: register for receive");
+
     //
     // Register for packet radio receive Dweets
     //
@@ -93,10 +95,11 @@ PacketRadio.prototype.registerForReceive = function(dweetChannel) {
 
         if (prefix != "$PDWT") {
             // Not for radio gateway
+            self.tracelog("dweet received not for radio gateway");
             return;
         }
 
-        // self.tracelog("R dweet received");
+         self.tracelog("R dweet received");
 
         // This should be "R" based on our event registration
         if (name != "R") {
@@ -133,7 +136,7 @@ PacketRadio.prototype.registerForReceive = function(dweetChannel) {
 
         var packet = myutil.asciiHexStringToBinaryBuffer(value);
 
-        //self.tracelog("R calling processPacketFromRadio");
+        self.tracelog("R calling processPacketFromRadio");
 
         //
         // Emit the event for the application handlers

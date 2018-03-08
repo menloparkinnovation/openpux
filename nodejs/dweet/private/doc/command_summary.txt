@@ -1,0 +1,232 @@
+
+Dweet Commands Summary
+
+----------------------------------------
+#
+# Essential, basic, and transport commands
+#
+
+?
+help
+
+shownmea
+showdweet
+settrace 10
+
+#
+# disable transport checksums. Use *00 for checksums when entering by hand.
+# Note: This message must have the correct checksum to turn off checksums
+# to ensure reliability of the protocol state.
+#
+$PDWT,SETSTATE=NOCHECKSUM:01*24
+
+----------------------------------------
+#
+# This is a low level command which can be entered in the Arduino serial
+# monitor or a terminal such as screen, cu, etc.
+#
+# It's a valid Dweet/NMEA command with proper check sum which should
+# be answered by any board that has used the MenloFramework Dweet base
+# support libraries.
+#
+
+$PDWT,GETCONFIG=NAME*5D
+
+Reply will be: (not name and checksum will vary based on config)
+
+$PDWT,GETCONFIG_REPLY=NAME:RadioGateway1*52
+----------------------------------------
+Basic Configuration Read commands
+
+These commands read out the basic configuration
+
+getconfig name
+getconfig model
+getconfig serial
+
+They may also be entered in long form format. getconfig is
+a shorthand command for "dweet GETCONFIG=NAME"
+
+dweet GETCONFIG=NAME
+dweet GETCONFIG=MODEL
+dweet GETCONFIG=SERIAL
+
+----------------------------------------
+Set configuration for a new device/firmware reload
+
+setconfig name=LightHouse
+
+setconfig model=MenloShieldNRF
+
+setconfig serial=00000002
+
+----------------------------------------
+----------------------------------------
+----------------------------------------
+----------------------------------------
+
+# run script and exit
+dweet -script=ShowNMEA.dweet /dev/cu.usbserial-DA01LIRO $*
+
+# run script and stay in console
+dweet -console -script=ShowNMEA.dweet /dev/cu.usbserial-DA01LIRO $*
+
+# This allows manual input of commands from Arduino Serial Monitor
+# Note: Set Line Ending Newline and Carriage Return in the bottom right hand corner
+
+$PDWT,SETSTATE=NOCHECKSUM:01*24
+
+# Test
+$PDWT,GETCONFIG=NAME*00
+
+# GPSPOWER turn GPS off
+$PDWT,SETSTATE=GPSPOWER:0*00
+
+# GPSPOWER turn GPS off
+$PDWT,SETSTATE=GPSPOWER:1*00
+
+#-----------
+# Communicate with remote sensor over radioserial
+
+# start gateway
+./startradiogateway.sh
+
+# switch to gateway to send attention to sleepy sensor target
+switch gate0
+
+# This tells the remote sensor to keep its radio on for at least 30 seconds
+# for additional commands
+dweet SETSTATE=RADIOATT:7530
+
+# This is good for 5 minutes
+dweet SETSTATE=RADIOATT:493E0
+
+# switch back to sensor target
+switch radio0
+
+# Send getconfig within 30 seconds
+getconfig name
+
+# wait 60 seconds (two radio cycles) and see that its back to sleep
+getconfig name
+
+#-----------
+
+open /dev/tty.usbmodem1421 gateway
+
+# shutoff radio power timer
+dweet SETSTATE=RADIOPOWERTIMER:0
+
+# Set radio attention for 30 seconds
+# 0x7530 is 30,000 milliseconds
+dweet SETSTATE=RADIOATT:7530
+
+# Set radio power timer for 10 seconds
+# 0x2710 is 10,000 milliseconds
+dweet SETSTATE=RADIOPOWERTIMER:2710
+
+# Set radio power timer for 250 milliseconds
+# 0xFA is 250 milliseconds
+dweet SETSTATE=RADIOPOWERTIMER:FA
+dweet SETCONFIG=RADIOPOWERTIMER:FA
+
+# Set radio power timer for 5 seconds
+# 0x1388 is 5000 milliseconds
+dweet SETSTATE=RADIOPOWERTIMER:1388
+dweet SETCONFIG=RADIOPOWERTIMER:1388
+
+# tracing off
+settrace 0
+
+# tracing high/max
+settrace 10
+
+# Turn on radio gateway
+dweet SETSTATE=RADIOGATEWAY:ON
+
+# Configure gateway routine for Dweet command console
+radiogateway radio0 /dev/tty.usbmodem1421
+
+# show who is current
+who
+
+# show details of exchange for debugging
+showdweet
+shownmea
+
+switch gateway
+getconfig name
+
+switch radio0
+getconfig name
+
+setconfig name=RadioTarget1
+setconfig model=MenloShieldNRF
+setconfig serial=00000002
+
+dweet SETCONFIG=RADIOCHANNEL:01
+dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIOTXADDR:73656E7330
+dweet SETSTATE=RADIOTXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIORXADDR:6761746530
+dweet SETSTATE=RADIORXADDR:6761746530
+
+# Default RADIOGATEWAY to off
+dweet SETCONFIG=RADIOGATEWAY:OFF
+dweet SETSTATE=RADIOGATEWAY:OFF
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+
+# FencePostLight1
+dweet LIGHTSQ=10:0100
+dweet LIGHTSP=10:0100
+
+dweet SETSTATE=LIGHTCOLOR:00.FF.00
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+
+dweet GETCONFIG=LIGHTCOLOR
+
+# light on/off level
+dweet SETCONFIG=LIGHTONLEVEL:0000
+dweet SETSTATE=LIGHTONLEVEL:0000
+
+# light on / light off
+
+#
+# Sensor Setup
+#
+# FFFF is the always enabled value regardless of light condition
+#
+dweet SETCONFIG=LIGHTONLEVEL:FFFF
+dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+dweet SETCONFIG=LIGHTONLEVEL:0200
+dweet SETSTATE=LIGHTONLEVEL:0200
+
+dweet SETCONFIG=LIGHTONLEVEL:0200
+dweet SETSTATE=LIGHTONLEVEL:0200
+
+dweet SETCONFIG=SENSORRATE:0000
+dweet SETSTATE=SENSORRATE:0000
+
+# Set a SENSORRATE of 30 seconds
+dweet SETSTATE=SENSORRATE:001E
+
+#                        lite bat  slr  mois temp
+# Light is 27B dark
+# GETSTATE_REPLY=SENSORS:0000.0000.0000.0000.0000
+dweet GETSTATE=SENSORS
+
+quit
+
