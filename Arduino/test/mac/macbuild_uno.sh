@@ -1,39 +1,81 @@
-
 #
-# Build Arduino command line on mac
+# Arduino Builder Testing
 #
-# 12/30/2015
-#
-
-# https://github.com/arduino/Arduino/blob/master/build/shared/manpage.adoc
-
-#
-# *** NOTE ***
-#
-# Must set the board to "Uno" in the menu, then close/exit the Arduino
-# IDE. This sets the environment settings which the command line build
-# appears to rely on.
-#
-# If confusing/random errors occur, its because of a confusion between
-# the settings from the command line and the saved environment.
-#
-# *** NOTE ***
+# build from Arduino path.
 #
 
-#
-# Build on Uno, validating AVR/AtMega328
-#
+# On mac
+MY_ARDUINO_INSTALLATION=/Applications/Arduino_1_6_8.app
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/MenloGateway/MenloGateway.ino
+MY_BOARD_NAME=arduino:avr:uno
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/WeatherStation/WeatherStation.ino
+MY_SKETCH_PATH=$PWD
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/LightHouse/LightHouse.ino
+MY_LIBRARIES_PATH=$PWD/Libraries
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/FencePostLight/FencePostLight.ino
+MY_ARDUINO_BUILDER_PATH=$MY_ARDUINO_INSTALLATION/Contents/Java/
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/MenloBlink/MenloBlink.ino
+MY_HARDWARE_PATH=$MY_ARDUINO_INSTALLATION/Contents/Java/hardware
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/MenloRadioDweetBlink/MenloRadioDweetBlink.ino
+MY_TOOLS_PATH=$MY_ARDUINO_INSTALLATION/Contents/Java/hardware/tools/avr
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --verify --verbose --board arduino:avr:uno $PWD/MenloDweetBlink/MenloDweetBlink.ino
+MY_TOOLS_PATH2=$MY_ARDUINO_INSTALLATION/Contents/Java/tools-builder
+
+Module=MenloFramework
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloMinimalTemplate
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloBlink
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloBlinkMemoryMonitor
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloDweetBlink
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloRadioDweetBlink
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloRadioDweetSensor
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloGateway
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloWatchDog
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=MenloTestTemplate
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=FencePostLight
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=LightHouse
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+Module=WeatherStation
+$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+# This does not build on UNO, but does on MEGA or Due since its larger than the UNO can fit.
+#Module=RadioWeatherStation
+#$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+#rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+echo "**** ALL PASSED ****"

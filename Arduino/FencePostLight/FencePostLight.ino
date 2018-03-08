@@ -286,6 +286,11 @@ DweetLightHouse g_dweetLightHouse;
 
 DweetRadioSerialApp g_sensorApp;
 
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
+
 //
 // Setup
 //
@@ -440,9 +445,6 @@ ApplicationSetup()
   //
   // Setup our application framework parameters
   //
-
-  // A single application instance may be invoked from multiple Dweet channels.
-  config.serialConfig.dweetApp = &g_dweetLightHouse;
 
   //
   // Supply the Dweet channel to the FencePostLight hardware.

@@ -258,6 +258,11 @@ MenloDweet::TraceLevelHandler(char* buf, int size, bool isSet)
     return 0;
 }
 
+
+//
+// MENLOSLEEP_MODE_DISABLE is set as SETCONFIG=SLEEPMODE:0
+// MENLOSLEEP_MODE_IDLE is set as SETCONFIG=SLEEPMODE:1
+//
 int
 MenloDweet::SleepModeHandler(char* buf, int size, bool isSet)
 {

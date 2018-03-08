@@ -1,4 +1,13 @@
 
+05/30/2016
+
+
+
+04/09/2016
+
+Space with Arduino 1.6.8 is 24,362 bytes program space, 988 bytes ram
+  Max is 30,720 bytes program space, 2048 bytes ram for Arduino Pro Mini 8Mhz 3.3V
+
 09/03/2015
 
 MenloGateway - Operates as a gateway for Menlo Framework sensors.

@@ -1,0 +1,76 @@
+
+#
+# Configure Sensor
+#
+
+# This is for debugging
+#shownmea
+#showdweet
+
+# Setup manufacturing information
+setconfig name=MenloSensor2
+
+setconfig model=MenloRadioSensor
+
+setconfig serial=00000003
+
+#
+# Setup the radio parameters
+#
+
+dweet SETCONFIG=RADIOCHANNEL:01
+#dweet SETSTATE=RADIOCHANNEL:01
+
+# "sens0" in ASCII hex "73656E7330"
+dweet SETCONFIG=RADIORXADDR:73656E7330
+#dweet SETSTATE=RADIORXADDR:73656E7330
+
+# "gate0" in ASCII hex "6761746530"
+dweet SETCONFIG=RADIOTXADDR:6761746530
+#dweet SETSTATE=RADIOTXADDR:6761746530
+
+# Default RADIOGATEWAY to OFF
+dweet SETCONFIG=RADIOGATEWAY:OFF
+#dweet SETSTATE=RADIOGATEWAY:OFF
+
+# Configure Radio Power Timer for 250ms idle shutdown
+dweet SETCONFIG=RADIOPOWERTIMER:FA
+#dweet SETSTATE=RADIOPOWERTIMER:FA
+
+# Configure Radio Power Timer for 5 second idle shutdown
+# 0x1388 is 5000 milliseconds
+#dweet SETSTATE=RADIOPOWERTIMER:1388
+#dweet SETCONFIG=RADIOPOWERTIMER:1388
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=RADIOCHANNEL
+dweet GETCONFIG=RADIOTXADDR
+dweet GETCONFIG=RADIORXADDR
+dweet GETCONFIG=RADIOGATEWAY
+dweet GETCONFIG=RADIOPOWERTIMER
+
+#
+# Set the sensor paramters
+#
+
+# Set sensor update rate to 30 seconds
+dweet SETCONFIG=SENSORRATE:001E
+#dweet SETSTATE=SENSORRATE:001E
+
+# Default to light always on
+dweet SETCONFIG=LIGHTONLEVEL:FFFF
+#dweet SETSTATE=LIGHTONLEVEL:FFFF
+
+# Default to green light
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+#dweet SETSTATE=LIGHTCOLOR:00.FF.00
+
+# Set this last as it gets overwritten TODO: Debug this!
+setconfig name=MenloSensor2
+
+quit

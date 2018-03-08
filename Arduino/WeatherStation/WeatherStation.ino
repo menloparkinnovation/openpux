@@ -112,6 +112,11 @@ WeatherStationApp g_App;
 //
 DweetSerialApp g_AppFramework;
 
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
+
 //
 // Setup
 //
@@ -213,7 +218,7 @@ ApplicationSetup()
   MenloDebug::Print(F("WeatherStation"));
 
   //
-  // Initialize the application class
+  // Initialize the WeatherStation application class
   //
   appConfig.updateInterval = DEFAULT_UPDATE_INTERVAL;
   appConfig.sampleInterval = DEFAULT_SAMPLE_INTERVAL;
@@ -225,8 +230,6 @@ ApplicationSetup()
   //
   // Initialize the Application Framework
   //
-
-  config.dweetApp = &g_App;
 
   g_AppFramework.Initialize(&config);
 

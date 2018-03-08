@@ -1,4 +1,12 @@
 
+//
+// TODO:
+//
+// 04/17/2016
+//
+// remove debug code in MenloDebug.h
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -78,8 +86,9 @@
 //
 // Arduino and Debug support
 //
-#include <DweetArduino.h>
-#include <DweetDebug.h>
+// Note: Including these cause them to build in using space.
+//#include <DweetArduino.h>
+//#include <DweetDebug.h>
 
 // LightHouse library
 #include <MenloDispatchObject.h>
@@ -283,6 +292,8 @@ LightHouseApp g_lightHouseApp;
 // Application Dweet handler that invokes the application
 // class above in an RPC style fashion.
 //
+// DweetLightHouse registers itself for Dweet's
+//
 DweetLightHouse g_dweetLightHouse;
 
 //
@@ -297,6 +308,10 @@ DweetLightHouse g_dweetLightHouse;
 //
 
 DweetRadioSerialApp g_sensorApp;
+
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void ApplicationSetup();
+void MenloFrameworkSetup();
 
 //
 // Setup
@@ -370,18 +385,19 @@ MenloFrameworkSetup()
   //
   // Setup memory monitor configuration
   //
-  // These values work for MemoyRadioSensorApp, but may have
+  // These values work for this large Lighthouse app, but may have
   // to be adjusted based on actual application heap and stack usage.
   //
 
   //
-  // 05/23/2015 values
+  // 04/17/2016
   //
-  // Total Data: 1593 bytes leaving 455 bytes free at runtime
+  // Code: 31,900 bytes for Arduino Uno on Arduino IDE 1.6.8
   //
-
-  frameworkConfig.heapSize = 64;
-  frameworkConfig.stackSize = 370;
+  // Total Data: 1584 bytes leaving 464 bytes free at runtime
+  //
+  frameworkConfig.stackSize = 412;
+  frameworkConfig.heapSize = 32;
   frameworkConfig.guardRegionSize = 16;
   frameworkConfig.enableUsageProfiling = true;
 
@@ -401,7 +417,7 @@ void
 ApplicationSetup()
 {
   //
-  // Hardware Configuration
+  // LightHouse Hardware Configuration
   //
   LightHouseLight light;
   LightHouseSensors sensors;
@@ -438,14 +454,14 @@ ApplicationSetup()
   ResetWatchdog();
 
   //
-  // Initialize the Application State
+  // Initialize the LightHouse Application State
   //
   g_lightHouseApp.Initialize(&g_lightHouseHardware);
 
   ResetWatchdog();
 
   //
-  // Initialize the Dweet handler
+  // Initialize the LightHouse Dweet handler
   //
   g_dweetLightHouse.Initialize(&g_lightHouseApp);
 
@@ -453,8 +469,9 @@ ApplicationSetup()
   // Setup our application framework parameters
   //
 
-  // A single application instance may be invoked from multiple Dweet channels.
-  config.serialConfig.dweetApp = &g_dweetLightHouse;
+  // TODO: Remove this once verified 04/16/2016
+  // DweetLightHouse registers for Dweets on its own
+  //config.serialConfig.dweetApp = &g_dweetLightHouse;
 
   //
   // Supply the Dweet channel to the LightHouse hardware as it
@@ -511,7 +528,16 @@ ApplicationSetup()
   // the application state and hardware state object is not required.
   //
 
-  MenloDebug::Print(F("LightHouse 05/23/2015"));
+  MenloDebug::Print(F("LightHouse 04/17/2016"));
+
+  //MenloDebug::PrintHex(sizeof(g_sensorApp)); // 706 bytes
+  //MenloDebug::PrintHex(sizeof(OS_nRF24L01)); // 100 bytes
+  //MenloDebug::PrintHex(sizeof(DweetRadio));  //  25 bytes
+  //MenloDebug::PrintHex(sizeof(DweetSerialChannel)); // 205 bytes
+  //MenloDebug::PrintHex(sizeof(MenloRadioSerial));   //  82 bytes
+  //MenloDebug::PrintHex(sizeof(MirfHardwareSpiDriver)); // 2 bytes
+  //MenloDebug::PrintHex(sizeof(MenloEventRegistration)); // 9 bytes
+  //MenloDebug::PrintHex(sizeof(DweetSerialApp)); // 218 bytes
 
   ResetWatchdog();
 

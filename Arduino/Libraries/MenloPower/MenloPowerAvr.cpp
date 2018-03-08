@@ -24,6 +24,10 @@
  */
 
 //
+// Note: The Power settings are controlled in Libraries/MenloDweet/DweetConfig.cpp
+//
+
+//
 // Any inclusion of standard libraries is headers is "Library Use"
 // licensing.
 //
@@ -225,6 +229,12 @@ MenloPower::SetWatchdog(bool enable)
     }
 }
 
+//
+// This is invoked by the Dweet handler in Libaries/MenloDweet/DweetConfig.cpp
+//
+// MENLOSLEEP_MODE_DISABLE is set as SETCONFIG=SLEEPMODE:0
+// MENLOSLEEP_MODE_IDLE is set as SETCONFIG=SLEEPMODE:1
+//
 int
 MenloPower::SleepMode(char* buf, int size, bool isSet)
 {

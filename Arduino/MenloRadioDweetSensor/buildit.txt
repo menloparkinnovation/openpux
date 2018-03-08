@@ -1,0 +1,66 @@
+
+05/09/2017
+
+Space as of 05/09/2017 with Arduino 1.6.8 and Arduino Pro Mini 8Mhz AtMega328
+  28,396 bytes, out of maximum 30,720
+  1410 ram, out of 2048, leaving 638 bytes for stack, heap growth.
+
+ If #define USE_DS18S20 1 is set in SensorRadioHardware.cpp:
+
+  30,352 bytes, 1,714 bytes RAM. 334 bytes left.
+  OneWire uses a lot.. I remember digging into this..
+  arduino.txt
+  See comments in SensorRadioHardware.cpp under #if USE_DS18S20
+
+  1,956 code bytes used.
+    304 bytes RAM used.
+
+Building:
+
+  Open Arduino 1.6.8
+  Navigate to MenloRadioDweetSensor.ino
+  Select board, such as Arduino Pro Mini 8Mhz, using AtMega328
+  Click check mark to build. Called "verify".
+  Download to board.
+
+Downloading:
+
+Testing:
+
+Arduino Board Selection for development:
+
+Choose a board that is close to your target, or your actual deploy target.
+
+Newer versions of Arduino appear to be getting better on AtMega328
+code space. So use the latest version that works to squeeze your code.
+
+Current tested level is 1.6.8.
+
+Older boot loader boards such as the Pro Mini only have 30,720 bytes
+of code space and are the tightest.
+
+They could be burned directly without a boot loader, and get the full
+32,767 bytes. But this will make it difficult for the consumer or
+maker to update the firmware since they must rig up an ISP programmer
+vs. plugging into any Mac, PC, or Linux and updating either with
+the standard open source Arduino IDE, or with a utility provided
+to make it easier for the consumer.
+
+  - Idea: "Phone flash". Arduino programmed with Bluetooth/WiFi and
+    USB serial to update devices.
+
+New Arduino UNO's with the microcontroller for USB only need a 512
+byte boot loader now and have more free space. But these are larger,
+more costly, and power hungry. 32,256 free with Arduino UNO and
+512 byte boot loader.
+
+If your application is a simple sensor loop, you should fit within
+this range.
+
+If your application is significantly larger, then you may want to move
+to the Teensy family of ARM based microcontrollers which are actually
+quite cost competitive but more resources. The framework supports
+many different micro controllers, one of its strengths.
+
+
+

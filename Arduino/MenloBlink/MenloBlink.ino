@@ -22,7 +22,17 @@
  * Date: 04/30/2015
  * File: MenloBlink.ino
  *
- * Most basic use of MenloFramework
+ * Most basic use of MenloFramework.
+ *
+ * Useful to bring up the core MenloFramework on a new platform
+ * or development environment.
+ *
+ * Also useful for re-validation of basic platform support when a
+ * development environment changes, upgrades.
+ *
+ * Most work is ensuring the proper platform mappings exist in
+ * Libraries/MenloPlatform/... for the target architecture
+ * and library/compiler specifics.
  *
  */
 
@@ -69,6 +79,11 @@ int g_panicPin = 13;
 // Main Application class
 //
 Blink g_App;
+
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
 
 //
 // Setup

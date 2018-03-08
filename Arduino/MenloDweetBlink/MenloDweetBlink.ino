@@ -108,6 +108,11 @@ DweetBlinkAppArduino g_App;
 //
 DweetSerialApp g_AppFramework;
 
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
+
 //
 // Setup
 //
@@ -168,8 +173,6 @@ ApplicationSetup()
   //
   // Application Framework Configuration
   //
-  DweetSerialAppConfiguration config;
-
   MenloDebug::Print(F("MenloDweetBlink"));
 
   //
@@ -186,10 +189,10 @@ ApplicationSetup()
   // Initialize the Application Framework
   //
 
-  config.dweetApp = &g_App;
+  // No settings right now. Constructor initializes defaults.
+  DweetSerialAppConfiguration config;
 
   g_AppFramework.Initialize(&config);
-
 
   //
   // We check the memory monitor at the end of initialization

@@ -78,7 +78,7 @@
 // Allows selective print when debugging but just placing
 // an "x" in front of what you want output.
 //
-#define XDBG_PRINT_ENABLED 1
+#define XDBG_PRINT_ENABLED 0
 
 #if XDBG_PRINT_ENABLED
 #define xDBG_PRINT(x)         (MenloDebug::Print(F(x)))
@@ -127,6 +127,18 @@
 #endif
 
 #define USE_DS18S20 0
+
+//
+// This saves 922 bytes and its useful to compile it out
+// for debugging as this allows selective tracing to be used.
+//
+// 04/17/2016
+//
+// 30,978 without
+//
+// 31,900 with
+//
+#define NMEA_WEATHER_SUPPORT 1
 
 // Libraries/DweetLightHouse/LightHouseHardware.h
 #include <LightHouseHardwareBase.h>
@@ -219,7 +231,6 @@ LightHouseHardware::SetDweet(MenloDweet* dweet)
 void
 LightHouseHardware::InitializeNMEA0183Sensors()
 {
-
     //
     // Reset NMEA 0183 values to 0 on initialize
     //
@@ -233,13 +244,15 @@ LightHouseHardware::InitializeNMEA0183Sensors()
     m_solar = 0;
     m_nmeaLight = 0;
 
+#if NMEA_WEATHER_SUPPORT
     //
     // Register for NMEA 0183 messages
     //
     m_nmeaEvent.object = this;
     m_nmeaEvent.method = (MenloEventMethod)&LightHouseHardware::NMEAEvent;
-    m_dweet->RegisterNMEAMessageEvent(&m_nmeaEvent);
 
+    MenloDweet::RegisterGlobalNMEAMessageEvent(&m_nmeaEvent);
+#endif
 
     return;
 }
@@ -569,6 +582,8 @@ LightHouseHardware::setRGB(bool state)
       }
     }
 }
+
+#if NMEA_WEATHER_SUPPORT
 
 //
 // Support for receiving environmental data from streaming
@@ -1027,3 +1042,10 @@ Done:
     return MAX_POLL_TIME;
 }
 
+#else  // NMEA_WEATHER_SUPPORT
+unsigned long
+LightHouseHardware::NMEAEvent(MenloDispatchObject* sender, MenloEventArgs* eventArgs)
+{
+    return MAX_POLL_TIME;
+}
+#endif // NMEA_WEATHER_SUPPORT

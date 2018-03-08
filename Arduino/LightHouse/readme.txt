@@ -1,4 +1,89 @@
 
+------
+04/11/2016
+
+Note: Event though configurelighthouse.sh is failing the UNO
+is properly flashing the light and sending out radio packets.
+
+Debugging:
+
+// Enable full path tracing for DweetState.cpp
+DweetState.cpp
+ XDBG_PRINT_ENABLED 1
+
+// TODO Enable tracing for DweetConfig.cpp
+
+MenloDebug.h has tracing stuff enabled in its top.
+
+"#define NMEA_WEATHER_SUPPORT 1" in LightHouseHardware.cpp
+has been set to 0 to enable space for tracing.
+  - This disables the receive of NMEA 0183 streaming weather data.
+
+------
+04/10/2016
+
+-
+
+debugging: strategy is to conditionally compile out functions such
+as NEMA streaming input support to leave space for debug tracing.
+  See "#define NMEA_WEATHER_SUPPORT 1" in LightHouseHardware.cpp
+
+also shownmea, showdweet is set in configurelighthouse.sh
+SetLightHouseConfig.dweet scripts.
+
+Also see zDBG_PRINT settings in DweetLightHouse.cpp
+
+        zDBG_PRINT("LightOnLevel set");
+
+-
+
+Weird errors running scripts/configurelighthouse.sh and likely due
+to a deep memory overflow in the set config functions.
+
+The fact that the lighthouse app checksum comes up invalid, and strange
+set configs occur leads to memory overflows.
+
+With only 2 bytes left in current space, not much room to debug an
+Arduino Uno implementation anymore.
+
+The following shows the error where a valid SETCONFIG command not
+only fails, but returns the response for the wrong command. It
+consistently returns the error message for the previous SETCONFIG
+command, not the current one.
+
+> dweet GETCONFIG=RADIOPOWERTIMER
+FA
+> dweet SETCONFIG=SENSORRATE:001E
+001E
+> dweet SETSTATE=SENSORRATE:001E
+001E
+> dweet SETCONFIG=LIGHTONLEVEL:FFFF
+FFFF
+> dweet SETSTATE=LIGHTONLEVEL:FFFF
+FFFF
+> dweet SETSTATE=LIGHTCOLOR:00.FF.00
+Error: SETSTATE=LIGHTCOLOR:00.FF.00 ERROR fullReply=SETSTATE_ERROR=LIGHTONLEVEL
+Error: SETSTATE=LIGHTCOLOR:00.FF.00 ERROR fullReply=SETSTATE_ERROR=LIGHTONLEVEL
+
+stopOnError specified, exiting script
+exit status=quit
+
+------
+
+
+Arduino 1.6.8
+
+03/13/2016
+
+With Arduino 1.6.8 the following sizes are seen:
+
+32,126 bytes flash
+ 1,615 bytes ram
+
+This appears to be a small improvement on 1.6.4, but there
+have been some tweaks to the MenloFramework. Some of these Tweaks
+saved code, some added.
+
 11/24/2015
 
 Arduino 1.0.6
@@ -186,4 +271,18 @@ To Interact/Debug WeatherStation:
 
 // Launch the Dweet console
 scripts/dweetweatherstation.sh
+
+Trouble Shooting:
+
+If flashing new firmware, the EEPROM assignments may have changed
+causing the firmware/application to go into unexpected behavior.
+
+This is caught by the default watchdog timer and shows its self
+as a reset loop every 8 seconds or so.
+
+The fix is to load the Arduino IDE Examples application under
+EEPROM/EEprom Reset and download it to the board. It will zero
+initilize the EEPROM to be similar to a factory chip, and then
+you can re-load the LightHouse program and run the Dweet setup
+again.
 

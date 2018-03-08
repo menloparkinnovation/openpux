@@ -162,6 +162,11 @@ DweetBlinkAppArduino g_App;
 //
 DweetRadioSerialApp g_AppFramework;
 
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
+
 //
 // Setup
 //
@@ -222,7 +227,6 @@ ApplicationSetup()
   //
   // Application Framework Configuration
   //
-  DweetRadioSerialAppConfiguration config;
 
   MenloDebug::Print(F("MenloDweetBlink"));
 
@@ -239,8 +243,7 @@ ApplicationSetup()
   //
   // Initialize the Application Framework
   //
-
-  config.serialConfig.dweetApp = &g_App;
+  DweetRadioSerialAppConfiguration config;
 
   // Radio hardware configuration
   config.csnPin = nRF24L01_CSN;

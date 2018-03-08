@@ -1,0 +1,18 @@
+
+05/28/2016
+
+Working on making this the basis for many generic projects.
+
+DweetSensorApp:
+
+  #- Generate events when the hardware support needs to process
+
+  #- move hardware out to a sub class
+
+  #- Ensure it uses the updated Dweet even handler model
+
+Make a WiFi version that re-uses as much of MenloRadioDweetSensor in common.
+
+Add support for Dweet over WiFi.
+
+

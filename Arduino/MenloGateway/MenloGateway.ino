@@ -1,4 +1,14 @@
 
+//
+// 04/17/2016
+//
+// dweet SETCONFIG=BLINKINTERVAL:5000 is currently not supported
+// and returns an unhandled dweet error.
+//
+//  - Maybe a result of the new Dweet dispatch model and need to update
+//    the app to use the DweetApp registration class.
+//
+
 /*
  * Copyright (C) 2015 Menlo Park Innovation LLC
  *
@@ -27,6 +37,12 @@
  * Utilizes Smartpux DWEET's and Menlo Framework.
  */
 
+//
+// 04/17/2016
+//
+// Arduino Pro Mini 3.3V 8Mhz memory consumption
+//
+// 24,164 bytes flash, 966 bytes ram
 //
 // 05/24/2015
 //
@@ -252,6 +268,11 @@ MenloGatewayAppHardware g_App;
 //
 DweetRadioGatewayApp g_AppFramework;
 
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
+
 //
 // Setup
 //
@@ -343,8 +364,6 @@ ApplicationSetup()
   // Initialize the Application Framework
   //
 
-  config.serialConfig.dweetApp = &g_App;
-
   // Radio hardware configuration
   config.csnPin = nRF24L01_CSN;
   config.cePin = nRF24L01_CE;
@@ -364,7 +383,7 @@ ApplicationSetup()
 
   MenloMemoryMonitor::CheckMemory(LineNumberBaseApp + __LINE__);
 
-  MenloDebug::Print(F("MenloGateway 05/23/2015"));
+  MenloDebug::Print(F("MenloGateway 04/10/2016"));
 
   ResetWatchdog();
 

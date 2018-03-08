@@ -1,0 +1,150 @@
+
+02/28/2018
+
+                 *** MenloWatchdog ***
+
+              Watchdog for IoT deployments
+
+Many higher level IoT deployments such as RaspberryPi's, Particle Photons,
+etc. have a tendency to "hang" when deployed for months at a time, especially
+in light of outdoor conditions.
+
+This watchdog goes back to basics and uses a real microcontroller, the
+AtMega328 which has on board watchdog and voltage monitoring to stay
+alive itself and monitor your other, frequently failing higher level IoT
+devices.
+
+The AtMega328 is the baseline processor of an Arduino Uno, but is available
+in the Arduino Pro Mini which is around $10 for an official one, or $4.00
+clones on Ebay. This is a small sized board which can be purchased to operate
+on 3.3V or 5.0V depending on the power available from your larger device.
+
+It's 8-10ma current draw and on board sleeping means it can power off of
+the accessory pin of the larger project, and not use much power since
+its mostly sleeping.
+
+It can be configured over Dweet from its factory defaults, with the
+settings stored in the EEPROM.
+
+Specification:
+
+ Defaults may be changed with DWEET commands and are stored in EEPROM.
+
+ Watchdog timeout interval - 5 minutes
+   - enough time to boot a RaspberryPi, etc.
+
+ Reset Pulse Time - 200ms
+
+ Power Cycle Off Time - 5 seconds
+
+ Watchdog heart beat light flash is ON.
+
+ Digital Pin 2 is used for watchdog input as an interrupt pin.
+
+ Interrupt on rising and falling edge.
+
+ If a complete high/low/high cycle occurs within the watchdog interval,
+ the watchdog is reset.
+
+ If a Dweet watchdog reset message arrives within the watchdog interval,
+ the watchdog is reset.
+
+ Watchdog initiated resets are recorded in the EEPROM and can be read
+ from DWEET's.
+
+ Two output pins are available for RESET
+
+   D3 - Active High when operating
+   D4 - Active Low when operating
+
+     - Both reverse for a period of 200ms when the watchdog interval
+       is up to reset the device.
+
+     - The separate pins allow connecting up the correct polarity.
+
+     - They are set for open collector since most reset lines are
+       this way.
+
+  Two output pins are available for power cycle
+
+   D5 - Active High when operating
+   D6 - Active Low when operating
+
+     - Both reverse for a period of 5 seconds when the watchdog interval
+       is up to power off, then on device.
+
+   D13 - Default light pin. Active when performing watchdog reset and
+         power cycle.
+
+         ??flash it while doing reset??
+
+         Option to flash when watchdog heart beat received.
+
+Design/Architecture:
+
+ Relies on AtMega built in purpose built reliable microcontroller functions:
+
+ - On board watchdog
+    - resets AtMega328 firmware if an issue.
+    - Watchdog to watch the watchdog.
+
+ - On board brownout detection.
+
+ - On board low power sleep modes.
+
+ - On board wake from interrupt/pin transition.
+
+Dweets:
+
+As usual SETCONFIG writes the configuration to EEPROM
+so its available after power on/reset.
+
+SETSTATE modifies runtime operating state that is lost after
+a power power cycle/reset.
+
+// Reset watchdog counter
+SETSTATE=WATCHDOG:RESET
+
+// 8 hex digits for seconds
+SETSTATE=WATCHDOGTIMEOUT:00000000
+SETCONFIG=WATCHDOGTIMEOUT:00000000
+
+// Reset interval milliseconds as 8 hex digits
+// if less than 10 ms selected, goes to default 200 ms.
+SETSTATE=WATCHDOGRESET:00000000
+SETCONFIG=WATCHDOGRESET:00000000
+
+// Power off interval milliseconds as 8 hex digits
+// if less than 500 ms selected, goes to default 5 seconds.
+SETSTATE=WATCHDOGPOWER:00000000
+SETCONFIG=WATCHDOGPOWER:0000000
+
+// Watchdog indicator light flash when counter reset is received.
+// ON, OFF
+SETSTATE=WATCHDOGIND:ON
+SETCONFIG=WATCHDOGIND:ON
+
+// Return number of watchdog resets in the EEPROM
+// 4 hex digits
+GETSTATE=WATCHDOGRESETS
+
+// Clears the counter of watchdog resets in the EEPROM
+// A value other than zero is rejected.
+SETCONFIG=WATCHDOGRESETS:0
+
+Building:
+
+Load Ardunino IDE.
+
+  Select Arduino Pro Mini (usual watchdog deployment).
+
+   - select 3.3V or 5V (different clock rates).
+
+  Can select Arduino Uno for testing or larger deployments.
+
+Load project, Arduino/MenloWatchdog/MenloWatchdog.ino
+  - ensure directory name and project.ino name *exactly match in case*
+  - Arduino IDE 1.6.x complains otherwise.
+
+Build
+

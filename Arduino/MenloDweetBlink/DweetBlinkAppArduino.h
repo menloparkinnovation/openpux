@@ -56,6 +56,18 @@
 // This is separate to allow DweetBlinkApp to operate on non-Arduino
 // hardware as well.
 //
+// MenloObject.h
+//   DweetApp.h
+//     - Registers for GlobalUnhandledDweetEvent
+//     - Invokes ProcessAppCommands() in the inheritance hierarchy (virtual)
+//     DweetBlinkApp.h
+//       - contains DweetSerialChannel m_dweetSerialChannel
+//       - registers to receive application specific dweet events
+//         - set light timer period
+//       - registers for MenloTimer, application period timer
+//       DweetBlinkAppArduino (DweetBlinkAppArduino.h, this file)
+//       - Set the light state based on timer.
+//
 
 class DweetBlinkAppArduino : public DweetBlinkApp  {
 

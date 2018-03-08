@@ -1,29 +1,37 @@
 
-#
-# Build Arduino command line on mac (Due)
-#
-# 12/30/2015
-#
-
-# https://github.com/arduino/Arduino/blob/master/build/shared/manpage.adoc
-
-#
-# *** NOTE ***
-#
-# Must set the board to "Due" in the menu, then close/exit the Arduino
-# IDE. This sets the environment settings which the command line build
-# appears to rely on.
-#
-# If confusing/random errors occur, its because of a confusion between
-# the settings from the command line and the saved environment.
-#
-# *** NOTE ***
-#
 
 #
 # Build on Due, validating ARM32/SAM
 #
+# build from Arduino path.
+#
+# Note: Changes to Arduino 1.6.8 breaks Due, fixing this is a work in progress.
+#
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --board arduino:sam:arduino_due_x --verify --verbose $PWD/MenloGateway/MenloGateway.ino
+# On mac
+MY_ARDUINO_INSTALLATION=/Applications/Arduino_1_6_8.app
 
-/Applications/Arduino_1.6.4.app/Contents/MacOS/Arduino --board arduino:sam:arduino_due_x --verify --verbose $PWD/LightHouse/LightHouse.ino
+#
+# Build on Due, validating ARM.
+#
+
+MY_BOARD_NAME=arduino:avr:due
+
+MY_SKETCH_PATH=$PWD
+
+MY_LIBRARIES_PATH=$PWD/Libraries
+
+MY_ARDUINO_BUILDER_PATH=$MY_ARDUINO_INSTALLATION/Contents/Java/
+
+MY_HARDWARE_PATH=$MY_ARDUINO_INSTALLATION/Contents/Java/hardware
+
+MY_TOOLS_PATH=$MY_ARDUINO_INSTALLATION/Contents/Java/hardware/tools/avr
+
+MY_TOOLS_PATH2=$MY_ARDUINO_INSTALLATION/Contents/Java/tools-builder
+
+# This does not build on UNO, but does on MEGA or Due since its larger than the UNO can fit.
+#Module=RadioWeatherStation
+#$MY_ARDUINO_BUILDER_PATH/arduino-builder -verbose -hardware $MY_HARDWARE_PATH -tools $MY_TOOLS_PATH -tools $MY_TOOLS_PATH2 -libraries $MY_LIBRARIES_PATH -fqbn $MY_BOARD_NAME $MY_SKETCH_PATH/$Module
+#rc=$?; if [[ $rc != 0 ]]; then exit $rc; fi
+
+echo "**** ALL PASSED ****"

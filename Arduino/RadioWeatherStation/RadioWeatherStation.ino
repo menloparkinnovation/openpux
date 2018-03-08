@@ -192,6 +192,11 @@ WeatherStationApp g_App;
 //DweetSerialApp g_AppFramework;
 DweetRadioSerialApp g_AppFramework;
 
+// Arduino 1.6.8 now requires forward declarations like a proper C/C++ compiler.
+void HardwareSetup();
+void ApplicationSetup();
+void MenloFrameworkSetup();
+
 //
 // Setup
 //
@@ -307,7 +312,7 @@ ApplicationSetup()
   //
 
   //config.dweetApp = &g_App;
-  config.serialConfig.dweetApp = &g_App;
+  //config.serialConfig.dweetApp = &g_App;
 
 #if ARDUINO_AVR_MEGA2560
     //

@@ -1,0 +1,44 @@
+#
+# Configure MenloWatchDog
+#
+
+# Setup manufacturing information
+setconfig name=MenloWatchDog
+
+setconfig model=ArdhinoProMini
+
+setconfig serial=00000001
+
+#
+# Power settings
+# MENLOSLEEP_MODE_IDLE is set as SETCONFIG=SLEEPMODE:1
+# Sleeps during idle, wakes up on interrupts.
+#
+dweet SETCONFIG=SLEEPMODE:1
+
+# WATCHDOGTIMEOUT timeout time in seconds
+# Note: Values are in hex. (300 seconds)
+dweet SETCONFIG=WATCHDOGTIMEOUT:12C
+
+# Reset assertion time in milliseconds (200ms)
+dweet SETCONFIG=WATCHDOGRESET:C8
+
+# Power cycle time in milliseconds (5000ms)
+dweet SETCONFIG=WATCHDOGPOWER:1388
+
+dweet SETCONFIG=WATCHDOGIND:1288
+
+# Display settings
+
+getconfig name
+getconfig model
+getconfig serial
+
+dweet GETCONFIG=SLEEPMODE
+dweet GETCONFIG=WATCHDOGTIMEOUT
+dweet GETCONFIG=WATCHDOGRESET
+dweet GETCONFIG=WATCHDOGPOWER
+dweet GETCONFIG=WATCHDOGIND
+dweet GETCONFIG=WATCHDOGRESETS
+
+quit

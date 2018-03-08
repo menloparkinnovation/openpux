@@ -52,5 +52,7 @@
 void
 MenloGatewayAppHardware::SetLightState(bool state)
 {
-    digitalWrite(m_config.pinNumber, state);
+    if (m_config.pinNumber != (-1)) {
+        digitalWrite(m_config.pinNumber, state);
+    }
 }

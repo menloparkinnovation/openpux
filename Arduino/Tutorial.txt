@@ -28,6 +28,31 @@ Since this leverages the MenloFramework debug print, watchdog,
 power management and timers are available for even this simple application.
 
 
+                 *** MenloWatchdog ***
+
+              Watchdog for IoT deployments
+
+Many higher level IoT deployments such as RaspberryPi's, Particle Photons,
+etc. have a tendency to "hang" when deployed for months at a time, especially
+in light of outdoor conditions.
+
+This watchdog goes back to basics and uses a real microcontroller, the
+AtMega328 which has on board watchdog and voltage monitoring to stay
+alive itself and monitor your other, frequently failing higher level IoT
+devices.
+
+The AtMega328 is the baseline processor of an Arduino Uno, but is available
+in the Arduino Pro Mini which is around $10 for an official one, or $4.00
+clones on Ebay. This is a small sized board which can be purchased to operate
+on 3.3V or 5.0V depending on the power available from your larger device.
+
+It's 8-10ma current draw and on board sleeping means it can power off of
+the accessory pin of the larger project, and not use much power since
+its mostly sleeping.
+
+It can be configured over Dweet from its factory defaults, with the
+settings stored in the EEPROM.
+
                  *** MenloDweetBlink ***
 
           Addition of MenloDweet to the MenloBlink example
@@ -200,4 +225,17 @@ Note that this application is at the "hairy edge" of capacity of
 an AtMega328 with 32k flash and 2k RAM. Current flash consumption
 is 29,608 bytes and memory is carefully balanced between stack
 initialized data, and minimal runtime heap space.
+
+                 *** MenloBoatMonitorSatellite *** 
+
+    A battery powered remote sensor for a Boat Monitoring Solution.
+
+Uses the low level packet radio for full application control without
+radio in order to operate in high noise, high packet loss environments.
+
+Also trims code size to fit within the inexpensive, robust, and low
+battery power consuming AtMega328's used in the Arduino Pro Mini 3.3V/8Mhz
+and similar custom designs.
+
+Introduces the prototyping for General Radio Dweet's.
 

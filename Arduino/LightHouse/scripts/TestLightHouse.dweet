@@ -1,0 +1,9 @@
+
+# This is for debugging
+#shownmea
+#showdweet
+
+# Default to green buoy light
+dweet SETCONFIG=LIGHTCOLOR:00.FF.00
+#dweet SETSTATE=LIGHTCOLOR:00.FF.00
+
