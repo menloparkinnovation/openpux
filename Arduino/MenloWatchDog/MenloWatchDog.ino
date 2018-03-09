@@ -1,4 +1,31 @@
 
+/*
+ * Copyright (C) 2018 Menlo Park Innovation LLC
+ *
+ * This is licensed software, all rights as to the software
+ * is reserved by Menlo Park Innovation LLC.
+ *
+ * A license included with the distribution provides certain limited
+ * rights to a given distribution of the work.
+ *
+ * This distribution includes a copy of the license agreement and must be
+ * provided along with any further distribution or copy thereof.
+ *
+ * If this license is missing, or you wish to license under different
+ * terms please contact:
+ *
+ * menloparkinnovation.com
+ * menloparkinnovation@gmail.com
+ */
+
+/*
+ * Date: 02/28/2018
+ * File: MenloWatchDog.ino
+ *
+ * Watchdog for IoT projects.
+ *
+ */
+
 //
 // MenloWatchDog
 //
@@ -37,12 +64,12 @@
 // the input to the USB power switcher.
 //
 // Note: The SwitchDocLabs MiniProLP is actually $0.95 cheaper than
-// their 555 timer based hardware watchdog which does not work plug
-// and play out of the box with the USB power switcher. It also just
-// uses a single pulse, not full transition cycle. So if you device
-// gets stuck with the watchdog pin low, it will never reset. With
-// the Arduino Pro Mini and this code you are ensured of a reset if
-// a full cycle(s) are not seen.
+// the 555 timer based hardware watchdog which does not work
+// solderless/plug and play out of the box with the USB power switcher
+// using Grove connectors. It also just uses a single pulse, not full
+// transition cycle. So if your device gets stuck with the watchdog pin low,
+// it will never reset. With the Arduino Pro Mini and this code you are ensured
+// of a reset if a full cycle(s) are not seen.
 //
 // The software method on the Arduino based on the AtMega328 chip
 // with built in hardware watchdog is a lot more flexible to adapt
@@ -66,7 +93,7 @@
 //
 // Project Notes:
 //
-// 19,848 bytes code
+// 21,134 bytes code
 // 955 bytes RAM.
 //
 // on Mac with SwitchDocLabs provided FTDI:
@@ -84,33 +111,6 @@
 // Note: This could be improved by holding an input pin
 // low on power on/reset to clear configuration.
 //
-
-/*
- * Copyright (C) 2018 Menlo Park Innovation LLC
- *
- * This is licensed software, all rights as to the software
- * is reserved by Menlo Park Innovation LLC.
- *
- * A license included with the distribution provides certain limited
- * rights to a given distribution of the work.
- *
- * This distribution includes a copy of the license agreement and must be
- * provided along with any further distribution or copy thereof.
- *
- * If this license is missing, or you wish to license under different
- * terms please contact:
- *
- * menloparkinnovation.com
- * menloparkinnovation@gmail.com
- */
-
-/*
- * Date: 02/28/2018
- * File: MenloWatchDog.ino
- *
- * Watchdog for IoT projects.
- *
- */
 
 //
 // MenloFramework
@@ -143,7 +143,7 @@
 #include <DweetSerialChannel.h>
 
 //
-// Note: This example introduces the Application Framwork
+// Note: This example introduces the Application Framework
 // pattern used by MenloFramework to promote code-reuse
 // and component based building of applications.
 //
@@ -173,9 +173,6 @@
 // Hardware specialization class
 //
 #include "MenloWatchDogApp.h"
-
-// This is the default interval since its now configurable over Dweet
-#define DEFAULT_BLINK_INTERVAL (1 * 1000) // 1 second
 
 //
 // Main Application class
@@ -210,7 +207,7 @@ void WatchDogPinChangeISR();
 //
 // J1 - D3/D4
 //
-//     D3 - watchdog input to D7 on Particle Photon/WeatherShield.
+//     D3 - watchdog input to D7 output on Particle Photon/WeatherShield.
 //        - AtMega328 interrupt pin.
 //        - Normally flashes as part of LightHouse function.
 //        - Ensures MenloFramework event loop is running.
@@ -292,23 +289,6 @@ void setup()
 void loop()
 {
     //
-    // TODO:
-    //
-    // - Ensure the AtMega328 watchdog is enabled.
-    //
-    // - Ensure AtMega328 power management/sleep is enabled.
-    //
-    // - Enable PIN2 transition interrupts.
-    //
-    // - Add interrupt counter/reset polled by watchdog interval.
-    //   - ensure no interrupt tearing.
-    //   - count of transitions
-    //   - could be reset by dweets as well.
-    //
-    // Document DWEET's both from dweet utility and Arduino IDE serial monitor.
-    //  - Standard DWEET to turn off checksums.
-
-    //
     // We don't have any other processing to do so we set the maximum
     // polltime.
     //
@@ -332,7 +312,7 @@ ApplicationSetup()
   //
   // Application Framework Configuration
   //
-  MenloDebug::Print(F("MenloDweetBlink"));
+  MenloDebug::Print(F("MenloWatchDog"));
 
   //
   // Initialize the application class

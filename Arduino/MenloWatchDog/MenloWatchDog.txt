@@ -1,5 +1,5 @@
 
-02/28/2018
+03/08/2018
 
                  *** MenloWatchdog ***
 
@@ -39,7 +39,7 @@ Specification:
 
  Watchdog heart beat light flash is ON.
 
- Digital Pin 2 is used for watchdog input as an interrupt pin.
+ Digital Pin 3 is used for watchdog input as an interrupt pin.
 
  Interrupt on rising and falling edge.
 
@@ -52,33 +52,21 @@ Specification:
  Watchdog initiated resets are recorded in the EEPROM and can be read
  from DWEET's.
 
- Two output pins are available for RESET
+   D4 - Floating HIGH when operating
 
-   D3 - Active High when operating
-   D4 - Active Low when operating
+     - Pulled LOW for reset period, default 200ms.
 
-     - Both reverse for a period of 200ms when the watchdog interval
-       is up to reset the device.
+ SwitchDocLabs USB Power Switch Control
 
-     - The separate pins allow connecting up the correct polarity.
+ Connect to J4 D8/D9 on MiniProLP to J3 on SwitchDocLabs USB Power Control.
 
-     - They are set for open collector since most reset lines are
-       this way.
-
-  Two output pins are available for power cycle
-
-   D5 - Active High when operating
-   D6 - Active Low when operating
-
-     - Both reverse for a period of 5 seconds when the watchdog interval
-       is up to power off, then on device.
+  - pin 4 is GND
+  - pin 3 is VCC
+  - pin 2 is ENABLE  (Sig1, D9) - When High, disable LIPO_IN (JP1) signal.
+  - pin 1 is CONTROL (Sig0, D8) - When High, power on, when low, power off.
 
    D13 - Default light pin. Active when performing watchdog reset and
          power cycle.
-
-         ??flash it while doing reset??
-
-         Option to flash when watchdog heart beat received.
 
 Design/Architecture:
 
@@ -96,41 +84,40 @@ Design/Architecture:
 
 Dweets:
 
-As usual SETCONFIG writes the configuration to EEPROM
+SETCONFIG writes the configuration to EEPROM
 so its available after power on/reset.
 
 SETSTATE modifies runtime operating state that is lost after
 a power power cycle/reset.
 
 // Reset watchdog counter
-SETSTATE=WATCHDOG:RESET
+SETSTATE=WATCHDOGPOKE:00000001
 
 // 8 hex digits for seconds
-SETSTATE=WATCHDOGTIMEOUT:00000000
-SETCONFIG=WATCHDOGTIMEOUT:00000000
+SETSTATE=WATCHDOGTIMEOUT:0000012C
+SETCONFIG=WATCHDOGTIMEOUT:0000012C
 
 // Reset interval milliseconds as 8 hex digits
 // if less than 10 ms selected, goes to default 200 ms.
-SETSTATE=WATCHDOGRESET:00000000
-SETCONFIG=WATCHDOGRESET:00000000
+SETSTATE=WATCHDOGRESET:000000C8
+SETCONFIG=WATCHDOGRESET:000000C8
 
 // Power off interval milliseconds as 8 hex digits
 // if less than 500 ms selected, goes to default 5 seconds.
-SETSTATE=WATCHDOGPOWER:00000000
-SETCONFIG=WATCHDOGPOWER:0000000
+SETSTATE=WATCHDOGPOWER:00001388
+SETCONFIG=WATCHDOGPOWER:00001388
 
 // Watchdog indicator light flash when counter reset is received.
 // ON, OFF
-SETSTATE=WATCHDOGIND:ON
-SETCONFIG=WATCHDOGIND:ON
+SETSTATE=WATCHDOGIND:00000001
+SETCONFIG=WATCHDOGIND:00000001
 
-// Return number of watchdog resets in the EEPROM
-// 4 hex digits
+// Return number of watchdog resets in the EEPROM 8 hex digits
 GETSTATE=WATCHDOGRESETS
 
 // Clears the counter of watchdog resets in the EEPROM
 // A value other than zero is rejected.
-SETCONFIG=WATCHDOGRESETS:0
+SETCONFIG=WATCHDOGRESETS:00000000
 
 Building:
 
@@ -145,6 +132,14 @@ Load Ardunino IDE.
 Load project, Arduino/MenloWatchdog/MenloWatchdog.ino
   - ensure directory name and project.ino name *exactly match in case*
   - Arduino IDE 1.6.x complains otherwise.
+  - Set Arduino Library path to Arduino/Libaries for MenloFramework classes.
 
-Build
+Build in the IDE and upload to the board.
+
+The initial defaults will be set to the EEPROM on first time
+power up since the EEPROM checksum will be invalid.
+
+You can use the scripts/ directory to program custom configuration
+using the Menlo "dweet" node.js utlity.
+
 

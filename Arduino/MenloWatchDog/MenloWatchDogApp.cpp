@@ -1,24 +1,4 @@
 
-//
-// TODO:
-//
-// 03/04/2018
-//
-// Add support for DWEET based watchdog interval resets.
-//
-// Enable low power sleep, test and validate its working.
-//   - DWEET configuration to EEPROM.
-//   - SLEEPMODE, etc.
-//
-// create DWEET scripts for configuration.
-//  - consider simple single page serial dweet.
-//  - still must npm install to get nodeserial.
-//  - but can be a single page config.
-//  - put user configs at top of the file.
-//
-// get published in openpux/Arduino
-//
-
 /*
  * Copyright (C) 2018 Menlo Park Innovation LLC
  *
@@ -155,9 +135,6 @@ void WatchDogSetLightState(bool state);
 //
 //   dweet GETSTATE=BLINKINTERVAL
 //
-
-// TODO: Add DWEET keep alive
-// dweet SETSTATE=WATCHDOGKEEPALIVE
 
 const char watchdog_module_name_string[] PROGMEM = "MenloWatchDogApp";
 
