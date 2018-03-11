@@ -24,8 +24,8 @@
 // 12/19/2014
 //
 
-function SerialHandler(serialPortFactory, trace, traceerror) {
-
+function SerialHandler(serialPortFactory, trace, traceerror)
+{
     // Factory class for SerialPort
     this.serialportFactory = serialPortFactory;
 
@@ -47,6 +47,7 @@ function SerialHandler(serialPortFactory, trace, traceerror) {
 
     // Actual port instance
     this.serialport = null;
+    this.serialportReader = null;
 }
 
 //
@@ -69,7 +70,9 @@ SerialHandler.prototype.write = function(data, callback) {
 //
 //      error == null && data == null -> First callback on successful open
 //
-SerialHandler.prototype.openInternal = function(portName, linemode, callback) {
+SerialHandler.prototype.openInternal = function(portName, linemode, callback)
+{
+    var self = this;
 
     //
     // This does any require() to lookup the proper SerialPort
@@ -84,6 +87,8 @@ SerialHandler.prototype.openInternal = function(portName, linemode, callback) {
 	// which does not have CharCodeAt() and other string functions.
 	//
 
+        // *********
+        // TODO: remove at somepoint.
         //
         // NOTE: Since we select either the npm SerialPort or our own
         // handlers we bring in the npm SerialPort parser regardless
@@ -91,11 +96,40 @@ SerialHandler.prototype.openInternal = function(portName, linemode, callback) {
         //
         // node_modules/serialport/parsers.js
         //
-        var serialportModule = require('serialport');
+        //var serialportModule = require('serialport');
 
+	//this.serialport = new this.serialportFactory(portName,
+	//	{ parser: serialportModule.parsers.readline("\n")});
+
+        // TODO: remove at somepoint.
+        // *********
+
+        //
         // Create an instance of the port from the factory
-	this.serialport = new this.serialportFactory(portName,
-		{ parser: serialportModule.parsers.readline("\n")});
+        //
+        // 03/11/2018 this has changed on nodeserial 6.x
+        // https://node-serialport.github.io/node-serialport/global.html#openOptions
+        //
+
+        // Make variables match example
+        // 
+        self.serialportFactory = null; // put a bomb in it to force interface updates.
+
+        self.SerialPort = require('serialport');
+
+        self.Readline = self.SerialPort.parsers.Readline;
+
+	self.serialport = new self.SerialPort(portName);
+
+        self.parser = new self.Readline();
+
+        self.serialport.pipe(self.parser);
+
+        //
+        // This now requires read to be on the parser
+        //
+
+        self.serialportReader = self.parser;
     }
     else {
 
@@ -108,36 +142,50 @@ SerialHandler.prototype.openInternal = function(portName, linemode, callback) {
 	// You must use data.toString() or String.fromCharCode() to generate
 	// a string from the raw binary data received.
 	//
-	this.serialport = new this.serialportFactory(portName);
+
+        //
+        // Keep the usage consistent. 03/11/2018.
+        //
+
+        self.serialportFactory = null; // put a bomb in it to force interface updates.
+
+        self.SerialPort = require('serialport');
+
+	self.serialport = new self.SerialPort(portName);
+
+        self.serialportReader = self.serialport;
     }
 
-    //
-    // Note: "this" is bound to SerialPort on event callbacks,
-    // so must call using an outerscope variable
-    //
-    var serialHandler = this;
-
-    this.serialport.on ('error', function(error) {
+    self.serialport.on ('error', function(error) {
 
         // See comment above about "this" on callbacks
-        serialHandler.traceerror("open open error=" + error);
+        self.traceerror("open open error=" + error);
 
         callback(error, null);
     });
 
-    this.serialport.on ('open', function(error) {
+    self.serialport.on ('open', function(error) {
 
         //
         // Note: In raw mode data is indicated as its
         // received from the serial port and this can cause
         // the display to be broken up vs. line mode.
         //
-        serialHandler.serialport.on ('data', function(data) {
+        //self.serialport.on ('data', function(data) {
+
+        //
+        // 03/08/2018 nodeserial 6.x update.
+        // Reader could be serialport (RAW) or parser (ReadLine).
+        //
+        // setup ensures that serialportReader points to the right
+        // object.
+        //
+        self.serialportReader.on ('data', function(data) {
 
             // http://nodejs.org/api/buffer.html
             // data is a raw Buffer type
 
-            //if (serialHandler.trace) {
+            //if (self.trace) {
                 //dumpHexBuffer(data.toString());
                 //console.log(data.toString());
             //}

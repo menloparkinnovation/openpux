@@ -242,7 +242,12 @@ DweetClient.prototype.openDweetSerialPort = function(portName, options, openCall
     //
 
     // Get the factory for the SerialPort client side contract
-    this.serialPortFactory = require("serialport").SerialPort;
+    //
+    // 03/08/2018 this has changed for serial 6.x
+    //this.serialPortFactory = require("serialport").SerialPort;
+    //
+
+    this.serialPortFactory = require("serialport");
 
     var captured_this = this;
 
@@ -337,9 +342,11 @@ DweetClient.prototype.openRadioSerial = function(portName, options, openCallback
     self.dweetGatewayChannel = options.dweetchannel;
 
     // Get the factory for the SerialPort client side contract
+    // TODO: npm serialport contract has changed. Must update.
     self.serialPortFactory = require("./radioserial.js").SerialPort;
 
     // Get the factory for the RadioSerial master side
+    // TODO: npm serialport contract has changed. Must update.
     self.radioSerialFactory = require('./radioserial.js').RadioSerial;
 
     //
@@ -460,6 +467,7 @@ DweetClient.prototype.openDweetTestDevice = function(portName, options, openCall
     //
 
     // Get the factory for the SerialPort client side contract
+    // TODO: npm serialport contract has changed. Must update.
     this.serialPortFactory = require("./virtualserial.js").SerialPort;
 
     //

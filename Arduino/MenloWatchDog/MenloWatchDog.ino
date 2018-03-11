@@ -312,7 +312,7 @@ ApplicationSetup()
   //
   // Application Framework Configuration
   //
-  MenloDebug::Print(F("MenloWatchDog"));
+  MenloDebug::Print(F("MenloWatchDog Version 1.0 03/10/2018"));
 
   //
   // Initialize the application class

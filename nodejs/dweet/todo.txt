@@ -1,11 +1,17 @@
 
-11/20/2015
+03/08/2018
 
-Make packetradio.js the Dweet handler for R and T Dweets.
+npm nodeserial has changed its basic initialization contracts
+in 6.x. As a result the initialization code must change.
 
-Make radioserial a client of packetradio.js
+The hardware nodeserial changes have been made so it works with
+physical serial port connected devices , but the changeshave not
+been done to radioserial and virtual serial which followed the older
+nodeserial contract to allow seamless routing over a packet
+radio or local loopbacks for testing/simulation.
 
-Load lighthouseapp.js as a generic app similar to how DweeHandlers
-are loaded, and not a special case load in packetradio.js
+The contracts for readioserial and virtualserial must be updated
+and all callers as well.
 
+Search for TODO: and fix.
 

@@ -1,4 +1,6 @@
 
 # Configure MenloWatchDog
 
-dweet -script=ConfigMenloWatchDog.dweet /dev/tty.usbmodem1421 $*
+DWEET_PORT=/dev/cu.usbserial-AK059ABD
+
+dweet -script=ConfigureMenloWatchDog.dweet $DWEET_PORT $*

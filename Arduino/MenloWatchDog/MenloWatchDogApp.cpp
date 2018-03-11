@@ -410,7 +410,7 @@ MenloWatchDogApp::Indicator(char* buf, int size, bool isSet)
             return DWEET_INVALID_PARAMETER;
         }
 
-        MenloDebug::PrintNoNewline(F("MenloWatchDog setting WatchDog indicator status="));
+        MenloDebug::PrintNoNewline(F("MenloWatchDog setting WatchDog indicator status "));
         MenloDebug::PrintHex32(interval); 
 
         // Update our application state

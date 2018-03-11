@@ -14,19 +14,19 @@ setconfig serial=00000001
 # MENLOSLEEP_MODE_IDLE is set as SETCONFIG=SLEEPMODE:1
 # Sleeps during idle, wakes up on interrupts.
 #
-dweet SETCONFIG=SLEEPMODE:1
+dweet SETCONFIG=SLEEPMODE:00000001
 
 # WATCHDOGTIMEOUT timeout time in seconds
 # Note: Values are in hex. (300 seconds)
-dweet SETCONFIG=WATCHDOGTIMEOUT:12C
+dweet SETCONFIG=WATCHDOGTIMEOUT:0000012C
 
 # Reset assertion time in milliseconds (200ms)
-dweet SETCONFIG=WATCHDOGRESET:C8
+dweet SETCONFIG=WATCHDOGRESET:000000C8
 
 # Power cycle time in milliseconds (5000ms)
-dweet SETCONFIG=WATCHDOGPOWER:1388
+dweet SETCONFIG=WATCHDOGPOWER:00001388
 
-dweet SETCONFIG=WATCHDOGIND:1288
+dweet SETCONFIG=WATCHDOGIND:00001288
 
 # Display settings
 
