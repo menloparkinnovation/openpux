@@ -82,6 +82,29 @@ Design/Architecture:
 
  - On board wake from interrupt/pin transition.
 
+Building:
+
+Load Ardunino IDE.
+
+  Select Arduino Pro Mini (usual watchdog deployment).
+
+   - select 3.3V or 5V (different clock rates).
+
+  Can select Arduino Uno for testing or larger deployments.
+
+Load project, Arduino/MenloWatchdog/MenloWatchdog.ino
+  - ensure directory name and project.ino name *exactly match in case*
+  - Arduino IDE 1.6.x complains otherwise.
+  - Set Arduino Library path to Arduino/Libaries for MenloFramework classes.
+
+Build in the IDE and upload to the board.
+
+The initial defaults will be set to the EEPROM on first time
+power up since the EEPROM checksum will be invalid.
+
+You can use the scripts/ directory to program custom configuration
+using the Menlo "dweet" node.js utlity.
+
 Dweets:
 
 MenloFramework uses a NMEA 0183 based protocol for configuration
@@ -144,7 +167,7 @@ with Python, Node.js or C code.
 $PDWT,SETSTATE=WATCHDOGPOKE:00000001*3C
 
 Note: You must hold the port open if using an FTDI cable or
-Arduino with reset on DTR otherwise everything you open the port
+Arduino with reset on DTR otherwise every time you open the port
 you reset your watchdog, and then it will no longer be a watchdog.
 
 In deployment you must disconnect the DTR watchdog in these
@@ -187,28 +210,4 @@ GETSTATE=WATCHDOGRESETS
 // Clears the counter of watchdog resets in the EEPROM
 // A value other than zero is rejected.
 SETCONFIG=WATCHDOGRESETS:00000000
-
-Building:
-
-Load Ardunino IDE.
-
-  Select Arduino Pro Mini (usual watchdog deployment).
-
-   - select 3.3V or 5V (different clock rates).
-
-  Can select Arduino Uno for testing or larger deployments.
-
-Load project, Arduino/MenloWatchdog/MenloWatchdog.ino
-  - ensure directory name and project.ino name *exactly match in case*
-  - Arduino IDE 1.6.x complains otherwise.
-  - Set Arduino Library path to Arduino/Libaries for MenloFramework classes.
-
-Build in the IDE and upload to the board.
-
-The initial defaults will be set to the EEPROM on first time
-power up since the EEPROM checksum will be invalid.
-
-You can use the scripts/ directory to program custom configuration
-using the Menlo "dweet" node.js utlity.
-
 
