@@ -84,6 +84,75 @@ Design/Architecture:
 
 Dweets:
 
+MenloFramework uses a NMEA 0183 based protocol for configuration
+and runtime communications since its based plain ASCII 7 bit text
+on a basic serial port stream and supports checksums for data/message validity.
+
+The node.js utility "dweet" can be installed to communicate with
+the firmware on the board for configuration and handle the low level
+protocol details.
+
+You can also send the configuration commands manually through any
+serial terminal such as the Arduino IDE's serial monitor.
+
+If sending Dweets directly through a serial terminal such as the Arduino IDE
+you must include the NMEA 0183 header "$PDWT," and checksum "*00". In order
+to not have to hand code these checksums you can turn off the NMEA checksum
+validation on the device. Note that the dweet utility automatically performs
+these calculations if used.
+
+Arduino Serial Monitor Instructions:
+
+Run Arduino, upload code, open Tools, Serial Monitor
+  - Select "Both NL & CR" in lower right menu
+
+# Turn off checksums
+$PDWT,SETSTATE=NOCHECKSUM:01*24
+
+Success Reply:
+$PDWT,SETSTATE_REPLY=NOCHECKSUM:01*29
+
+At this point you can send the messages directly through the serial
+terminal pre-pending "$PDWT," and adding "*00" to the end to make
+it a valid NMEA 0183 message.
+
+Example:
+
+SETSTATE=WATCHDOGPOKE:00000001 => $PDWT,SETSTATE=WATCHDOGPOKE:00000001*00
+
+A handy way to see what the checksum should be is to use dweet
+in console mode showing the protocol strings.
+
+dweet /dev/port
+
+# show NMEA 0183 exchanges
+shownmea
+
+dweet SETSTATE=WATCHDOGPOKE:00000001
+
+> dweet SETSTATE=WATCHDOGPOKE:00000001
+NMEA>:$PDWT,SETSTATE=WATCHDOGPOKE:00000001*3C
+ DBG: MenloWatchDog setting WatchDog Poke 
+NMEA<:$PDBG,PRINT=MenloWatchDog setting WatchDog Poke *53(checkSumOK)
+00000001
+> NMEA<:$PDWT,SETSTATE_REPLY=WATCHDOGPOKE:00000001*31(checkSumOK)
+
+Now you can regularly send the following string from a RaspberryPi
+to poke the watchdog by just sending it out the serial port
+with Python, Node.js or C code.
+
+$PDWT,SETSTATE=WATCHDOGPOKE:00000001*3C
+
+Note: You must hold the port open if using an FTDI cable or
+Arduino with reset on DTR otherwise everything you open the port
+you reset your watchdog, and then it will no longer be a watchdog.
+
+In deployment you must disconnect the DTR watchdog in these
+configurations. This is not a problem if you use the I/O
+port high-low-high transition method.
+
+----
+
 SETCONFIG writes the configuration to EEPROM
 so its available after power on/reset.
 
