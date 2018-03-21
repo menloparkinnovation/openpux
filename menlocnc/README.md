@@ -15,7 +15,7 @@ Copyright (C) 2018 Menlo Park Innovation LLC
 
 # System Architecture  
 
-# FPGA based 4 axis signal timing generater in Verilog
+# FPGA based 4 axis signal timing generator in Verilog
 
   > Wide word microcode
 

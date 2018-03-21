@@ -15,7 +15,7 @@ Embedded computers such as RaspberryPi also have the problem with ARM TrustZone,
 intercepts for GPU, temperature.
 
 At the higher performance end of the spectrum software techniques can not be
-relied upon to generate high speed, accurate timings across multiple axises.
+relied upon to generate high speed, accurate timings across multiple axis.
 
 Architecture
 
@@ -27,7 +27,7 @@ in Verilog.
 
 The timing generators take a set of "wide word" microcode instructions through
 FIFO's that encode the timing, pulse count, and other options for each axis.
-Since the timing generators share a common clock, each axis in in lock step at
+Since the timing generators share a common clock, each axis is in lock step at
 the rate of the clock, which is 200ns or 5Mhz for the first version.
 
 Real Time Processor
