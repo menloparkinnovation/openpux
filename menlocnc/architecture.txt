@@ -43,7 +43,7 @@ custom C code "on the metal".
 
 Application Processors
 
-The Altera Cyclone V FPGA used in the Teraasic NE-10 Standard has (2) 925Mhz
+The Altera Cyclone V FPGA used in the Terasic DE10-Standard has (2) 925Mhz
 ARM cores which run an embedded Linux operating system. This embedded Linux
 provides USB, ethernet, WiFI (using a USB WiFI Dongle) communications to
 allow sending G code programs to the system.

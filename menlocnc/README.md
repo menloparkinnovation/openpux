@@ -9,7 +9,7 @@ Copyright (C) 2018 Menlo Park Innovation LLC
 
 > Last update 03/20/2018
 
-# Based on Tera-asic NE10-Standard
+# Based on Terasic DE10-Standard
 
   > Altera Cyclone V FPGA with (2) 925 Mhz ARM SoC cores.
 
