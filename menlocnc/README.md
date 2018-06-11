@@ -46,7 +46,7 @@ Copyright (C) 2018 Menlo Park Innovation LLC
 
 # Nios II embedded real time processor
 
-  > Option for more complex procesing.
+  > Option for more complex processing.
 
   > FPGA based soft processor.
 
@@ -137,4 +137,6 @@ Copyright (C) 2018 Menlo Park Innovation LLC
   > Altera Quartus II for Cyclone V SoC FPGA running on Windows 10
 
   > Ubuntu 16.04 LTS Linux running natively or on Windows 10 LinuxSS
+
+  > Angstrom Linux supplied by Altera/Terasic on the FPGA's ARM SoCs
 
