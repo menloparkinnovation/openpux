@@ -1,5 +1,16 @@
 
 //
+// TODO:
+//
+// See documentation for "PARAMETERS:" in menlo_cnc_asm.h
+//
+// Implement parameters base number system support.
+//
+// Add basic include file support. This is to allow a common
+// machine configuration block to be included in assembler programs.
+//
+
+//
 // menlo_cnc_asm.c - Assembler for menlo_cnc, FPGA based machine tool controller.
 //
 // Copyright (c) 2018 Menlo Park Innovation LLC
@@ -145,10 +156,12 @@
 #define DBG_PRINT(x)             (printf(x))
 #define DBG_PRINT1(x, arg)       (printf(x, arg))
 #define DBG_PRINT2(x, arg, arg2) (printf(x, arg, arg2))
+#define DBG_PRINT3(x, arg, arg2, arg3) (printf(x, arg, arg2, arg3))
 #else
 #define DBG_PRINT(x)
 #define DBG_PRINT1(x, arg)
 #define DBG_PRINT2(x, arg, arg2)
+#define DBG_PRINT3(x, arg, arg2, arg3)
 #endif
 
 //
@@ -201,6 +214,8 @@ int string_to_unsigned_long(char* s, unsigned long* l);
 
 int process_opcode(PASSEMBLER_CONTEXT context, PAXIS_OPCODE op, char* symbol);
 
+int processLines(PASSEMBLER_CONTEXT context, FILE* f);
+
 int
 compile_assembly_block(
     PASSEMBLER_CONTEXT context,
@@ -235,7 +250,7 @@ process_assembler_line(PASSEMBLER_CONTEXT context, char* line)
   int ret;
   char *saveptr;
   char *s;
-  char *new;
+  char *news;
 
   // Strip leading whitespace
   line = stripLeadingWhiteSpace(line);
@@ -259,13 +274,13 @@ process_assembler_line(PASSEMBLER_CONTEXT context, char* line)
 
   s = stripLeadingWhiteSpace(s);
 
-  new = stripTrailingWhiteSpace(s);
+  news = stripTrailingWhiteSpace(s);
 
   ret = process_begin_line(context);
 
-  ret = processSymbol(context, new);
+  ret = processSymbol(context, news);
 
-  free(new);
+  free(news);
 
   if (ret != 0) {
     return ret;
@@ -277,15 +292,15 @@ process_assembler_line(PASSEMBLER_CONTEXT context, char* line)
   while ((s = strtok_r(NULL, ",", &saveptr)) != NULL) {
 
     s = stripLeadingWhiteSpace(s);
-    new = stripTrailingWhiteSpace(s);
+    news = stripTrailingWhiteSpace(s);
 
-    if (new[0] == '\0') {
+    if (news[0] == '\0') {
       printf("internal error, unexpected empty token line %d\n", context->lineNumber);
       return ENOTSUP;
     }
 
-    ret = processSymbol(context, new);
-    free(new);
+    ret = processSymbol(context, news);
+    free(news);
 
     if (ret != 0) {
       return ret;
@@ -383,15 +398,15 @@ char* stripLeadingWhiteSpace(char *s)
 
 char *copyNewString(char* s)
 {
-  char* new;
+  char* news;
   size_t len;
   
   len = strlen(s);
-  new = malloc(len + 1);
+  news = (char*)malloc(len + 1);
 
-  strcpy(new, s);
+  strcpy(news, s);
 
-  return new;
+  return news;
 }
 
 void freeString(char* s)
@@ -410,15 +425,15 @@ void freeString(char* s)
 char* stripTrailingWhiteSpace(char *old)
 {
   char* s;
-  char* new;
+  char* news;
   size_t len;
 
   len = strlen(old);
-  new = malloc(len + 1);
+  news = (char*)malloc(len + 1);
 
-  strcpy(new, old);
+  strcpy(news, old);
 
-  s = new;
+  s = news;
 
   while(s[0] != '\0') {
 
@@ -426,19 +441,19 @@ char* stripTrailingWhiteSpace(char *old)
 
       case ' ':
         s[0] = '\0';
-        return new;
+        return news;
 
       case '\t':
         s[0] = '\0';
-        return new;
+        return news;
 
       case '\r':
         s[0] = '\0';
-        return new;
+        return news;
 
       case '\n':
         s[0] = '\0';
-        return new;
+        return news;
 
       default:
         s++;
@@ -446,7 +461,7 @@ char* stripTrailingWhiteSpace(char *old)
     }
   }
 
-  return new;
+  return news;
 }
 
 int
@@ -554,7 +569,7 @@ process_end_of_line(PASSEMBLER_CONTEXT context)
 
     DBG_PRINT1("    Line %d: implied end block\n", context->lineNumber);
 
-    ret = process_end_block(context, "end");
+    ret = process_end_block(context, (char*)"end");
     if (ret != 0) {
       return ret;
     }
@@ -608,7 +623,7 @@ process_generic_symbol(PASSEMBLER_CONTEXT context, char* symbol)
     // It's an implied begin block
     DBG_PRINT2("    Line %d: implied begin block symbol %s\n", context->lineNumber, symbol);
 
-    ret = process_begin_block(context, "begin");
+    ret = process_begin_block(context, (char*)"begin");
     if (ret != 0) {
       // State error
       return ret;
@@ -1373,6 +1388,8 @@ block_array_allocate(int entry_size, int array_size, int array_increment_size)
   // Starts with zero entries
   ba->array_size = 0;
 
+  ba->seek_index = 0;
+
   return ba;
 }
 
@@ -1452,4 +1469,134 @@ int
 block_array_get_array_size(PBLOCK_ARRAY ba)
 {
   return ba->array_size;
+}
+
+//
+// Open and load the specified assembly file, assemble it
+// and return the binary instructions in memory.
+//
+int
+assemble_file(char* fileName, PBLOCK_ARRAY* binary)
+{
+  int ret;
+  FILE *file;
+  PASSEMBLER_CONTEXT context = NULL;
+
+  file = fopen(fileName, "r");
+  if (file == NULL) {
+    DBG_PRINT2("error opening file errno %d file %s\n", errno, fileName);
+    return errno;
+  }
+
+  // Allocate context
+  context = (PASSEMBLER_CONTEXT)malloc(sizeof(ASSEMBLER_CONTEXT));
+  bzero((void*)context, sizeof(ASSEMBLER_CONTEXT));
+
+  // Begin a new assembly file/program
+  initialize_assembler_context(context);
+
+  // Allocate block array
+  context->compiled_binary = block_array_allocate(
+      sizeof(OPCODE_BLOCK_FOUR_AXIS_BINARY),
+      BLOCK_ARRAY_INITIAL_ALLOCATION,
+      BLOCK_ARRAY_INCREMENTAL_ALLOCATION
+      );
+
+  ret = processLines(context, file);
+
+  fclose(file);
+
+  if (ret != 0) {
+    DBG_PRINT3("assembler error lineno %d, (%d) %s, exiting\n",
+           context->lineNumber, ret, strerror(ret));
+
+    return ret;
+  }
+
+  DBG_PRINT1("assembled %d opcode blocks\n", block_array_get_array_size(context->compiled_binary));
+
+  *binary = context->compiled_binary;
+
+  return 0;
+}
+
+//
+// Seek stream in block array
+//
+// Seeks to a specific index.
+//
+// Seeking to 0 is rewind.
+//
+int
+block_array_seek_entry(PBLOCK_ARRAY ba, int entry_index)
+{
+  if (ba->seek_index > ba->array_size) {
+      return EBADF;
+  }
+
+  ba->seek_index = entry_index;
+
+  return 0;
+}
+
+//
+// Get the next entry.
+//
+// Returns NULL if not more entries.
+//
+// Intended for high speed streaming of binary commands to
+// a hardware interface with low per entry processor cycle overheads.
+//
+void*
+block_array_get_next_entry(PBLOCK_ARRAY ba)
+{
+  void* block;
+
+  //
+  // TODO: Do a more efficient pointer bump for weak
+  // embedded processors operating in real time.
+  //
+
+  block = block_array_get_entry(ba, ba->seek_index);
+
+  if (block != NULL) {
+    ba->seek_index++;
+  }
+
+  return block;
+}
+
+//
+// Process assembler lines from a file stream.
+//
+int
+processLines(
+    PASSEMBLER_CONTEXT context,
+    FILE* f
+    )
+{
+  int ret;
+  ssize_t read;
+  size_t len;
+  char *line;
+
+  //
+  // Setting lineptr to NULL has getline allocate the string memory
+  //
+  // It will re-allocate it as needed in the loop.
+  //
+  line = NULL;
+  len = 0;
+
+  while ((read = getline(&line, &len, f)) != -1) {
+    ret = process_assembler_line(context, line);
+    if (ret != 0) {
+      return ret;
+    }
+    context->lineNumber++;
+  }
+
+  free(line);
+
+  return 0;
 }

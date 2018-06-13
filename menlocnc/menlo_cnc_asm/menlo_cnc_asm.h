@@ -159,6 +159,9 @@ typedef struct _BLOCK_ARRAY {
   // Amount of new capacity added when growing.
   int array_increment_size;
 
+  // Supports seek, get next interface
+  int seek_index;
+
 } BLOCK_ARRAY, *PBLOCK_ARRAY;
 
 //
@@ -218,20 +221,244 @@ typedef struct _ASSEMBLER_CONTEXT {
 
 } ASSEMBLER_CONTEXT, *PASSEMBLER_CONTEXT;
 
+//
+// Model:
+//
+// Instructions are decribed as resource, instruction, arg0, arg1, arg2.
+//
+// Resource may be a valid Axis for the machine, or a logical
+// unit such as spindle, coolant control, indicator lights,
+// or general registers.
+//
+// Example for clockwise X axis motion at rate 1000, 10 steps,
+// 10 clock pulse width.
+//
+// X, CW, 1000, 10, 10
+//
+// Instructions are issued in blocks across all axis/resources
+// in parallel in the same clock cycle. This allows coordinated
+// machine motion.
+//
+// The instruction block completes when all instructions within
+// the block complete. When an instruction block completes, the
+// next instruction block is loaded if available, otherwise the
+// last instructions block executed defines the state of the
+// machine.
+//
+// Example:
+//
+// begin
+//   X,CW,0x100,16,4
+//   Y,CCW,50,8,2
+//   Z,DWELL,75,12,0
+//   A,NOP,0,0,0
+// end
+//
+// A series of instruction blocks are placed into a hardware FIFO
+// on the FPGA. This FIFO is kept loaded in real time by the SoC
+// and/or DMA to ensure that machine motion does not pause as long
+// as available commands are issued.
+//
+// The default depth of this FIFO is 512 instruction block entries.
+//
+// Some configurations may have a secondary buffer before the
+// FIFO such as the 64MB SDRAM directly connected to the FPGA
+// on the DE10-Standard. This secondary buffer may be read
+// by FPGA logic, or a soft processor such as a Nios II.
+//
+// Some configurations may use direct Avalon channel DMA from
+// SoC DRAM which is a larger pool of up to 1GB, but shared
+// with the SoC operating system and applications in addition
+// to having to deal with physical address scatter/gather details.
+//
+// The depth of this FIFO, and the response time of the
+// process feeding it determines the maximum instruction rate
+// that can be utilized without pauses. Instructions that take
+// longer time (high pulse count and/or low frequency) are
+// easier to be kept up to date since each instruction block
+// takes longer to execute providing more time to load the
+// next series into the FIFO.
+//
+// Insruction Parameters
+//
+// Frequency values for pulse rate may be specified as clock
+// counts, or frequencies in HZ, KHZ, MHZ.
+//
+// Pulse width timings may be specified in clocks, ms, us, ns,
+// or percent of pulse period.
+//
+// pulse period is 1 / pulse frequency.
+//
+// Current encoding is in clocks, which is the base machine binary, but
+// for higher level abstraction pulse rate (frequency) and pulse width
+// (fixed time or percentage) is easier to manipulate.
+//
+// Examples:
+//
+// pulse_rate:
+//
+// 1000 - clocks, machine specific. For example 20ns per clock at 50Mhz.
+//
+// 1000HZ - 1000 Hertz
+// 0.1HZ    - 1/10 Hertz, or one pulse in 10 seconds.
+//
+// 1KHZ     - 1 Kilo Hertz
+// 1.200KHZ - 1.2 Kilo Hertz or 1200 Hertz
+//
+// 1MHZ     - 1 Mega Hertz
+// 1.200MHZ - 1.2 Mega Hertz or 1200000 Hertz
+//
+// Pulse Width:
+//
+//  20      - clocks. For example 20ns per clock at 50Mhz.
+//
+//  20us    - 20 microseconds
+//
+//  200ns    - 200 nanoseconds
+//
+//  50%     - 50% of pulse period
+//            pulse period is 1 / pulse rate.
+//
+//  55.5%   - 55.5% of clock period
+//            pulse period is 1 / pulse rate.
+//
+
+//
 // NOP, 0, 0 ,0
+//
+// Executes a NOP.
+//
+// All parameters must be 0.
+//
+// The NOP does not delay instruction block completion.
+// The instruction block completes when the other instructions
+// complete.
+//
 #define OPCODE_NOP_SYMBOL         "NOP"
 
+//
 // CW, pulse_rate, pulse_count, pulse_width
+//
+// Execute a clockwise step/dir motion command on an axis.
+//
+// step/dir motion control commands are common on many small
+// to medium sized machine tools, 3D printers, laser cutter
+// motion, carvers, etc.
+//
+// Generates the pulse_count number of steps at
+// pulse frequency. The width of the generated pulses
+// is defined by pulse_width.
+//
+// When pulse_count goes to zero pulses stop and the
+// current instruction block may complete if the other
+// instructions in the block are  completed.
+//
+// The DIR output is logical low, or 0 to indicate
+// clockwise motion.
+//
+// Note: Output wiring/configuration for some machines
+// may invert this signal, but the assembler/timing engine will
+// use "0" to indicate clockwise direction.
+//
 #define OPCODE_MOTION_CW_SYMBOL   "CW"
 
+//
 // CCW, pulse_rate, pulse_count, pulse_width
+//
+// Execute a counter clockwise step/dir motion command on an axis.
+//
+// step/dir motion control commands are common on many small
+// to medium sized machine tools, 3D printers, laser cutter
+// motion, carvers, etc.
+//
+// Generates the pulse_count number of steps at
+// pulse frequency. The width of the generated pulses
+// is defined by pulse_width.
+//
+// When pulse_count goes to zero pulses stop and the
+// current instruction block may complete if the other
+// instructions in the block are  completed.
+//
+// The DIR output is logical high, or 1 to indicate
+// counter-clockwise motion.
+//
+// Note: Output wiring/configuration for some machines
+// may invert this signal, but the assembler/timing engine will
+// use "1" to indicate counter-clockwise direction.
+//
 #define OPCODE_MOTION_CCW_SYMBOL  "CCW"
 
+//
 // DWELL, pulse_rate, pulse_count, 0
+//
+// Delay instruction block completion for a period of time
+// defined by pulse_rate and pulse_count.
+//
+// 0 is required for the third parameter.
+//
+// This is essentially a timed NOP and useful for delaying
+// execution between a series of instruction blocks.
+// 
+// It may be applied to any axis in the instruction block
+// in parallel with non-DWELL instructions.
+//
+// The instruction block completes when all instructions in
+// the block complete as normal.
+//
 #define OPCODE_DWELL_SYMBOL       "DWELL"
 
-// INFO, arg0, arg1, arg2
-//#define OPCODE_INFO_SYMBOL         "INFO"
+//
+// PWM pulse_rate, pulse_count, pulse_width
+//
+// Generate a PWM control signal on an axis and/or resource.
+//
+// PWM is used to control R/C style servo motors used in robotics,
+// CNC spindle speeds, laser cutter output beam, and larger servo
+// style positioning and control systems.
+//
+// PWM generates a series of pulses of pulse_width at a pulse_rate
+// base frequency for pulse_count duration.
+//
+// While pulse_count is greater than zero the PWM command will
+// prevent the current instruction block from completing. This
+// allows the instruction to control the duration of a PWM signal.
+//
+// When pulse_count goes to zero, PWM maintains its current output
+// settings, but allows the current instruction block to complete.
+// This allows PWM style motion control signals to sustain a position
+// when "idle" by a non-varying train of pulses.
+//
+// Once the instruction block completes, new instruction blocks
+// will be loaded from the FIFO is available similar to the
+// CW, CCW, commands.
+//
+#define OPCODE_MOTION_PWM_SYMBOL   "PWM"
+
+//
+// OUTPUT output_bits, 0, 0
+//
+// Set port output bits.
+//
+// output_bits is a 32 bit value.
+//
+// The meaning of the 0 or 1 states is machine specific.
+//
+// The second and third parameters must be zero at this
+// time. In the future they may represent programmable
+// output port configuration such as TTL, tri-state, etc,
+// as well as bit-flip commands (read-modify-write).
+//
+// The instruction executes immediately and does not
+// delay completion of the current instruction block.
+//
+// The last value placed into the output port is held
+// until the next OUTPUT command to the port executes.
+//
+// Note: There is no port input instruction since commands
+// execute in a pipeline block. Port reads are real time
+// registers when available.
+//
+#define OPCODE_OUTPUT_PORT_SYMBOL   "OUTPUT"
 
 //
 // header, machine_version, machine_revision, machine_options
@@ -287,6 +514,51 @@ typedef struct _ASSEMBLER_CONTEXT {
 // INFO is a virtual axis
 //
 #define INFO_AXIS_SYMBOL "INFO"
+
+//
+// The following are resources treated as instruction targets
+// similar to Axis.
+//
+
+//
+// Machine tool spindle speed control.
+//
+// Typically used with PWM.
+//
+#define SPINDLE_RESOURCE_SYMBOL "SPINDLE"
+
+//
+// Laser cutter laser beam output modulation.
+//
+// Typically used with PWM.
+//
+#define LASER_RESOURCE_SYMBOL "LASER"
+
+//
+// General purpose PWM resources.
+//
+// Large/advanced setups have user defined PWM signal controls.
+//
+#define PWM_RESOURCE_0 "PWM0"
+#define PWM_RESOURCE_1 "PWM1"
+#define PWM_RESOURCE_2 "PWM2"
+#define PWM_RESOURCE_3 "PWM3"
+
+//
+// Output ports
+//
+// Output ports can be set are part of the instruction
+// stream and be co-ordinated with instruction blocks.
+//
+// These are opposed to fixed outputs which are registers
+// which hold a constant value. These output registers
+// change by commands in the instruction stream.
+//
+
+#define OUTPUT_RESOURCE_0 "OUTPUT0"
+#define OUTPUT_RESOURCE_1 "OUTPUT1"
+#define OUTPUT_RESOURCE_2 "OUTPUT2"
+#define OUTPUT_RESOURCE_4 "OUTPUT3"
 
 //
 // Parameters are 32 bit unsigned, little endian byte order.
@@ -369,6 +641,39 @@ typedef struct _ASSEMBLER_CONTEXT {
 
 //
 // API Contracts
+//
+
+//
+// Higher level service oriented
+//
+
+//
+// Open and load the specified assembly file, assemble it
+// and return the binary instructions in memory.
+//
+int assemble_file(char* fileName, PBLOCK_ARRAY* binary);
+
+//
+// Seek stream in block array
+//
+// Seeks to a specific index.
+//
+// Seeking to 0 is rewind.
+//
+int block_array_seek_entry(PBLOCK_ARRAY ba, int entry_index);
+
+//
+// Get the next entry.
+//
+// Returns NULL if not more entries.
+//
+// Intended for high speed streaming of binary commands to
+// a hardware interface with low per entry processor cycle overheads.
+//
+void* block_array_get_next_entry(PBLOCK_ARRAY ba);
+
+//
+// Lower level
 //
 
 void initialize_assembler_context(PASSEMBLER_CONTEXT context);

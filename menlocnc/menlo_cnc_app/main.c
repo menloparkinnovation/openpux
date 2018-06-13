@@ -26,9 +26,20 @@ refer to user manual chapter 7 for details about the demo
 
 #include "menlo_cnc.h"
 
+// Include the assembler
+#include "menlo_cnc_asm.h"
+
 #define HW_REGS_BASE ( ALT_STM_OFST ) // 0xfc000000
 #define HW_REGS_SPAN ( 0x04000000 )
 #define HW_REGS_MASK ( HW_REGS_SPAN - 1 )
+
+void usage();
+
+int
+run_assembler_file(
+    void* menlo_cnc_registers_base_address,
+    char *fileName
+    );
 
 int
 test_leds(
@@ -46,34 +57,41 @@ test_menlo_cnc_pulse(
     char *frequency
     );
 
-int main(int ac, char**av)
+int setup_hardware();
+
+int close_hardware();
+
+int memory_fd = -1;
+
+// Base virtual address returned from mmap()
+void* virtual_base  = NULL;
+
+// Offset from Avalon MMIO mapping space to LW bridge.
+void* lw_bridge_offset = NULL;
+
+// Address of the Avalon LW Bridge
+void* lw_bridge_base = NULL;
+
+void* ledpio_base_address = NULL;
+
+void* menlo_cnc_registers_base_address = NULL;
+
+int
+main(int ac, char**av)
 {
-	int fd;
-
-        // Base virtual address returned from mmap()
-	void* virtual_base;
-
-        // Offset from Avalon MMIO mapping space to LW bridge.
-        void* lw_bridge_offset;
-
-        // Address of the Avalon LW Bridge
-        void* lw_bridge_base;
-
-	void* ledpio_base_address;
-
-        void* menlo_cnc_registers_base_address;
-
         int retValue = 0;
 
         bool option_test_leds = false;
         bool option_test_cnc = false;
         bool option_test_cnc_pulse = false;
+        bool option_run_assembler_file = false;
 
         // Default frequency
         char* frequency = "1";
+        char* fileName = NULL;
 
         if (ac == 1) {
-  	    printf("menlo_cnc_app [test_leds] | [test_cnc] [test_cnc_pulse]\n");
+  	    usage();
             return 1;
         }
 
@@ -91,125 +109,18 @@ int main(int ac, char**av)
 
           printf("test_cnc_pulse: using frequency=%s\n", frequency);
 	}
+	else if (strcmp("run_assembler_file", av[1]) == 0) {
+          if (ac >= 3) {
+	      fileName = av[2];
+          }
+	  option_run_assembler_file = true;
+
+          printf("run_assembler_file %s\n", fileName);
+	}
 	else {
   	    printf("menlo_cnc_app [test_leds] | [test_cnc] [test_cnc_pulse] [frequency]\n");
             return 1;
 	}
-
-        //
-	// Hardware specific setup is here.
-	//
-        // These addresses can vary based on board model, and the
-        // design downloaded to the FPGA.
-	//
-        // Map the upper 64MB block of the physical address range into 
-	// the process to access the AXI and Avalon memory mapped bridges.
-        //
-        // This is called the CSR span in Altera documentation/samples.
-        //
-	if( ( fd = open( "/dev/mem", ( O_RDWR | O_SYNC ) ) ) == -1 ) {
-		printf( "ERROR: could not open \"/dev/mem\"...\n" );
-		return( 1 );
-	}
-
-        //
-        // Address mapping:
-        //
-        // Devices appear at the last 64MB of the 32 bit physical
-        // address range which is 0xfc000000.
-        //
-        // The mmap() routine returns a virtual address that whose base
-        // address references 0xfc000000.
-        //
-        // http://man7.org/linux/man-pages/man2/mmap.2.html
-        //
-        // #include <sys/mman.h>
-        //
-        // void *mmap(void *addr, size_t length, int prot, int flags,
-        //           int fd, off_t offset);
-        //
-        // addr == virtual base address. NULL is system assigned.
-        //
-        // offset == offset in "file" to start mapping at.
-        //
-	virtual_base = 
-            mmap(NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, fd, HW_REGS_BASE);
-
-	if( virtual_base == MAP_FAILED ) {
-		printf( "ERROR: mmap() failed...\n" );
-		close( fd );
-		return( 1 );
-	}
-	
-        printf("HW_REGS_BASE=0x%lx\n", (unsigned long)HW_REGS_BASE);
-        printf("virtual_base=0x%lx\n", (unsigned long)virtual_base);
-
-        //
-        // Calculate the offset to the LW Avalon MM bridge which has the following define:
-        //
-        // c:\intelFPGA_pro\17.1\embedded\ip\altera\hps\altera_hps\hwlib
-	// \include\soc_cv_av\socal\hps.h
-        //
-	// #define ALT_LWFPGASLVS_OFST        0xff200000
-        //
-        // This is where the lightweight AXI interface appears in the mapping space.
-        //
-        // Note: unsigned char* is preferred since it works for 32 + 64 bit platforms
-        // but the compiler defaults forces pointers to be cast to unsigned longs.
-        //
-        lw_bridge_offset = (void*)
-	  ((unsigned long)ALT_LWFPGASLVS_OFST - (unsigned long)HW_REGS_BASE);
-
-        printf("ALT_LWFPGASLVS_OFST=0x%lx\n", (unsigned long)ALT_LWFPGASLVS_OFST);
-        printf("lw_bridge_offset=0x%lx\n", (unsigned long)lw_bridge_offset);
-
-        //
-        // Add the offset to the virtual base to get the LW bridges virtual address
-        // in the mapping region.
-        //
-        lw_bridge_base = (void*)((unsigned long)virtual_base + (unsigned long)lw_bridge_offset);
-
-        printf("lw_bridge_base=0x%lx\n", (unsigned long)lw_bridge_base);
-
-        //
-        // Your hardware design elements Avalon MM Slaves appear in the 64MB
-        // hardware mapping region. These addresses are assigned by QSYS in the
-        // designer tool, and hps_0.h is generated with the #define's
-        // for your project with each named item connected to an Avalon MM Slave
-        // having a base and size entry.
-        //
-        // Note that depending on how you connected your device, it may appear
-        // as an offset to the lightweight Avalon bridge address (lw_bridge_base)
-        // or it may appear as an offset to the base of the mapping region accessed
-        // through virtual_base.
-        //
-
-        //
-        // The following LED_PIO_BASE is generated for the projectfrom QSYS
-        // assigned resource addresses so can change when the project
-        // is reconfigured through QSYS such as adding, deleting, or re-generating
-        // base addresses.
-        //
-        // Note that this is on the LW Avalon bridge.
-        //
-        // hps_0.h
-        //
-        // #define LED_PIO_BASE 0x200
-        // #define LED_PIO_SPAN 16
-        //
-        //
-        ledpio_base_address =
-            (void*)((unsigned long)lw_bridge_base + (unsigned long)LED_PIO_BASE);
-
-        printf("LED_PIO_BASE=0x%lx\n", (unsigned long)LED_PIO_BASE);
-
-        printf("ledpio_base_address=0x%lx\n", (unsigned long)ledpio_base_address);
-
-        menlo_cnc_registers_base_address =
-	  (void*)((unsigned long)lw_bridge_base + (unsigned long)MENLO_SLAVE_TEMPLATE_0_BASE);
-
-        printf("MENLO_SLAVE_TEMPLATE_0_BASE=0x%lx\n", (unsigned long)MENLO_SLAVE_TEMPLATE_0_BASE);
-        printf("menlo_cnc_registers_base_address=0x%lx\n", (unsigned long)menlo_cnc_registers_base_address);
 
         if (option_test_leds) {
             retValue = test_leds(ledpio_base_address);
@@ -223,18 +134,253 @@ int main(int ac, char**av)
 	   retValue = test_menlo_cnc_pulse(menlo_cnc_registers_base_address, frequency);
         }
 
-        //
-	// clean up our memory mapping and exit
-        //
-	if( munmap( virtual_base, HW_REGS_SPAN ) != 0 ) {
-		printf( "ERROR: munmap() failed...\n" );
-		close( fd );
-		return( 1 );
-	}
+        if (option_run_assembler_file) {
+	   retValue = run_assembler_file(menlo_cnc_registers_base_address, fileName);
+        }
 
-	close( fd );
+        retValue = close_hardware();
 
 	return( retValue );
+}
+
+int
+setup_hardware()
+{
+
+    //
+    // Hardware specific setup is here.
+    //
+    // These addresses can vary based on board model, and the
+    // design downloaded to the FPGA.
+    //
+    // Map the upper 64MB block of the physical address range into 
+    // the process to access the AXI and Avalon memory mapped bridges.
+    //
+    // This is called the CSR span in Altera documentation/samples.
+    //
+    if( ( memory_fd = open( "/dev/mem", ( O_RDWR | O_SYNC ) ) ) == -1 ) {
+	    printf( "ERROR: could not open \"/dev/mem\"...\n" );
+	    return( 1 );
+    }
+
+    //
+    // Address mapping:
+    //
+    // Devices appear at the last 64MB of the 32 bit physical
+    // address range which is 0xfc000000.
+    //
+    // The mmap() routine returns a virtual address that whose base
+    // address references 0xfc000000.
+    //
+    // http://man7.org/linux/man-pages/man2/mmap.2.html
+    //
+    // #include <sys/mman.h>
+    //
+    // void *mmap(void *addr, size_t length, int prot, int flags,
+    //           int fd, off_t offset);
+    //
+    // addr == virtual base address. NULL is system assigned.
+    //
+    // offset == offset in "file" to start mapping at.
+    //
+    virtual_base = 
+	mmap(NULL, HW_REGS_SPAN, ( PROT_READ | PROT_WRITE ), MAP_SHARED, memory_fd, HW_REGS_BASE);
+
+    if( virtual_base == MAP_FAILED ) {
+	    printf( "ERROR: mmap() failed...\n" );
+	    close( memory_fd );
+	    return( 1 );
+    }
+
+    printf("HW_REGS_BASE=0x%lx\n", (unsigned long)HW_REGS_BASE);
+    printf("virtual_base=0x%lx\n", (unsigned long)virtual_base);
+
+    //
+    // Calculate the offset to the LW Avalon MM bridge which has the following define:
+    //
+    // c:\intelFPGA_pro\17.1\embedded\ip\altera\hps\altera_hps\hwlib
+    // \include\soc_cv_av\socal\hps.h
+    //
+    // #define ALT_LWFPGASLVS_OFST        0xff200000
+    //
+    // This is where the lightweight AXI interface appears in the mapping space.
+    //
+    // Note: unsigned char* is preferred since it works for 32 + 64 bit platforms
+    // but the compiler defaults forces pointers to be cast to unsigned longs.
+    //
+    lw_bridge_offset = (void*)
+      ((unsigned long)ALT_LWFPGASLVS_OFST - (unsigned long)HW_REGS_BASE);
+
+    printf("ALT_LWFPGASLVS_OFST=0x%lx\n", (unsigned long)ALT_LWFPGASLVS_OFST);
+    printf("lw_bridge_offset=0x%lx\n", (unsigned long)lw_bridge_offset);
+
+    //
+    // Add the offset to the virtual base to get the LW bridges virtual address
+    // in the mapping region.
+    //
+    lw_bridge_base = (void*)((unsigned long)virtual_base + (unsigned long)lw_bridge_offset);
+
+    printf("lw_bridge_base=0x%lx\n", (unsigned long)lw_bridge_base);
+
+    //
+    // Your hardware design elements Avalon MM Slaves appear in the 64MB
+    // hardware mapping region. These addresses are assigned by QSYS in the
+    // designer tool, and hps_0.h is generated with the #define's
+    // for your project with each named item connected to an Avalon MM Slave
+    // having a base and size entry.
+    //
+    // Note that depending on how you connected your device, it may appear
+    // as an offset to the lightweight Avalon bridge address (lw_bridge_base)
+    // or it may appear as an offset to the base of the mapping region accessed
+    // through virtual_base.
+    //
+
+    //
+    // The following LED_PIO_BASE is generated for the projectfrom QSYS
+    // assigned resource addresses so can change when the project
+    // is reconfigured through QSYS such as adding, deleting, or re-generating
+    // base addresses.
+    //
+    // Note that this is on the LW Avalon bridge.
+    //
+    // hps_0.h
+    //
+    // #define LED_PIO_BASE 0x200
+    // #define LED_PIO_SPAN 16
+    //
+    //
+    ledpio_base_address =
+	(void*)((unsigned long)lw_bridge_base + (unsigned long)LED_PIO_BASE);
+
+    printf("LED_PIO_BASE=0x%lx\n", (unsigned long)LED_PIO_BASE);
+
+    printf("ledpio_base_address=0x%lx\n", (unsigned long)ledpio_base_address);
+
+    menlo_cnc_registers_base_address =
+      (void*)((unsigned long)lw_bridge_base + (unsigned long)MENLO_SLAVE_TEMPLATE_0_BASE);
+
+    printf("MENLO_SLAVE_TEMPLATE_0_BASE=0x%lx\n", (unsigned long)MENLO_SLAVE_TEMPLATE_0_BASE);
+    printf("menlo_cnc_registers_base_address=0x%lx\n", (unsigned long)menlo_cnc_registers_base_address);
+
+    return 0;
+}
+
+int
+close_hardware()
+{
+
+    //
+    // clean up our memory mapping and exit
+    //
+    if( munmap( virtual_base, HW_REGS_SPAN ) != 0 ) {
+	printf( "ERROR: munmap() failed...\n" );
+	close( memory_fd );
+	return( 1 );
+    }
+
+    close( memory_fd );
+
+    return 0;
+}
+
+int
+run_assembler_file(
+    void* menlo_cnc_registers_base_address,
+    char *fileName
+    )
+{
+  int ret;
+  PBLOCK_ARRAY binary = NULL;
+
+  ret = assemble_file(fileName, &binary);
+
+  if (ret != 0) {
+    printf("assembler error %d %s, exiting\n", ret, strerror(ret));
+    return ret;
+  }
+
+  printf("assembled %d opcode blocks\n", block_array_get_array_size(binary));
+  printf("assembly success, exiting\n");
+
+  //
+  // context->compiled_binary is a pointer to the block array
+  // that contains the compiled assembly instructions as machine
+  // code that can be saved, fed to the registers, placed into memory
+  // for DMA, etc.
+  //
+
+  //
+  // Read instructions from block array.
+  //
+  // Consider batches.
+  //
+  // Validate that compiled instruction block machine
+  // parameters and versions match the machine/version
+  // we are talking to. Fail if no match.
+  //
+  // Have command line parameters, config file which specifies
+  // which machine we are controlling so that wrong assembler
+  // files are rejected.
+  //
+  // Support a binary file mode as well in which its read into
+  // the block array without the source assembly path. This
+  // can allow streaming from a large file on flash SD and minimizes
+  // processing time.
+  //
+  // Implement instruction block packet/record boundary model
+  // that can transport over UDP, TCP, etc. to allow streaming
+  // to machines from a streaming file server.
+  //
+
+  return 0;
+}
+
+int
+load_block(
+    void* menlo_cnc_registers_base_address,
+    void* block
+    )
+{
+  unsigned long status;
+  unsigned long command;
+  MENLO_CNC_AXIS_COMMAND x;
+  MENLO_CNC_AXIS_COMMAND y;
+  MENLO_CNC_AXIS_COMMAND z;
+  MENLO_CNC_AXIS_COMMAND a;
+
+  bzero(&x, sizeof(x));
+  bzero(&y, sizeof(y));
+  bzero(&z, sizeof(z));
+  bzero(&a, sizeof(a));
+
+  // Load commands from block... TODO:
+
+  command = 0;
+  command |= (MENLO_CNC_REGISTERS_COMMAND_CMD |
+              MENLO_CNC_REGISTERS_COMMAND_EAN);
+
+  
+  //
+  // N.B. This spinwaits for the FIFO to not be full.
+  //
+  // It will return early if there is an error.
+  //
+
+  status = menlo_cnc_load_4_axis(
+      menlo_cnc_registers_base_address,
+      command,
+      &x,
+      &y,
+      &z,
+      &a
+      );
+
+  // TODO: general error status check should include EMS, etc.
+  if ((status & MENLO_CNC_REGISTERS_STATUS_ERR) != 0) {
+    printf("error status %ld\n", status);
+  }
+
+  return 0;
 }
 
 int
@@ -407,7 +553,9 @@ test_menlo_cnc_pulse(
     pulse_width = menlo_cnc_registers_calculate_pulse_width(registers, test_width_in_nanoseconds);
 
     // pulse count for testing
-    pulse_count = 999999;  // 0xF423F
+    //pulse_count = 999999;  // 0xF423F
+
+    pulse_count = 0xFFFFFFFF;
 
 #if notdefined
     pulse_rate = 357;      // 0x165
@@ -514,4 +662,15 @@ test_menlo_cnc_pulse(
     printf("status on exit 0x%lx\n", status);
 
     return 0;
+}
+
+void
+usage()
+{
+  printf("menlo_cnc_app:\n");
+  printf("    run_assembler_file file_name\n");
+  printf("    test_cnc_pulse [frequency]\n");
+  printf("    test_leds\n");
+  printf("    test_cnc\n");
+  exit(1);
 }

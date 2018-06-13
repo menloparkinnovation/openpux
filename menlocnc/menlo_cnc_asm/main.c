@@ -94,8 +94,6 @@
 
 void usage();
 
-int processLines(PASSEMBLER_CONTEXT context, FILE* f);
-
 //
 // Standalone front end driver for menlo_cnc_asm.c library module.
 //
@@ -105,47 +103,22 @@ main(int ac, char* av[])
 {
   int ret;
   char* fileName;
-  FILE *file;
-  PASSEMBLER_CONTEXT context;
-
+  PBLOCK_ARRAY binary = NULL;
+  
   if (ac < 2) {
     usage();
   }
 
   fileName = av[1];
 
-  file = fopen(fileName, "r");
-  if (file == NULL) {
-    fprintf(stderr, "error opening file errno %d file %s\n", errno, fileName);
-    exit(1);
-  }
-
-  // Allocate context
-  context = (PASSEMBLER_CONTEXT)malloc(sizeof(ASSEMBLER_CONTEXT));
-  bzero((void*)context, sizeof(ASSEMBLER_CONTEXT));
-
-  // Begin a new assembly file/program
-  initialize_assembler_context(context);
-
-  // Allocate block array
-  context->compiled_binary = block_array_allocate(
-      sizeof(OPCODE_BLOCK_FOUR_AXIS_BINARY),
-      BLOCK_ARRAY_INITIAL_ALLOCATION,
-      BLOCK_ARRAY_INCREMENTAL_ALLOCATION
-      );
-
-  ret = processLines(context, file);
-
-  fclose(file);
+  ret = assemble_file(fileName, &binary);
 
   if (ret != 0) {
-    printf("assembler error lineno %d, (%d) %s, exiting\n",
-           context->lineNumber, ret, strerror(ret));
-
+    printf("assembler error %d %s, exiting\n", ret, strerror(ret));
     return ret;
   }
 
-  printf("assembled %d opcode blocks\n", block_array_get_array_size(context->compiled_binary));
+  printf("assembled %d opcode blocks\n", block_array_get_array_size(binary));
   printf("assembly success, exiting\n");
 
   //
@@ -155,8 +128,7 @@ main(int ac, char* av[])
   // for DMA, etc.
   //
 
-  return ret;
-
+  return 0;
 }
 
 void
@@ -164,39 +136,4 @@ usage()
 {
   fprintf(stderr, "usage: menlo_cnc_asm filename.txt\n");
   exit(1);
-}
-
-//
-// Process assembler lines from a file stream.
-//
-int
-processLines(
-    PASSEMBLER_CONTEXT context,
-    FILE* f
-    )
-{
-  int ret;
-  ssize_t read;
-  size_t len;
-  char *line;
-
-  //
-  // Setting lineptr to NULL has getline allocate the string memory
-  //
-  // It will re-allocate it as needed in the loop.
-  //
-  line = NULL;
-  len = 0;
-
-  while ((read = getline(&line, &len, f)) != -1) {
-    ret = process_assembler_line(context, line);
-    if (ret != 0) {
-      return ret;
-    }
-    context->lineNumber++;
-  }
-
-  free(line);
-
-  return 0;
 }

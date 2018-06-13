@@ -524,6 +524,39 @@ menlo_cnc_read_status(
 }
 
 //
+// Spinwait until the FIFO can accept a new instruction block.
+//
+// Returns:
+//
+// Status value which may contain an error code or ESTOP.
+//
+unsigned long
+menlo_cnc_wait_for_fifo_ready(
+    PMENLO_CNC_REGISTERS registers
+    )
+{
+    unsigned long status;
+
+    status = registers->status;
+
+    while ((status & MENLO_CNC_REGISTERS_STATUS_FBF) != 0) {
+        status = registers->status;
+
+        if (status & MENLO_CNC_REGISTERS_STATUS_EMS) {
+          // ESTOP
+	  return status;
+	}
+
+        if (status & MENLO_CNC_REGISTERS_STATUS_ERR) {
+          // Don't hang on error
+	  return status;
+	}
+    }
+
+    return status;
+}
+
+//
 // Load the command register.
 //
 // If CMD == 1 all of the axis registers are read and
@@ -1018,6 +1051,20 @@ menlo_cnc_load_axis_a(
     return status;
 }
 
+//
+// Load commands for all 4 axis.
+//
+// If the command specifies MENLO_CNC_REGISTERS_COMMAND_CMD
+// then the instruction block is loaded into the FIFO
+// which can immediately state machine motion if enable.
+//
+// If the FIFO is full the command spins waiting until the
+// FIFO can accept the instruction block.
+//
+// Returns:
+//
+// Value of Status register on error or success.
+//
 unsigned long
 menlo_cnc_load_4_axis(
     PMENLO_CNC_REGISTERS registers,
@@ -1076,7 +1123,17 @@ menlo_cnc_load_4_axis(
     }
 
     //
-    // Now load the command.
+    // Wait for the FIFO to not be busy.
+    //
+    status = menlo_cnc_wait_for_fifo_ready(registers);
+
+    if ((status & MENLO_CNC_REGISTERS_STATUS_FBF) != 0) {
+      // Buffer still full, must have returned due to an error, or ESTOP.
+      return status;
+    }
+
+    //
+    // Now load the instruction block into the FIFO.
     //
     // This could start axis motion.
     //
