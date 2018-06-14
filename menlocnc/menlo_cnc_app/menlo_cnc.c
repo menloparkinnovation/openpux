@@ -1066,13 +1066,13 @@ menlo_cnc_load_axis_a(
 // Value of Status register on error or success.
 //
 unsigned long
-menlo_cnc_load_4_axis(
+menlo_cnc_load_four_axis(
     PMENLO_CNC_REGISTERS registers,
     unsigned long command,
-    PMENLO_CNC_AXIS_COMMAND x,
-    PMENLO_CNC_AXIS_COMMAND y,
-    PMENLO_CNC_AXIS_COMMAND z,
-    PMENLO_CNC_AXIS_COMMAND a
+    PMENLO_CNC_AXIS_OPCODE_BINARY x,
+    PMENLO_CNC_AXIS_OPCODE_BINARY y,
+    PMENLO_CNC_AXIS_OPCODE_BINARY z,
+    PMENLO_CNC_AXIS_OPCODE_BINARY a
     )
 {
     unsigned long status;
@@ -1085,7 +1085,7 @@ menlo_cnc_load_4_axis(
     registers->x_pulse_rate = x->pulse_rate;
     registers->x_pulse_count = x->pulse_count;
     registers->x_pulse_width = x->pulse_width;
-    registers->x_pulse_instruction = x->pulse_instruction;
+    registers->x_pulse_instruction = x->instruction;
 
     status = registers->status;
     if ((status & MENLO_CNC_REGISTERS_STATUS_ERR) != 0) {
@@ -1095,7 +1095,7 @@ menlo_cnc_load_4_axis(
     registers->y_pulse_rate = y->pulse_rate;
     registers->y_pulse_count = y->pulse_count;
     registers->y_pulse_width = y->pulse_width;
-    registers->y_pulse_instruction = y->pulse_instruction;
+    registers->y_pulse_instruction = y->instruction;
 
     status = registers->status;
     if ((status & MENLO_CNC_REGISTERS_STATUS_ERR) != 0) {
@@ -1105,7 +1105,7 @@ menlo_cnc_load_4_axis(
     registers->z_pulse_rate = z->pulse_rate;
     registers->z_pulse_count = z->pulse_count;
     registers->z_pulse_width = z->pulse_width;
-    registers->z_pulse_instruction = z->pulse_instruction;
+    registers->z_pulse_instruction = z->instruction;
 
     status = registers->status;
     if ((status & MENLO_CNC_REGISTERS_STATUS_ERR) != 0) {
@@ -1115,7 +1115,7 @@ menlo_cnc_load_4_axis(
     registers->a_pulse_rate = a->pulse_rate;
     registers->a_pulse_count = a->pulse_count;
     registers->a_pulse_width = a->pulse_width;
-    registers->a_pulse_instruction = a->pulse_instruction;
+    registers->a_pulse_instruction = a->instruction;
 
     status = registers->status;
     if ((status & MENLO_CNC_REGISTERS_STATUS_ERR) != 0) {
@@ -1145,3 +1145,13 @@ menlo_cnc_load_4_axis(
 
     return status;
 }
+
+int
+menlo_cnc_registers_is_error(unsigned long status)
+{
+  if ((status & MENLO_CNC_REGISTERS_ERROR_MASK) != 0) {
+    return 1;
+  }
+
+  return 0;
+};

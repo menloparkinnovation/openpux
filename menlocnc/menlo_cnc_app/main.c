@@ -17,6 +17,7 @@ refer to user manual chapter 7 for details about the demo
 #include <stdlib.h> // strtof
 #include <unistd.h>
 #include <fcntl.h>
+#include <errno.h>
 #include <sys/mman.h>
 #include "hwlib.h"
 #include "socal/socal.h"
@@ -39,6 +40,12 @@ int
 run_assembler_file(
     void* menlo_cnc_registers_base_address,
     char *fileName
+    );
+
+int
+load_block(
+    void* menlo_cnc_registers_base_address,
+    void* block
     );
 
 int
@@ -290,6 +297,8 @@ run_assembler_file(
     )
 {
   int ret;
+  void *block;
+  int instruction_block_count;
   PBLOCK_ARRAY binary = NULL;
 
   ret = assemble_file(fileName, &binary);
@@ -332,7 +341,173 @@ run_assembler_file(
   // to machines from a streaming file server.
   //
 
+  ret = block_array_seek_entry(binary, 0);
+  if (ret != 0) {
+    printf("error rewinding block array %d\n", ret);
+    return ret;
+  }
+
+  instruction_block_count = 0;
+
+  // 
+  // Load commands from block array until end or error.
+  // 
+  // Note: This is a real-time, interrupt free CPU spinloop.
+  //
+  // If this is a real time thread this keeps the axis fed in real time.
+  //
+  // If not a real time thread, its good for jogging and general
+  // positioning, but should be a dedicated real time thread for
+  // timing critical machining to ensure the FIFO never runs empty
+  // when there are valid instruction blocks left in the in memory stream.
+  //
+  // You can use Linux real time facilities to lock this program
+  // into memory and dedicate it to a single core at high thread/process
+  // priority.
+  // 
+  // In addition if you use Linux real time user mode exteions to move
+  // system services such as driver and timer interrupts, kernel
+  // callouts (DPC's), event timers, and kernel threads off of the core you
+  // will have a dedicated "hard" processing loop even if its a Linux user mode
+  // process.
+  //
+  // With these real time user mode extensions this thread will not be
+  // pre-empted if the above items are done and this process does not make
+  // any system calls, which it does not in the inner loop until done,
+  // or an error occurs (the printf, etc.).
+  //
+  // This model eliminates the need to create a special
+  // "real time kernel" version of the inner loop staying with the ease of
+  // debug, management, upgrade, etc. of a standard Linux user mode binary,
+  // even if it has real time operating modes.
+  // 
+  // The only limit to this model is the uncontrolability of the ARM
+  // SoC core itself, which not even Linux can control at its lowest
+  // levels such as TrustZone, co-processor emulation, thermal and power
+  // management, etc.
+  //
+  // At the very real time level, the FPGA takes care of the timing accuracies
+  // measured in nanoseconds. (20 ns for a very modest 50Mhz FPGA clock).
+  //
+  // If this loop can't handle a very high feed rate machine, a DMA model
+  // or loading the 64MB FPGA dedicated SDRAM is preferred over the
+  // easier to program SoC register interface model.
+  //
+
+  while (1) {
+
+    block = block_array_get_next_entry(binary);
+    if (block == NULL) {
+      printf("No more instruction entries in block array, loaded %d blocks\n", instruction_block_count);
+      return 0;
+
+    }
+
+    instruction_block_count++;
+
+    ret = load_block(menlo_cnc_registers_base_address, block);
+    if (ret != 0) {
+      printf("error %d loading block %d\n", ret, instruction_block_count);
+      return ret;
+    }
+  }
+
   return 0;
+}
+
+void
+convert_axis_binary(
+    PAXIS_OPCODE_BINARY src,
+    PMENLO_CNC_AXIS_OPCODE_BINARY target
+    )
+{
+  // 
+  // menlo_cnc_asm.h
+  //
+  // src:
+  //
+  // typedef struct _AXIS_OPCODE_BINARY {
+  //   unsigned long instruction;
+  //   unsigned long pulse_rate;
+  //   unsigned long pulse_count;
+  //   unsigned long pulse_width;
+  // } AXIS_OPCODE_BINARY, *PAXIS_OPCODE_BINARY;
+  // 
+
+  // 
+  // menlo_cnc.h
+  //
+  // target:
+  //
+  // typedef struct _MENLO_CNC_AXIS_OPCODE_BINARY {
+  //   unsigned long instruction;
+  //   unsigned long pulse_rate;
+  //   unsigned long pulse_count;
+  //   unsigned long pulse_width;
+  // } MENLO_CNC_AXIS_OPCODE_BINARY, *PMENLO_CNC_AXIS_OPCODE_BINARY;
+  // 
+
+  target->instruction = src->instruction;
+  target->pulse_rate = src->pulse_rate;
+  target->pulse_count = src->pulse_count;
+  target->pulse_width = src->pulse_width;
+
+  return;
+}
+
+void
+convert_four_axis_binary(
+    POPCODE_BLOCK_FOUR_AXIS_BINARY src,
+    PMENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY target
+    )
+{
+  //
+  // TODO: Should use the same base type for opcode binary
+  // to cut down on number of instructions in the main streaming loop.
+  //
+  // Problem with headers right now. May need to go to a separate header
+  // for base types between the assembler and the binary loader.
+  //
+  // This does have the advantage in which the assembler can place
+  // extra formatting information such as begin, end, blocks into the
+  // binary opcode blocks which gets converted to the low level register
+  // format.
+  //
+
+  // 
+  // menlo_cnc_asm.h
+  //
+  // src:
+  //
+  // typedef struct _OPCODE_BLOCK_FOUR_AXIS_BINARY {
+  //   AXIS_OPCODE_BINARY begin;
+  //   AXIS_OPCODE_BINARY x;
+  //   AXIS_OPCODE_BINARY y;
+  //   AXIS_OPCODE_BINARY z;
+  //   AXIS_OPCODE_BINARY a;
+  //   AXIS_OPCODE_BINARY end;
+  // } OPCODE_BLOCK_FOUR_AXIS_BINARY, *POPCODE_BLOCK_FOUR_AXIS_BINARY;
+  // 
+
+  // 
+  // menlo_cnc.h
+  //
+  // target:
+  //
+  // typedef struct _MENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY {
+  //   MENLO_CNC_AXIS_OPCODE_BINARY x;
+  //   MENLO_CNC_AXIS_OPCODE_BINARY y;
+  //   MENLO_CNC_AXIS_OPCODE_BINARY z;
+  //   MENLO_CNC_AXIS_OPCODE_BINARY a;
+  // } MENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY, *PMENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY;
+  // 
+
+  convert_axis_binary(&src->x, &target->x);
+  convert_axis_binary(&src->y, &target->y);
+  convert_axis_binary(&src->z, &target->z);
+  convert_axis_binary(&src->a, &target->a);
+
+  return;
 }
 
 int
@@ -343,40 +518,37 @@ load_block(
 {
   unsigned long status;
   unsigned long command;
-  MENLO_CNC_AXIS_COMMAND x;
-  MENLO_CNC_AXIS_COMMAND y;
-  MENLO_CNC_AXIS_COMMAND z;
-  MENLO_CNC_AXIS_COMMAND a;
+  POPCODE_BLOCK_FOUR_AXIS_BINARY src;
+  MENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY target;
 
-  bzero(&x, sizeof(x));
-  bzero(&y, sizeof(y));
-  bzero(&z, sizeof(z));
-  bzero(&a, sizeof(a));
-
-  // Load commands from block... TODO:
+  src = (POPCODE_BLOCK_FOUR_AXIS_BINARY)block;
 
   command = 0;
   command |= (MENLO_CNC_REGISTERS_COMMAND_CMD |
               MENLO_CNC_REGISTERS_COMMAND_EAN);
 
-  
+  //
+  // Convert it
+  //
+
+  convert_four_axis_binary(src, &target);
+
   //
   // N.B. This spinwaits for the FIFO to not be full.
   //
   // It will return early if there is an error.
   //
 
-  status = menlo_cnc_load_4_axis(
+  status = menlo_cnc_load_four_axis(
       menlo_cnc_registers_base_address,
       command,
-      &x,
-      &y,
-      &z,
-      &a
+      &target.x,
+      &target.y,
+      &target.z,
+      &target.a
       );
 
-  // TODO: general error status check should include EMS, etc.
-  if ((status & MENLO_CNC_REGISTERS_STATUS_ERR) != 0) {
+  if (menlo_cnc_registers_is_error(status) != 0) {
     printf("error status %ld\n", status);
   }
 

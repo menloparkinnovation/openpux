@@ -101,6 +101,9 @@
 #include <limits.h> // LONG_MAX, LONG_MIN
 #include <string.h> // strtok, bzero
 
+// Include binary type definitions for menlo_cnc
+#include "menlo_cnc.h"
+
 #include "menlo_cnc_asm.h"
 
 //

@@ -64,30 +64,6 @@ typedef struct _OPCODE_BLOCK_NINE_AXIS {
   AXIS_OPCODE w;
 } OPCODE_BLOCK_NINE_AXIS, *POPCODE_BLOCK_NINE_AXIS;
 
-typedef struct _AXIS_OPCODE_BINARY {
-  unsigned long instruction;
-  unsigned long pulse_rate;
-  unsigned long pulse_count;
-  unsigned long pulse_width;
-} AXIS_OPCODE_BINARY, *PAXIS_OPCODE_BINARY;
-
-//
-// An opcode block has an explicit begin and end
-// marker in its binary file.
-//
-// The end marker contains a checksum of the block.
-//
-
-typedef struct _OPCODE_BLOCK_FOUR_AXIS_BINARY {
-  AXIS_OPCODE_BINARY begin;
-  AXIS_OPCODE_BINARY x;
-  AXIS_OPCODE_BINARY y;
-  AXIS_OPCODE_BINARY z;
-  AXIS_OPCODE_BINARY a;
-  AXIS_OPCODE_BINARY end;
-} OPCODE_BLOCK_FOUR_AXIS_BINARY, *POPCODE_BLOCK_FOUR_AXIS_BINARY;
-
-
 //
 // State enum for opcode assembly
 //
@@ -163,6 +139,32 @@ typedef struct _BLOCK_ARRAY {
   int seek_index;
 
 } BLOCK_ARRAY, *PBLOCK_ARRAY;
+
+//
+// Binary command packet for each axis
+//
+typedef struct _AXIS_OPCODE_BINARY {
+  unsigned long instruction;
+  unsigned long pulse_rate;
+  unsigned long pulse_count;
+  unsigned long pulse_width;
+} AXIS_OPCODE_BINARY, *PAXIS_OPCODE_BINARY;
+
+//
+// An opcode block has an explicit begin and end
+// marker in its binary file.
+//
+// The end marker contains a checksum of the block.
+//
+
+typedef struct _OPCODE_BLOCK_FOUR_AXIS_BINARY {
+  AXIS_OPCODE_BINARY begin;
+  AXIS_OPCODE_BINARY x;
+  AXIS_OPCODE_BINARY y;
+  AXIS_OPCODE_BINARY z;
+  AXIS_OPCODE_BINARY a;
+  AXIS_OPCODE_BINARY end;
+} OPCODE_BLOCK_FOUR_AXIS_BINARY, *POPCODE_BLOCK_FOUR_AXIS_BINARY;
 
 //
 // An opcode block can be assembled from multiple
