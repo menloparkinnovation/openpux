@@ -1236,6 +1236,173 @@ compile_axis_opcode(
   return 0;  
 }
 
+char* supported_postfix_array[] = {
+  "hz",
+  "khz",
+  "mhz",
+  "s",
+  "ms",
+  "us",
+  "ns",
+  "clocks",
+  "percent",
+  "%",
+  NULL
+};
+
+//
+// Find one of the supported postfixes.
+//
+// Note: postfix must be presented in lower case in the
+// string since strcasestr() does not appear in the embedded
+// Angstrom target. So the caller is responsible for lower casing
+// the string as this function does not want to be concerned
+// with string buffer management.
+//
+char*
+find_supported_postfix(char* s)
+{
+  char* testString;
+  char* resultString;
+  int index;
+
+  index = 0;
+  testString = supported_postfix_array[index];
+
+  while (testString != NULL) {
+
+    resultString = strstr(s, testString);
+    if (resultString != NULL) {
+
+      // found a match
+      return resultString;
+    }
+
+    index++;
+    testString = supported_postfix_array[index];
+  }
+
+  return NULL;
+}
+
+//
+// Parse a string with optional semantic post fix.
+//
+// Returns:
+//
+// Value as a double that can be converted by the caller
+// according to its semantics.
+//
+// Pointer to the postfix value in the string so caller
+// can determine which semantics to apply/enforce.
+//
+// The returned postfix value is not converted to upper/lower
+// case, so the caller should treat it as case insensitive.
+//
+// format:
+//
+// 123 - decimal integer
+// 0x123 - hexadecimal integer
+//
+// 1.3 - floating point number, only decimal bases allowed.
+//
+// Note: the following post fixes are supported:
+//
+//   - They are case insensitive.
+//
+//   - Values without postfix are their integer value.
+//
+// 1hz  - one Hertz
+// 1khz - one kilo-Hertz
+// 1mhz - one mega-Hertz
+// 1s   - one second
+// 1ms  - 1 millisecond
+// 1us  - 1 microsecond
+// 1ns  - 1 nanosecond
+// 100clocks - 100 clocks. Clock period defined by implementation.
+// 50%  - 50 percent
+//
+// Return 0 if NULL.
+//
+int
+parse_string_value(char* s, double* l, char** returnPostFix)
+{
+  char* firstIndex;
+  char* lastIndex;
+  int isDouble = 0;
+  double double_value;
+  unsigned long integer_value;
+  char* endptr;
+  char* postFix;
+
+  *returnPostFix = NULL;
+
+  //
+  // lookup post fix
+  //
+  // Note: currently case sensitive to lower case only.
+  //
+  postFix = find_supported_postfix(s);
+  if (postFix == NULL) {
+    // No postFix
+  }
+  else {
+    *returnPostFix = postFix;
+  }
+
+  //
+  // TODO: trim post fix, ensure only numbers of '.'
+  //
+
+  //
+  // Look for a single "." to see if should be parsed as a double.
+  //
+
+  // first occurance
+  firstIndex = strchr(s, '.');
+  if (firstIndex == NULL) {
+    // not found, so treat as integer
+    isDouble = 0;
+  }
+  else {
+    isDouble = 1;
+  }
+
+  lastIndex = strchr(s, '.');
+  if ((firstIndex != NULL) && (lastIndex == NULL)) {
+    // not found, this should not happen
+    return ERANGE;
+  }
+
+  if (lastIndex != firstIndex) {
+    // More than one '.', this an error
+    return ERANGE;
+  }
+
+  endptr = NULL;
+
+  if (isDouble) {
+    // parse double
+    double_value = strtod(s, &endptr);
+  }
+  else {
+    // parse integer
+    integer_value = strtol(s, &endptr, 0);
+  }
+
+  //
+  // ?Scale it by prefix?
+  //
+  if (isDouble) {
+    *l = double_value;
+  }
+  else {
+    *l = (double)integer_value;
+  }
+
+  return 0;
+}
+
 //
 // Convert a string to an unsigned long.
 //
@@ -1243,8 +1410,6 @@ compile_axis_opcode(
 //
 // 123 - decimal number
 // 0x123 - hexadecimal number
-//
-// Return 0 if NULL.
 //
 int
 string_to_unsigned_long(char* s, unsigned long* l)

@@ -442,9 +442,65 @@ menlo_cnc_registers_initialize(
     )
 {
     unsigned long status;
+    unsigned long value;
 
 #if DBG_TRACE2
     printf("menlo_cnc_registers_initialize entered registers=0x%lx\n", (unsigned long)registers);
+#endif
+
+    //
+    // Validate its what we are expecting.
+    //
+
+#if DBG_TRACE2
+    printf("menlo_cnc_registers_initialize &registers->hexafives 0x%lx\n",
+	   (unsigned long)&registers->hexafives);
+
+    printf("menlo_cnc_registers_initialize &registers->status 0x%lx\n", 
+	   (unsigned long)&registers->status);
+
+    printf("menlo_cnc_registers_initialize &registers->command 0x%lx\n", 
+	   (unsigned long)&registers->command);
+#endif
+
+    value = registers->hexafives;
+
+    if (value != 0xA5A5A5A5) {
+#if DBG_TRACE2
+      printf("hexafives register not 0xA5A5A5A5, is 0x%lx\n", value);
+#endif
+      return MENLO_CNC_REGISTERS_STATUS_ERR;
+    }
+
+    value = registers->hexfiveas;
+
+    if (value != 0x5A5A5A5A) {
+#if DBG_TRACE2
+      printf("hexfiveas register not 0x5A5A5A5A, is 0x%lx\n", value);
+#endif
+      return MENLO_CNC_REGISTERS_STATUS_ERR;
+    }
+
+    value = registers->interface_version;
+
+#if DBG_TRACE2
+    printf("interface_version 0x%lx\n", value);
+#endif    
+
+    //
+    // Don't initialize if we don't recognize the interface version.
+    //
+    if (value != MENLO_CNC_REGISTERS_INTERFACE_VERSION) {
+#if DBG_TRACE2
+      printf("unsupported interface version %ld\n", value);
+#endif
+      return MENLO_CNC_REGISTERS_STATUS_ERR;
+    }
+
+    value = registers->interface_serial_number;
+
+#if DBG_TRACE2
+    printf("interface_serial_number 0x%lx\n", value);
 #endif
 
     registers->command = 0;
@@ -453,8 +509,9 @@ menlo_cnc_registers_initialize(
     printf("menlo_cnc_registers_initialize survived first store\n");
 #endif
 
-    registers->reserved0 = 0;
     registers->reserved1 = 0;
+    registers->reserved2 = 0;
+    registers->reserved3 = 0;
 
     registers->x_pulse_rate = 0;
     registers->x_pulse_count = 0;
@@ -475,6 +532,8 @@ menlo_cnc_registers_initialize(
     registers->a_pulse_count = 0;
     registers->a_pulse_width = 0;
     registers->a_pulse_instruction = 0;
+
+    // TODO: Initialize optional axis
 
     status = registers->status;
 
@@ -588,8 +647,9 @@ menlo_cnc_registers_set_value_to_all_axis(
     unsigned long status;
 
     // Writes should be ignored for these, with read back == 0
-    registers->reserved0 = 0;
-    registers->reserved1 = 0;
+    //registers->reserved0 = 0;
+    //registers->reserved1 = 0;
+    // TODO: set new reserved
 
     registers->x_pulse_rate = set_value;
     registers->x_pulse_count = set_value;
@@ -611,6 +671,8 @@ menlo_cnc_registers_set_value_to_all_axis(
     registers->a_pulse_width = set_value;
     registers->a_pulse_instruction = set_value;
 
+    // TODO: set optional axis
+
     status = registers->status;
 
     return status;
@@ -631,38 +693,12 @@ menlo_cnc_registers_validate_value_from_all_axis(
     *register_in_error = -1;
     *register_in_error_value = 0;
 
-#if notdefined
-    //
-    // command register should have its own test block
-    // as it can cause machine activity.
-    //
-    // MENLO_CNC_REGISTERS_COMMAND_CMD bit is especially important
-    // as it commands the FPGA to accept all the values in the
-    // axis control registers.
-    //
-    if ((value = registers->command) != compare_value) {
-        *register_in_error = 1;
-        *register_in_error_value = value;
-        return MENLO_CNC_REGISTERS_STATUS_ERR;
-    }
-#endif
-
-    // Reserved registers should always read as 0
-    if ((value = registers->reserved0) != 0) {
-#if DBG_TRACE
-        printf("validate: reserved register 0 error\n");
-#endif
-        *register_in_error = 2;
-        *register_in_error_value = value;
-	return MENLO_CNC_REGISTERS_STATUS_ERR;
-    }
-
     // Reserved registers should always read as 0
     if ((value = registers->reserved1) != 0) {
 #if DBG_TRACE
-        printf("validate: reserved register 1 error\n");
+        printf("validate: reserved register 11 error\n");
 #endif
-        *register_in_error = 3;
+        *register_in_error = 13;
         *register_in_error_value = value;
 	return MENLO_CNC_REGISTERS_STATUS_ERR;
     }
@@ -1146,10 +1182,59 @@ menlo_cnc_load_four_axis(
     return status;
 }
 
+//
+// Reset Sticky FIFO Empty.
+//
+// To detect FIFO underruns, reset the Sticky FIfO empty
+// with this command then start issuing a stream of
+// commands. This bit will be set if at any time the
+// FIFO underruns to zero during the command stream.
+//
+// Test the Sticky FIFO Empty status bit just before issuing
+// the final command and if not set there were no gaps
+// in the instruction stream due to FIFO starvation.
+//
+// The bit will be set when the last command leaves the
+// FIFO, so should be reset at the start of each run.
+//
+int
+menlo_cnc_registers_reset_sfe(
+    PMENLO_CNC_REGISTERS registers
+    )
+{
+  // Clear it through the status clear bits register
+  registers->statusclearbits = MENLO_CNC_REGISTERS_STATUS_SFE;
+
+  return 0;
+}
+
+unsigned long
+menlo_cnc_registers_get_fifo_depth(
+    PMENLO_CNC_REGISTERS registers
+    )
+{
+  return registers->current_fifo_depth;
+}
+
 int
 menlo_cnc_registers_is_error(unsigned long status)
 {
   if ((status & MENLO_CNC_REGISTERS_ERROR_MASK) != 0) {
+    return 1;
+  }
+
+  return 0;
+};
+
+int
+menlo_cnc_registers_is_underrun(unsigned long status)
+{
+
+  //
+  // Sticky Fifo Empty is set if the FIFO goes empty
+  // since the last reset.
+  //
+  if ((status & MENLO_CNC_REGISTERS_STATUS_SFE) != 0) {
     return 1;
   }
 

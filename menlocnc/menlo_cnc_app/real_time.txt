@@ -1,0 +1,75 @@
+
+Real Time Concerns
+
+06/18/2018
+
+From comments:
+
+menlo_cnc_app/main.c
+
+  // 
+  // Load commands from block array until end or error.
+  // 
+  // Note: This is a real-time, interrupt free CPU spinloop.
+  //
+  // If this is a real time thread this keeps the axis fed in real time.
+  //
+  // If not a real time thread, its good for jogging and general
+  // positioning, but should be a dedicated real time thread for
+  // timing critical machining to ensure the FIFO never runs empty
+  // when there are valid instruction blocks left in the in memory stream.
+  //
+  // You can use Linux real time facilities to lock this program
+  // into memory and dedicate it to a single core at high thread/process
+  // priority.
+  // 
+  // In addition if you use Linux real time user mode exteions to move
+  // system services such as driver and timer interrupts, kernel
+  // callouts (DPC's), event timers, and kernel threads off of the core you
+  // will have a dedicated "hard" processing loop even if its a Linux user mode
+  // process.
+  //
+  // With these real time user mode extensions this thread will not be
+  // pre-empted if the above items are done and this process does not make
+  // any system calls, which it does not in the inner loop until done,
+  // or an error occurs (the printf, etc.).
+  //
+  // This model eliminates the need to create a special
+  // "real time kernel" version of the inner loop staying with the ease of
+  // debug, management, upgrade, etc. of a standard Linux user mode binary,
+  // even if it has real time operating modes.
+  // 
+  // The only limit to this model is the uncontrolability of the ARM
+  // SoC core itself, which not even Linux can control at its lowest
+  // levels such as TrustZone, co-processor emulation, thermal and power
+  // management, etc.
+  //
+  // At the very real time level, the FPGA takes care of the timing accuracies
+  // measured in nanoseconds. (20 ns for a very modest 50Mhz FPGA clock).
+  //
+  // If this loop can't handle a very high feed rate machine, a DMA model
+  // or loading the 64MB FPGA dedicated SDRAM is preferred over the
+  // easier to program SoC register interface model.
+  //
+
+  //
+  // A run consists of non-realtime setup, real time command
+  // stream, then non-real time cleanup.
+  //
+
+  //
+  // Real time loop is defined as streaming commands from memory
+  // until there are no more, without an underrun condition occuring.
+  //
+
+    //
+    // Note: instruction counts can be reduced by inlining, macro's,
+    // etc. for status test, bumping through the sequential array, etc.
+    //
+    // These are considerations if this inner loop moves to a weaker embedded
+    // soft processor such as a Nios II.
+    //
+    // The ARM SoC's have plently of instruction execution rate, its
+    // just that their environment is more prone to interruptions
+    // and pauses by both system and internal chip processes.
+    //

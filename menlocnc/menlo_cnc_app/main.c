@@ -42,7 +42,13 @@ run_assembler_file(
     char *fileName
     );
 
-int
+unsigned long
+stream_instructions(
+    void* menlo_cnc_registers_base_address,
+    PBLOCK_ARRAY binary
+    );
+
+unsigned long
 load_block(
     void* menlo_cnc_registers_base_address,
     void* block
@@ -129,6 +135,9 @@ main(int ac, char**av)
             return 1;
 	}
 
+        // Setup the hardware
+        setup_hardware();
+
         if (option_test_leds) {
             retValue = test_leds(ledpio_base_address);
         }
@@ -145,7 +154,7 @@ main(int ac, char**av)
 	   retValue = run_assembler_file(menlo_cnc_registers_base_address, fileName);
         }
 
-        retValue = close_hardware();
+        close_hardware();
 
 	return( retValue );
 }
@@ -290,26 +299,25 @@ close_hardware()
     return 0;
 }
 
-int
-run_assembler_file(
-    void* menlo_cnc_registers_base_address,
-    char *fileName
+//
+// Run the in memory binary instruction stream on the machine
+// in a real time loop.
+//
+// Tracks underrun conditions.
+//
+// Stops on reported errors.
+//
+unsigned long
+stream_instructions(
+    void* registers,
+    PBLOCK_ARRAY binary
     )
 {
   int ret;
+  unsigned long status;
   void *block;
-  int instruction_block_count;
-  PBLOCK_ARRAY binary = NULL;
-
-  ret = assemble_file(fileName, &binary);
-
-  if (ret != 0) {
-    printf("assembler error %d %s, exiting\n", ret, strerror(ret));
-    return ret;
-  }
-
-  printf("assembled %d opcode blocks\n", block_array_get_array_size(binary));
-  printf("assembly success, exiting\n");
+  unsigned long instruction_block_count;
+  unsigned long underrun_errors;
 
   //
   // context->compiled_binary is a pointer to the block array
@@ -346,8 +354,6 @@ run_assembler_file(
     printf("error rewinding block array %d\n", ret);
     return ret;
   }
-
-  instruction_block_count = 0;
 
   // 
   // Load commands from block array until end or error.
@@ -394,25 +400,136 @@ run_assembler_file(
   // easier to program SoC register interface model.
   //
 
+  //
+  // A run consists of non-realtime setup, real time command
+  // stream, then non-real time cleanup.
+  //
+
+  //
+  // Real time loop is defined as streaming commands from memory
+  // until there are no more, without an underrun condition occuring.
+  //
+
+  //
+  // Begin Run
+  //
+
+  status = 0;
+
+  instruction_block_count = 0;
+
+  underrun_errors = 0;
+
+  //
+  // Clear Sticky FIFO Underrun before entring the real time loop.
+  //
+  // This gets set if the FIFO's go empty once the first instruction
+  // has been loaded.
+  //
+  menlo_cnc_registers_reset_sfe(registers);
+
+  //
+  // Begin real time Loop
+  //
   while (1) {
+
+    //
+    // Note: instruction counts can be reduced by inlining, macro's,
+    // etc. for status test, bumping through the sequential array, etc.
+    //
+    // These are considerations if this inner loop moves to a weaker embedded
+    // soft processor such as a Nios II.
+    //
+    // The ARM SoC's have plently of instruction execution rate, its
+    // just that their environment is more prone to interruptions
+    // and pauses by both system and internal chip processes.
+    //
 
     block = block_array_get_next_entry(binary);
     if (block == NULL) {
-      printf("No more instruction entries in block array, loaded %d blocks\n", instruction_block_count);
-      return 0;
-
+      printf("No more instruction entries in block array, loaded %ld blocks\n",
+      instruction_block_count);
+      // status is set from last load, or initial value if array is empty.
+      goto Done;
     }
 
     instruction_block_count++;
 
-    ret = load_block(menlo_cnc_registers_base_address, block);
-    if (ret != 0) {
-      printf("error %d loading block %d\n", ret, instruction_block_count);
-      return ret;
+    status = load_block(registers, block);
+    if (menlo_cnc_registers_is_error(status)) {
+      printf("error %ld loading block %ld\n", status, instruction_block_count);
+      goto Done;
+    }
+
+    if (menlo_cnc_registers_is_underrun(status)) {
+
+      // Just report it, don't abort
+      printf("underrun occurred status 0x%lx\n", status);
+      underrun_errors++;
+
+      // Rearm it
+      menlo_cnc_registers_reset_sfe(registers);
     }
   }
 
-  return 0;
+  //
+  // End real time Loop
+  //
+
+  //
+  // End Run
+  //
+
+Done:
+
+  printf("instruction block count %ld, underrun errors %ld, status 0x%ld\n",
+    instruction_block_count,
+    underrun_errors,
+    status);
+
+  return status;
+}
+
+//
+// Load an assembler file from the file system, compile it completely
+// into a sequential memory block, and run it on the machine in
+// a real time loop.
+//
+int
+run_assembler_file(
+    void* menlo_cnc_registers_base_address,
+    char *fileName
+    )
+{
+  int ret;
+  unsigned long status;
+  PBLOCK_ARRAY binary = NULL;
+
+  ret = assemble_file(fileName, &binary);
+
+  if (ret != 0) {
+    printf("assembler error %d %s, exiting\n", ret, strerror(ret));
+    return ret;
+  }
+
+  printf("assembled %d opcode blocks\n", block_array_get_array_size(binary));
+  printf("assembly success, exiting\n");
+
+  status = stream_instructions(menlo_cnc_registers_base_address, binary);
+
+  ret = 0;
+
+  if (menlo_cnc_registers_is_error(status)) {
+    printf("Error 0x%lx returned from stream_instructions\n", status);
+    ret = 1;
+  }
+
+  if (menlo_cnc_registers_is_underrun(status)) {
+    printf("Underrun occurred during stream_instructions status 0x%lx\n", status);
+    ret = 1;
+  }
+
+  return ret;
 }
 
 void
@@ -510,7 +627,7 @@ convert_four_axis_binary(
   return;
 }
 
-int
+unsigned long
 load_block(
     void* menlo_cnc_registers_base_address,
     void* block
@@ -548,11 +665,7 @@ load_block(
       &target.a
       );
 
-  if (menlo_cnc_registers_is_error(status) != 0) {
-    printf("error status %ld\n", status);
-  }
-
-  return 0;
+  return status;
 }
 
 int
