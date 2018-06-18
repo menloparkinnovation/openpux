@@ -27,7 +27,6 @@ module four_axis_timing_generator
     //
     // Input (write command) side
     //
-    c_insert_clock,
     c_insert_signal,
 
     //
@@ -35,12 +34,14 @@ module four_axis_timing_generator
     //
     c_insert_buffer_full,
     c_remove_buffer_empty,
+    c_fifo_entry_count,
 
     //
     // Timing generator state outputs
     //
     c_timing_generator_error,
     c_timing_generator_busy,
+    c_axis_synchronization_error,
 
     //
     // X Axis
@@ -111,7 +112,6 @@ module four_axis_timing_generator
   input                        c_clear_buffer;
   input                        c_enable;
   input                        c_estop;
-  input                        c_insert_clock;
   input                        c_insert_signal;
 
   //
@@ -120,8 +120,12 @@ module four_axis_timing_generator
 
   output                       c_insert_buffer_full;
   output                       c_remove_buffer_empty;
+  output [31:0]                c_fifo_entry_count;
+
   output                       c_timing_generator_error;
   output                       c_timing_generator_busy;
+  output                       c_axis_synchronization_error;
+
 
   //
   // Per Axis signals
@@ -189,6 +193,17 @@ module four_axis_timing_generator
   wire                         z_remove_buffer_empty;
   wire                         a_remove_buffer_empty;
 
+  //
+  // FIFO entry count from each axis allows monitoring of
+  // the axis to ensure they are in sync.
+  //
+  // This is a good way to detect if internal timings are violated.
+  //
+  wire [31:0]                  x_fifo_entry_count;
+  wire [31:0]                  y_fifo_entry_count;
+  wire [31:0]                  z_fifo_entry_count;
+  wire [31:0]                  a_fifo_entry_count;
+
   wire                         x_timing_generator_error;
   wire                         y_timing_generator_error;
   wire                         z_timing_generator_error;
@@ -198,6 +213,19 @@ module four_axis_timing_generator
   wire                         y_timing_generator_busy;
   wire                         z_timing_generator_busy;
   wire                         a_timing_generator_busy;
+
+  //
+  // This co-ordinates trigger action among all axis.
+  //
+  // This ensures each axis executes its instruction within
+  // an instruction block in parallel at the same time.
+  //
+  reg                          c_fifo_multi_axis_trigger_reg;
+
+  //
+  // This tracks if a synchronization error between the axis occurs.
+  //
+  reg c_axis_synchronization_error_reg;
 
   //
   // Invoke sub-module instances
@@ -213,8 +241,8 @@ module four_axis_timing_generator
       .clear_buffer(c_clear_buffer),
       .enable(c_enable),
       .estop(c_estop),
+      .multi_axis_trigger(c_fifo_multi_axis_trigger_reg),
 
-      .insert_clock(c_clock),
       .insert_signal(c_insert_signal),
       .insert_instruction(x_insert_instruction),
       .insert_pulse_period(x_insert_pulse_period),
@@ -223,6 +251,7 @@ module four_axis_timing_generator
 
       .insert_buffer_full(x_insert_buffer_full),
       .remove_buffer_empty(x_remove_buffer_empty),
+      .fifo_entry_count(x_fifo_entry_count),
 
       .timing_generator_error(x_timing_generator_error),
       .timing_generator_busy(x_timing_generator_busy),
@@ -241,8 +270,8 @@ module four_axis_timing_generator
       .clear_buffer(c_clear_buffer),
       .enable(c_enable),
       .estop(c_estop),
+      .multi_axis_trigger(c_fifo_multi_axis_trigger_reg),
 
-      .insert_clock(c_clock),
       .insert_signal(c_insert_signal),
 
       .insert_instruction(y_insert_instruction),
@@ -252,6 +281,7 @@ module four_axis_timing_generator
 
       .insert_buffer_full(y_insert_buffer_full),
       .remove_buffer_empty(y_remove_buffer_empty),
+      .fifo_entry_count(y_fifo_entry_count),
 
       .timing_generator_error(y_timing_generator_error),
       .timing_generator_busy(y_timing_generator_busy),
@@ -270,8 +300,8 @@ module four_axis_timing_generator
       .clear_buffer(c_clear_buffer),
       .enable(c_enable),
       .estop(c_estop),
+      .multi_axis_trigger(c_fifo_multi_axis_trigger_reg),
 
-      .insert_clock(c_clock),
       .insert_signal(c_insert_signal),
 
       .insert_instruction(z_insert_instruction),
@@ -281,6 +311,7 @@ module four_axis_timing_generator
 
       .insert_buffer_full(z_insert_buffer_full),
       .remove_buffer_empty(z_remove_buffer_empty),
+      .fifo_entry_count(z_fifo_entry_count),
 
       .timing_generator_error(z_timing_generator_error),
       .timing_generator_busy(z_timing_generator_busy),
@@ -299,8 +330,8 @@ module four_axis_timing_generator
       .clear_buffer(c_clear_buffer),
       .enable(c_enable),
       .estop(c_estop),
+      .multi_axis_trigger(c_fifo_multi_axis_trigger_reg),
 
-      .insert_clock(c_clock),
       .insert_signal(c_insert_signal),
 
       .insert_instruction(a_insert_instruction),
@@ -310,6 +341,7 @@ module four_axis_timing_generator
 
       .insert_buffer_full(a_insert_buffer_full),
       .remove_buffer_empty(a_remove_buffer_empty),
+      .fifo_entry_count(a_fifo_entry_count),
 
       .timing_generator_error(a_timing_generator_error),
       .timing_generator_busy(a_timing_generator_busy),
@@ -350,9 +382,81 @@ module four_axis_timing_generator
       z_timing_generator_busy |
       a_timing_generator_busy;
 
-   //
-   // Processes (always blocks)
-   //
+  //
+  // Real time output of fifo entry count is based
+  // on the X axis.
+  //
+  // A validation always block asserts an axis
+  // synchronization error if the axis counts don't match.
+  // 
+  assign c_fifo_entry_count = x_fifo_entry_count;
+
+  assign c_axis_synchronization_error = c_axis_synchronization_error_reg;
+
+  //
+  // Processes (always blocks)
+  //
+
+  //
+  // This always block tracks the state of the current
+  // instruction block across all the axis triggering
+  // when all are idle.
+  //
+  always_ff @(posedge c_clock) begin
+
+    if (c_reset) begin
+        c_fifo_multi_axis_trigger_reg <= 0;
+    end
+    else begin
+
+      //
+      // Not c_reset
+      //
+
+      if (c_timing_generator_busy == 1'b0) begin
+
+        // Trigger the axis.
+        c_fifo_multi_axis_trigger_reg <= 1;
+      end
+      else begin
+
+        // timing generator is busy, remove the trigger
+        c_fifo_multi_axis_trigger_reg <= 0;
+      end
+
+    end // not reset
+
+  end // always multi_axis_trigger
+
+  //
+  // This always block validates the the entry count of each
+  // of the the FIFO's to ensure the are in sync.
+  //
+  always_ff @(posedge c_clock) begin
+
+    if (c_reset) begin
+        c_axis_synchronization_error_reg <= 0;
+    end
+    else begin
+
+      //
+      // Not c_reset, validate that all axis have the same
+      // fifo_entry_count.
+      //
+
+      if (x_fifo_entry_count != y_fifo_entry_count) begin
+        c_axis_synchronization_error_reg <= 1'b1;
+      end
+      else if (x_fifo_entry_count != z_fifo_entry_count) begin
+        c_axis_synchronization_error_reg <= 1'b1;
+      end
+      else if (x_fifo_entry_count != a_fifo_entry_count) begin
+        c_axis_synchronization_error_reg <= 1'b1;
+      end
+
+    end // not reset
+
+  end // always fifo_entry_count
 
 endmodule // four_axis_timing_generator
 
@@ -414,7 +518,6 @@ module tb_four_axis_timing_generator();
       .clear_buffer(clear_buffer),
       .enable(enable),
       .estop(estop),
-      .insert_clock(clock_50),
       .insert_signal(insert_signal),
       .insert_instruction(insert_instruction),
       .insert_pulse_period(insert_pulse_period),

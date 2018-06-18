@@ -1,4 +1,7 @@
 
+// 06/15/2018
+// TODO: fix TODO's in this file.
+
 // set timescale for 1ns with 100ps precision.
 `timescale 1ns / 100ps
 
@@ -34,11 +37,13 @@ module fifo_timing_generator
     clear_buffer,
     enable,
     estop,
+    multi_axis_trigger,
 
     //
     // Input (write command to FIFO) side
     //
-    insert_clock,
+    // This is asynchronous to current command execution.
+    //
     insert_signal,
     insert_instruction,
     insert_pulse_period,
@@ -50,12 +55,16 @@ module fifo_timing_generator
     //
     insert_buffer_full,
     remove_buffer_empty,
+    fifo_entry_count,
 
     //
     // timing generator outputs
     //
     timing_generator_error,
+
+    // This indicates its currently executing a command.
     timing_generator_busy,
+
     timing_generator_pulse,
 
     timing_generator_direction
@@ -96,11 +105,19 @@ module fifo_timing_generator
   input                        estop;
 
   //
+  // This signal is asserted to trigger the timing generator
+  // across multiple axis.
+  // 
+  // A command is not removed from the FIFO unless
+  // this signal is true.
+  //
+  input                        multi_axis_trigger;
+
+  //
   // Input Write FIFO side. These signals represent input
   // commands from the microprocessor.
   //
 
-  input                        insert_clock;
   input                        insert_signal;
   input [c_instruction_width-1:0] insert_instruction;
   input [c_signal_width-1:0]   insert_pulse_period;
@@ -112,6 +129,7 @@ module fifo_timing_generator
   //
   output                       insert_buffer_full;
   output                       remove_buffer_empty;
+  output [31:0]                fifo_entry_count;
 
   //
   // Timing generator outputs
@@ -152,14 +170,39 @@ module fifo_timing_generator
   wire [c_signal_width-1:0]      remove_pulse_count;
   wire [c_signal_width-1:0]      remove_pulse_width;
 
+  // This removes an entry from the FIFO.
   reg                            fifo_remove_signal;
+
   reg [2:0]                      fifo_remove_state;
 
   //
   // timing generator signals
   //
-  wire                           timing_generator_instruction_in;
-  wire                           timing_generator_direction_in;
+  // These are supplied to the timing generator as inputs
+  //
+
+  //
+  // Bit 0 is the direction from the timing generator
+  //
+  // 0 == clockwise, 1 == counter clockwise
+  //
+  wire                           timing_generator_instruction_bit0_dir_in;
+
+  //
+  // Bit 1 is the operation. 0 == DWELL, 1 == generate pulse out
+  //
+  wire                           timing_generator_instruction_bit1_op_in;
+
+  // Bit 2
+  wire                           timing_generator_instruction_bit2_rsv2_in;
+
+  // Bit 3
+  wire                           timing_generator_instruction_bit3_rsv3_in;
+
+  //
+  // This is set to indicate when a write operation occurs to
+  // place a command from the FIFO to the timing generator.
+  //
   reg                            timing_generator_write;
 
   // FIFO insert side states
@@ -192,9 +235,10 @@ module fifo_timing_generator
   //
   command_fifo command_fifo1(
 
+      .clock(clock),
       .clear_buffer(clear_buffer),
+      .fifo_entry_count(fifo_entry_count),
 
-      .insert_clock(clock),
       .insert_signal(insert_signal),
       .insert_instruction(insert_instruction),
       .insert_pulse_period(insert_pulse_period),
@@ -202,7 +246,6 @@ module fifo_timing_generator
       .insert_pulse_width(insert_pulse_width),
       .insert_buffer_full(insert_buffer_full),
 
-      .remove_clock(clock),
       .remove_signal(fifo_remove_signal),
       .remove_instruction(remove_instruction),
       .remove_pulse_period(remove_pulse_period),
@@ -221,8 +264,8 @@ module fifo_timing_generator
       .enable(enable),
       .estop(estop),
       .write(timing_generator_write),
-      .instruction(timing_generator_instruction_in),
-      .direction(timing_generator_direction_in),
+      .instruction(timing_generator_instruction_bit1_op_in),
+      .direction(timing_generator_instruction_bit0_dir_in),
       .pulse_period(remove_pulse_period),
       .pulse_count(remove_pulse_count),
       .pulse_width(remove_pulse_width),
@@ -243,8 +286,20 @@ module fifo_timing_generator
   // Continous assigns for decoding the instruction from the FIFO
   // to the specific timing generator inputs.
   //
-  assign timing_generator_direction_in = remove_instruction[0:0];
-  assign timing_generator_instruction_in = remove_instruction[1:1];
+
+  assign timing_generator_instruction_bit0_dir_in = remove_instruction[0:0];
+  assign timing_generator_instruction_bit1_op_in = remove_instruction[1:1];
+
+  //
+  // These are reserved to decode new opcodes to the timing generator.
+  //
+  // [3:2] == 00 - Above definition
+  // [3:2] == 01 - opcode1
+  // [3:2] == 02 - opcode2
+  // [3:2] == 03 - opcode3
+  //
+  assign timing_generator_instruction_bit2_rsv2_in = remove_instruction[2:2];
+  assign timing_generator_instruction_bit3_rsv3_in = remove_instruction[3:3];
 
 `ifdef DEBUG
   //
@@ -282,11 +337,13 @@ module fifo_timing_generator
 		  //
 
 		  if ((timing_generator_busy == 1'b0) &&
+                      (multi_axis_trigger == 1'b1) &&
 		      (remove_buffer_empty == 1'b0)) begin
 
 		      //
-		      // timing generator idle, and there are new
-		      // requests in the FIFO so issue the next one.
+		      // timing generator idle, multi_axis_trigger
+                      // is set, and there are new requests in the
+                      // FIFO so issue the next one.
 		      //
 
 		      // Set the FIFO remove signal
@@ -386,6 +443,7 @@ module tb_fifo_timing_generator();
   reg clear_buffer;
   reg enable;
   reg estop;
+  reg multi_axis_trigger;
   
   reg insert_signal;
   reg [c_instruction_width-1:0] insert_instruction;
@@ -426,7 +484,7 @@ module tb_fifo_timing_generator();
       .clear_buffer(clear_buffer),
       .enable(enable),
       .estop(estop),
-      .insert_clock(clock_50),
+      .multi_axis_trigger(multi_axis_trigger),
       .insert_signal(insert_signal),
       .insert_instruction(insert_instruction),
       .insert_pulse_period(insert_pulse_period),
@@ -458,6 +516,7 @@ module tb_fifo_timing_generator();
      clear_buffer = 0;
      enable = 0;
      estop = 0;
+     multi_axis_trigger = 1;
 
      insert_signal = 0;
      insert_instruction = 0;
@@ -582,17 +641,6 @@ module tb_fifo_timing_generator();
 
      @(posedge clock_50);
 
-   end
-
-   //
-   // TODO: Add always block to test pulse_out based on
-   // which phase its in to assert DWELL generates no pulse.
-   //
-   // Also good to look for glitches of pulse out when no pulses
-   // should be expected.
-   //
-
-   always @(posedge clock_50) begin
    end
 
    //

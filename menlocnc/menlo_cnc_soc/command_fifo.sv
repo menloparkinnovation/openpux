@@ -15,7 +15,8 @@
 // Information stored in the FIFO:
 //
 // Note: There is an insert_ (write) side, and a remove (read) side
-// to the FIFO which operate independently.
+// to the FIFO which operate independently, though in this implementation
+// there is a common clock.
 //
 //  1) Pulse period (frequency)
 //
@@ -53,12 +54,14 @@
 //
 module command_fifo
 (
+    // Common signals
+    clock,
     clear_buffer,
+    fifo_entry_count,
 
     //
     // Input (write FIFO) side
     //
-    insert_clock,
     insert_signal,
     insert_instruction,
     insert_pulse_period,
@@ -69,7 +72,6 @@ module command_fifo
     //
     // output (read FIFO) side
     //
-    remove_clock,
     remove_signal,
     remove_instruction,
     remove_pulse_period,
@@ -91,17 +93,18 @@ module command_fifo
   //
   // Shared signals
   //
-  // DCFIFO is configured to synchronize clear on either the
-  // read clock or the write clock.
+  // Even though DCFIFO can operate with independent clock
+  // domains only one is used in this implementation.
   //
 
+  input                        clock;
   input                        clear_buffer;
+  output [31:0]                fifo_entry_count;
 
   //
   // Input (write FIFO) side
   //
 
-  input                        insert_clock;
   input                        insert_signal;
   input [c_instruction_width-1:0] insert_instruction;
   input [c_signal_width-1:0]   insert_pulse_period;
@@ -115,7 +118,6 @@ module command_fifo
   //
 
   // FIFO inputs
-  input                        remove_clock;
   input                        remove_signal;
 
   // FIFO outputs
@@ -131,7 +133,8 @@ module command_fifo
   //
   // reset to 0 at startup by FPGA
   //
-  reg instruction_reserved [1:0];
+
+  reg [31:0] fifo_entry_count_reg;
 
   //
   // These are OR's of multiple FIFO's to a common signal
@@ -146,6 +149,8 @@ module command_fifo
   wire pulse_period_fifo_remove_buffer_empty;
   wire pulse_count_fifo_remove_buffer_empty;
   wire pulse_width_fifo_remove_buffer_empty;
+
+  assign fifo_entry_count = fifo_entry_count_reg;
 
   assign insert_buffer_full = 
       instruction_fifo_insert_buffer_full  ||
@@ -166,18 +171,12 @@ module command_fifo
   //
   // Invoke Altera MegaFunction DCFIFO
   //
-  // Dual Clock FIFO
-  //
-  // Dual clock is used since the write side is an external microcontroller,
-  // while the read side is in the timing domain of the timing generator.
-  //
-
-  //
   // This instance was created using the Quartus II Altera IP configuration tool
   // for the built in DCFIFO, which is a free license MegaFunction.
   //
   // It's used since its tightly integrated with the FIFO logic on the FPGA
-  // including specialized circuits for integrating between the two clock domains.
+  // including specialized circuits for integrating between the two clock domains,
+  // though this flexibility is not exposed in this module.
   //
 
   dcfifo4 instruction_fifo(
@@ -186,13 +185,13 @@ module command_fifo
      .aclr(clear_buffer),
 
      // Insert/write side of FIFO
-     .wrclk(insert_clock),
+     .wrclk(clock),
      .wrreq(insert_signal),
      .wrfull(instruction_fifo_insert_buffer_full),
      .data(insert_instruction),
 
      // Remove/read side of FIFO
-     .rdclk(remove_clock),
+     .rdclk(clock),
      .rdreq(remove_signal),
      .rdempty(instruction_fifo_remove_buffer_empty),
      .q(remove_instruction)
@@ -204,13 +203,13 @@ module command_fifo
      .aclr(clear_buffer),
 
      // Insert/write side of FIFO
-     .wrclk(insert_clock),
+     .wrclk(clock),
      .wrreq(insert_signal),
      .wrfull(pulse_period_fifo_insert_buffer_full),
      .data(insert_pulse_period),
 
      // Remove/read side of FIFO
-     .rdclk(remove_clock),
+     .rdclk(clock),
      .rdreq(remove_signal),
      .rdempty(pulse_period_fifo_remove_buffer_empty),
      .q(remove_pulse_period)
@@ -222,13 +221,13 @@ module command_fifo
      .aclr(clear_buffer),
 
      // Insert/write side of FIFO
-     .wrclk(insert_clock),
+     .wrclk(clock),
      .wrreq(insert_signal),
      .wrfull(pulse_count_fifo_insert_buffer_full),
      .data(insert_pulse_count),
 
      // Remove/read side of FIFO
-     .rdclk(remove_clock),
+     .rdclk(clock),
      .rdreq(remove_signal),
      .rdempty(pulse_count_fifo_remove_buffer_empty),
      .q(remove_pulse_count)
@@ -240,17 +239,41 @@ module command_fifo
      .aclr(clear_buffer),
 
      // Insert/write side of FIFO
-     .wrclk(insert_clock),
+     .wrclk(clock),
      .wrreq(insert_signal),
      .wrfull(pulse_width_fifo_insert_buffer_full),
      .data(insert_pulse_width),
 
      // Remove/read side of FIFO
-     .rdclk(remove_clock),
+     .rdclk(clock),
      .rdreq(remove_signal),
      .rdempty(pulse_width_fifo_remove_buffer_empty),
      .q(remove_pulse_width)
      );
+
+     //
+     // Always blocks
+     //
+
+     //
+     // Usage in the menlo_cnc controller is a clock derived
+     // from a common source with the FPGA clock over the Avalon MM
+     // slave interface.
+     //
+     always @(posedge clock) begin
+         if (clear_buffer == 1'b1) begin
+             fifo_entry_count_reg <= 0;
+         end
+         else if((insert_signal == 1'b1) && (remove_signal == 1'b1)) begin
+             // Signals cancel
+         end
+         else if(insert_signal == 1'b1) begin
+             fifo_entry_count_reg <= fifo_entry_count + 1'b1;
+         end
+         else if(remove_signal == 1'b1) begin
+             fifo_entry_count_reg <= fifo_entry_count - 1'b1;
+         end
+     end
 
 endmodule
 
@@ -271,6 +294,8 @@ module tb_command_fifo();
   reg clock_50;
 
   reg clear_buffer;
+
+  wire fifo_entry_count;
 
   reg insert_signal;
   reg [c_instruction_width-1:0] insert_instruction;
@@ -301,16 +326,15 @@ module tb_command_fifo();
   reg async_read;
   integer async_read_count;
 
-
-
   //
   // Create an instance of Device Under Test.
   //
   command_fifo DUT(
 
+      .clock(clock_50),
       .clear_buffer(clear_buffer),
+      .fifo_entry_count(fifo_entry_count),
 
-      .insert_clock(clock_50),
       .insert_signal(insert_signal),
       .insert_instruction(insert_instruction),
       .insert_pulse_period(insert_pulse_period),

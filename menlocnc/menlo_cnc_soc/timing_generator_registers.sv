@@ -1,4 +1,10 @@
 
+// TODO:
+//
+//  06/15/2018
+// fix TODO's
+//
+
 //`define DEBUG_AVALON_MM_SLAVE 1
 
 // set timescale for 1ns with 100ps precision.
@@ -157,14 +163,15 @@
 //  Status register is read only and ignores writes.
 //
 //  Status bits are real time, and not impacted by reads.
-//  No "sticky" bits.
+//  No "sticky" bits are cleared by reads, but only by
+//  explicit commands to the command register.
 //
-// 31     ...   6 5 4 3 2 1 0
-//  +-------------------------+
-//  | R         R E I B E F F |
-//  | S   ...   S M D S R B B |
-//  | V         V S L Y R E F |
-//  +-------------------------+
+// 31     ...  7 6 5 4 3 2 1 0
+//  +--------------------------+
+//  | R        R S E I B E F F |
+//  | S   ...  E F M D S R B B |
+//  | V        S E S L Y R E F |
+//  +--------------------------+
 // 31                         0
 //
 // FBF - FIFO Buffer Full when == 1
@@ -213,18 +220,40 @@
 //
 //  This is set if either ESTOP source is active.
 //
+// SFE - Sticky FIFO Empty when == 1
+//
+// Sticky FIFO Empty (SFE) is set when the following conditions
+// are true:
+//
+// One or more commands have been entered into the command
+// FIFO since the last SFE clear command and the FIFO indicates
+// empty.
+//
+// This can indicate an underrun during a series of commands
+// and data is not being fed to the FIFO fast enough for the
+// programmed machine rate.
+//
+// Software would issue the SFE clear command, then proceed
+// to issue a series of commands to the FIFO. The software
+// can check this bit in real time while issuing command
+// sequences/batches to indicate if an underrun has occurred.
+//
+// This bit will get set at the completion of the series of
+// commands and must be reset if used to indicate underrun
+// of a new series of commands.
+//
 // RSV - Reserved. Reads 0, writes ignored.
 //
 //  Write Command Register:
 //
 //  Write Command register can be written and read.
 //
-// 31       ...   5 4 3 2 1 0
-//  +-------------------------+
-//  | R           R C E E C R |
-//  | S     ...   S M M A B S |
-//  | V           V D S N F T |
-//  +-------------------------+
+// 31       ...  6 5 4 3 2 1 0
+//  +--------------------------+
+//  | R          S R C E E C R |
+//  | S      ... F S M M A B S |
+//  | V          C V D S N F T |
+//  +--------------------------+
 // 31                         0
 //
 //
@@ -291,6 +320,11 @@
 // same clock cycle, and can operate truly synchronized regardless
 // of the speed of the microcontroller updates to the individual
 // axis registers.
+//
+// RSV - Reserved. Reads 0, writes ignored.
+//
+// SFC - Sticky FIFO Clear. Clears Sticky FIFO Empty (SFE) in
+//       status register when set to 1. Auto reset on future reads.
 //
 // RSV - Reserved. Reads 0, writes ignored.
 //
@@ -408,6 +442,9 @@ module timing_generator_registers
   reg [c_data_width-1:0]     status_register;
   reg [c_data_width-1:0]     command_register;
 
+  // Locally managed sticky status register bits
+  reg                        c_sticky_fifo_empty_reg;
+
 `ifdef DEBUG_AVALON_MM_SLAVE
 
   //
@@ -523,46 +560,107 @@ module timing_generator_registers
   wire                         c_timing_generator_idle;
 
   //
+  // This connects to a registered output of the multuple axis
+  // timing generator.
+  //
+  wire                         c_axis_synchronization_error;
+  wire                         c_fifo_entry_count;
+
+  //
   // 7 bit addresses for register bank.
   //
   // Note: The address bus represents each 32 bit
   // word with the bytes selected by byte strobes.
   //
   parameter[6:0]
-      STATUS_REGISTER     = 7'd00,
-      COMMAND_REGISTER    = 7'd01,
-      RESERVED0_REGISTER  = 7'd02,
-      RESERVED1_REGISTER  = 7'd03,
 
-      X_AXIS_PULSE_PERIOD = 7'd04,
-      X_AXIS_PULSE_COUNT  = 7'd05,
-      X_AXIS_PULSE_WIDTH  = 7'd06,
-      X_AXIS_PULSE_INST   = 7'd07,
+      HEXAFIVES_REGISTER   = 7'd00,
+      HEXFIVEAS_REGISTER   = 7'd01,
+      VERSION_REGISTER     = 7'd02,
+      SERIALNUMBER_REGISTER = 7'd03,
 
-      Y_AXIS_PULSE_PERIOD = 7'd08,
-      Y_AXIS_PULSE_COUNT  = 7'd09,
-      Y_AXIS_PULSE_WIDTH  = 7'd10,
-      Y_AXIS_PULSE_INST   = 7'd11,
+      CONFIG0_REGISTER     = 7'd04,
+      CONFIG1_REGISTER     = 7'd05,
+      CONFIG2_REGISTER     = 7'd06,
+      CONFIG3_REGISTER     = 7'd07,
 
-      Z_AXIS_PULSE_PERIOD = 7'd12,
-      Z_AXIS_PULSE_COUNT  = 7'd13,
-      Z_AXIS_PULSE_WIDTH  = 7'd14,
-      Z_AXIS_PULSE_INST   = 7'd15,
+      STATUS_REGISTER      = 7'd08,
+      STATUS_CLEAR_BITS    = 7'd09,
+      COMMAND_REGISTER     = 7'd10,
+      COMMAND_CLEAR_BITS   = 7'd11,
 
-      A_AXIS_PULSE_PERIOD = 7'd16,
-      A_AXIS_PULSE_COUNT  = 7'd17,
-      A_AXIS_PULSE_WIDTH  = 7'd18,
-      A_AXIS_PULSE_INST   = 7'd19;
+      FIFO_DEPTH_REGISTER  = 7'd12,
+      RESERVED1_REGISTER   = 7'd13,
+      RESERVED2_REGISTER   = 7'd14,
+      RESERVED3_REGISTER   = 7'd15,
+
+      X_AXIS_PULSE_PERIOD  = 7'd16,
+      X_AXIS_PULSE_COUNT   = 7'd17,
+      X_AXIS_PULSE_WIDTH   = 7'd18,
+      X_AXIS_PULSE_INST    = 7'd19,
+
+      Y_AXIS_PULSE_PERIOD  = 7'd20,
+      Y_AXIS_PULSE_COUNT   = 7'd21,
+      Y_AXIS_PULSE_WIDTH   = 7'd22,
+      Y_AXIS_PULSE_INST    = 7'd23,
+
+      Z_AXIS_PULSE_PERIOD  = 7'd24,
+      Z_AXIS_PULSE_COUNT   = 7'd25,
+      Z_AXIS_PULSE_WIDTH   = 7'd26,
+      Z_AXIS_PULSE_INST    = 7'd27,
+
+      A_AXIS_PULSE_PERIOD  = 7'd28,
+      A_AXIS_PULSE_COUNT   = 7'd29,
+      A_AXIS_PULSE_WIDTH   = 7'd30,
+      A_AXIS_PULSE_INST    = 7'd31,
+
+      B_AXIS_PULSE_PERIOD  = 7'd32,
+      B_AXIS_PULSE_COUNT   = 7'd33,
+      B_AXIS_PULSE_WIDTH   = 7'd34,
+      B_AXIS_PULSE_INST    = 7'd35,
+
+      C_AXIS_PULSE_PERIOD  = 7'd36,
+      C_AXIS_PULSE_COUNT   = 7'd37,
+      C_AXIS_PULSE_WIDTH   = 7'd38,
+      C_AXIS_PULSE_INST    = 7'd39,
+
+      U_AXIS_PULSE_PERIOD  = 7'd40,
+      U_AXIS_PULSE_COUNT   = 7'd41,
+      U_AXIS_PULSE_WIDTH   = 7'd42,
+      U_AXIS_PULSE_INST    = 7'd43,
+
+      V_AXIS_PULSE_PERIOD  = 7'd44,
+      V_AXIS_PULSE_COUNT   = 7'd45,
+      V_AXIS_PULSE_WIDTH   = 7'd46,
+      V_AXIS_PULSE_INST    = 7'd47,
+
+      W_AXIS_PULSE_PERIOD  = 7'd48,
+      W_AXIS_PULSE_COUNT   = 7'd49,
+      W_AXIS_PULSE_WIDTH   = 7'd50,
+      W_AXIS_PULSE_INST    = 7'd51,
+
+      SPINDLE_PULSE_RATE   = 7'd52,
+      SPINDLE_PULSE_COUNT  = 7'd53,
+      SPINDLE_PULSE_WIDTH  = 7'd54,
+      SPINDLE_PULSE_INST   = 7'd55,
+
+      GPIO_INPUT0          = 7'd56,
+      GPIO_INPUT1          = 7'd57,
+      GPIO_INPUT2          = 7'd58,
+      GPIO_INPUT3          = 7'd59,
+
+      GPIO_OUTPUT0         = 7'd60,
+      GPIO_OUTPUT1         = 7'd61,
+      GPIO_OUTPUT2         = 7'd62,
+      GPIO_OUTPUT3         = 7'd63;
 
   //
-  // Command register bits
+  // Configuration and version values
   //
+
   parameter[31:0]
-      COMMAND_RST = 32'h01, // RESET
-      COMMAND_CFB = 32'h02, // CLEAR FIFO BUFFERS
-      COMMAND_EAN = 32'h04, // ENABLE
-      COMMAND_EMS = 32'h08, // EMERGENCY STOP input. Set to 1 for software ESTOP.
-      COMMAND_CMD = 32'h10; // COMMAND, set to 1 to issue command in all registers.
+      MENLO_CNC_VERSION = 32'h02,
+      MENLO_CNC_SERIAL  = 32'h01;
 
   //
   // Status register bits
@@ -573,7 +671,22 @@ module timing_generator_registers
       STATUS_ERR = 32'h04, // ERROR
       STATUS_BSY = 32'h08, // BUSY
       STATUS_IDL = 32'h10, // IDLE (no commands, no outstanding movement)
-      STATUS_EMS = 32'h20; // EMERGENCY STOP indicated by software, hardware, external.
+      STATUS_EMS = 32'h20, // EMERGENCY STOP indicated by software, hardware, external.
+      STATUS_SFE = 32'h40, // Sticky FIFO Empty
+      STATUS_AER = 32'h80; // Axis Synchronization Error
+
+  //
+  // Command register bits
+  //
+  parameter[31:0]
+      COMMAND_RST  = 32'h01, // RESET
+      COMMAND_CFB  = 32'h02, // CLEAR FIFO BUFFERS
+      COMMAND_EAN  = 32'h04, // ENABLE
+      COMMAND_EMS  = 32'h08, // EMERGENCY STOP input. Set to 1 for software ESTOP.
+      COMMAND_CMD  = 32'h10, // COMMAND, set to 1 to issue command in all registers.
+      COMMAND_RSV0 = 32'h20, // RESERVED0
+      COMMAND_RSV1 = 32'h40, // RESERVED1
+      COMMAND_RSV2 = 32'h80; // RESERVED2
 
   //
   // Invoke sub-module instances
@@ -586,14 +699,15 @@ module timing_generator_registers
       .c_enable(enable_signal),
       .c_estop(estop_signal),
       
-      .c_insert_clock(clock),
       .c_insert_signal(fifo_write_signal),
       
       .c_insert_buffer_full(c_insert_buffer_full),
       .c_remove_buffer_empty(c_remove_buffer_empty),
+      .c_fifo_entry_count(c_fifo_entry_count),
 
       .c_timing_generator_error(c_timing_generator_error),
       .c_timing_generator_busy(c_timing_generator_busy),
+      .c_axis_synchronization_error(c_axis_synchronization_error),
 
       //
       // X axis
@@ -685,6 +799,50 @@ module timing_generator_registers
   //
 
   //
+  // Note for processing multiple bit command and status registers
+  // with always blocks.
+  //
+  // The following core rules of clocked always blocks apply:
+  //
+  // 1) Only the final assignment of a variable becomes the result.
+  //
+  //    If you write like C/C++ code and use multiple if's to
+  //    set/reset bits these will be *LOST* and you will have bit races
+  //    in your registers since only the final assignment remains at
+  //    the end of the always block.
+  //
+  // 2) The input value tested and read from on the right hand side
+  //    of the assignment represents the frozen value at the entry
+  //    to the always block. Any assignments to the variable within
+  //    the always block will not be seen till the *NEXT* clock cycle.
+  //
+  // 3) No other always block can assign to the same value as this
+  //    always block. This is because they run in parallel and represent
+  //    an inherent unsynchronized race in the circuit(s).
+  //
+  // 4) Always use non-blocking assignments "<=", review this
+  //    when things seem weird.
+  //
+  // It's tempting to declare a programming model register such
+  // as command or status as "reg [31:0] status_register" and manipulate
+  // the bits as you do in C/C++ with "status_register <= status_register | 1"
+  // in a unique set of if's or case() conditions. But unless you nest
+  // your if/case tests with all possible conditions from most unique
+  // conditions to least and ensure all three rules above are not violated
+  // you will have intrinic bit races.
+  //
+  //   - And it may result in generating a larger, more complex circuit
+  //     in the end.
+  //
+  // As a larger number of conditions are handled the code can get very
+  // complex and deeply nested fast. The solution is to break up the
+  // individual bit conditions into their own separate register, and
+  // treat the status as their composition using combinatorial logic
+  // either as a continous assign, or in a dedicated always block which
+  // enforces the single assigner per clock rule.
+  //
+
+  //
   // This keeps the status_register up to date with current signal status.
   //
   always_ff @(posedge clock) begin
@@ -699,13 +857,23 @@ module timing_generator_registers
 `ifdef DEBUG_AVALON_MM_SLAVE
           debug_always1_clock_counter += debug_always1_clock_counter;
 `endif
+
+          //
+          // Note these conditions can be registered outputs of
+          // submodules, local register state variables, or
+          // continious combinatorial assigns of such.
+          //
+
           status_register <=
               c_insert_buffer_full |
               (c_remove_buffer_empty << 1) |
               (c_timing_generator_error << 2) |
               (c_timing_generator_busy << 3) |
               (c_timing_generator_idle << 4) |
-              (estop_signal << 5);
+              (estop_signal << 5) |
+              (c_sticky_fifo_empty_reg << 6) |
+              (c_axis_synchronization_error << 7);
+
       end
 
   end
@@ -720,6 +888,7 @@ module timing_generator_registers
           command_register <= 0;
           fifo_write_signal <= 0;
           reg_clear_buffer <= 0;
+          c_sticky_fifo_empty_reg <= 0;
 
           x_insert_instruction <= 0; 
           x_insert_pulse_period <= 0; 
@@ -759,7 +928,6 @@ module timing_generator_registers
 
 `ifdef DEBUG_AVALON_MM_SLAVE
 `endif
-
 
       end
       else begin
@@ -802,6 +970,13 @@ module timing_generator_registers
               //
               fifo_write_signal <= 0;
           end
+          else if (c_fifo_entry_count == 0) begin
+
+              //
+              // Process Sticky FIFO Empty
+              //
+              c_sticky_fifo_empty_reg <= 1'b1;
+          end
 
           //
           // Process memory slave operations
@@ -823,26 +998,98 @@ module timing_generator_registers
 
 	      case (slave_address)
 
+		  HEXAFIVES_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  HEXFIVEAS_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  VERSION_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  SERIALNUMBER_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  CONFIG0_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  CONFIG1_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  CONFIG2_REGISTER: begin
+                      // Writes are ignored
+                  end
+
+		  CONFIG3_REGISTER: begin
+                      // Writes are ignored
+                  end
+
 		  STATUS_REGISTER: begin
 
 		      //
-		      // Status register writes are ignored as
-		      // it only indicates status, and there are
-		      // no "sticky" bits to reset.
+		      // General status register writes are ignored as
+		      // the status_clear_bits register must be used to
+                      // reset any "sticky" bits.
 		      //
 
 		  end
+
+		  STATUS_CLEAR_BITS: begin
+
+                      //
+                      // This allows bits to be cleared without a race
+                      // with a read/modify/write on the command register.
+                      //
+                      // Note that this always block may never write the
+                      // actual status register as it has its own dedicated
+                      // always block. We can only update component bits
+                      // supported in the programming model.
+                      //
+                      if ((slave_writedata & STATUS_SFE) != 0) begin
+                          c_sticky_fifo_empty_reg <= 1'b0;
+                      end
+                  end
 
 		  COMMAND_REGISTER: begin
 
-		      //
-		      // Call task that will directly access state variables
-		      // within this module.
-		      //
-		      //process_command_register_write();
-
+                      //
+                      // Note: the FIFO write command COMMAND_CMD is processed
+                      // at the top of the always block above since it controls
+                      // a state machine for the fifo-write_signal and an auto-clear
+                      // of the COMMAND_CMD bit after completion.
+                      //
                       command_register <= slave_writedata;
 		  end
+
+		  COMMAND_CLEAR_BITS: begin
+
+                      //
+                      // Currently no sticky command bits right now
+                      // as COMMAND_CMD is auto reset.
+                      //
+                  end
+
+		  FIFO_DEPTH_REGISTER: begin
+                      // Ignores writes
+                  end
+
+		  RESERVED1_REGISTER: begin
+                      // Ignores writes
+                  end
+
+		  RESERVED2_REGISTER: begin
+                      // Ignores writes
+                  end
+
+		  RESERVED3_REGISTER: begin
+                      // Ignores writes
+                  end
 
 		  //
 		  // Axis register writes are stored until a future
@@ -923,8 +1170,7 @@ module timing_generator_registers
 		  // These are not defined so they are handled
 		  // by the default action which reads 0, writes ignored.
 		  //
-		  // RESERVED0_REGISTER:
-		  // RESERVED1_REGISTER:
+		  // RESERVED REGISTERS:
 		  // FALLTHROUGH
 		  //
 
@@ -959,22 +1205,60 @@ module timing_generator_registers
 
 	      case (slave_address)
 
+		  HEXAFIVES_REGISTER: begin
+                      read_data_register <= 32'hA5A5A5A5;
+                  end
+
+		  HEXFIVEAS_REGISTER: begin
+                      read_data_register <= 32'h5A5A5A5A;
+                  end
+
+		  VERSION_REGISTER: begin
+                      read_data_register <= MENLO_CNC_VERSION;
+                  end
+
+		  SERIALNUMBER_REGISTER: begin
+                      read_data_register <= MENLO_CNC_SERIAL;
+                  end
+
+		  CONFIG0_REGISTER: begin
+                      read_data_register <= 0;
+                  end
+
+		  CONFIG1_REGISTER: begin
+                      read_data_register <= 0;
+                  end
+
+		  CONFIG2_REGISTER: begin
+                      read_data_register <= 0;
+                  end
+
+		  CONFIG3_REGISTER: begin
+                      read_data_register <= 0;
+                  end
+
 		  STATUS_REGISTER: begin
 
 		      //
 		      // Status register read bit values are real time
-		      // as there are no "sticky" bits to clear after read.
+                      // signals from the registered outputs of sub-components
+                      // or local registers representing the state presented
+                      // to the programming model.
+                      //
+                      // The value of the status_register is generated by
+                      // combinatoral logic in its own dedicated always block
+                      // to compose it from these component bits.
 		      //
-		      // There is a separate always_ff @ process that keeps
-		      // status_register up to date with current signal
-		      // and condition status.
-		      //
-
 		      read_data_register <= status_register;
 `ifdef DEBUG_AVALON_MM_SLAVE
                       last_read_register <= status_register;
 `endif
 		  end
+
+		  STATUS_CLEAR_BITS: begin
+                      // always reads as 0
+                      read_data_register <= 0;
+                  end
 
 		  COMMAND_REGISTER: begin
 
@@ -995,6 +1279,16 @@ module timing_generator_registers
                       last_read_register <= command_register;
 `endif
 		  end
+
+		  COMMAND_CLEAR_BITS: begin
+                      // reads as 0
+                      read_data_register <= 0;
+                  end
+
+		  FIFO_DEPTH_REGISTER: begin
+                      // reads current fifo depth
+                      read_data_register <= c_fifo_entry_count;
+                  end
 
 		  //
 		  // Axis registers are read back to allow the
@@ -1071,8 +1365,7 @@ module timing_generator_registers
 		  // These are not defined so they are handled
 		  // by the default action which reads 0, writes ignored.
 		  //
-		  // RESERVED0_REGISTER:
-		  // RESERVED1_REGISTER:
+		  // RESERVED_REGISTERS:
 		  // FALLTHROUGH
 		  //
 
@@ -1094,47 +1387,6 @@ module timing_generator_registers
       end // not reset_n
 
   end // end always posedge clock
-
-`ifdef USE_TASK
-
-task process_command_register_write;
-  begin
-
-      //
-      // These variable are in the scope of the contained module for
-      // this task.
-      //
-
-      command_register <= slave_writedata;
-
-      //
-      // CBF == 1, clear FIFO buffers.
-      // Currently not implemented, use RST.
-      //
-      // The following command register bits are wired to
-      // continous assigns and do not require direct state
-      // machine action.
-      //
-      // RST:
-      // EAN:
-      // EMS:
-      //
-
-      //
-      // CMD == 1, write axis registers to FIFO's.
-      //
-      //if ((command_register & COMMAND_CMD) != 0) begin
-      // command_register does not update till next clock in this case
-
-      if ((slave_writedata & COMMAND_CMD) != 0) begin
-          fifo_write_signal <= 1;
-      end
-
-  end
-
-endtask
-
-`endif // USE_TASK
 
 endmodule // timing_generator_registers
 
