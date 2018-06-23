@@ -119,7 +119,6 @@ main(int ac, char* av[])
   }
 
   printf("assembled %d opcode blocks\n", block_array_get_array_size(binary));
-  printf("assembly success, exiting\n");
 
   //
   // context->compiled_binary is a pointer to the block array
@@ -127,6 +126,10 @@ main(int ac, char* av[])
   // code that can be saved, fed to the registers, placed into memory
   // for DMA, etc.
   //
+
+  printf("\ndisassembling stream:\n");
+
+  ret = disassemble_stream(binary);
 
   return 0;
 }

@@ -6,8 +6,8 @@ PROGRAM_NAME=menlo_cnc_asm
 
 DEBUG_OPTIONS=-g
 
-hello :	$(PROGRAM_NAME).c $(PROGRAM_NAME).h main.c
-	cc $(DEBUG_OPTIONS) -o $(PROGRAM_NAME) $(PROGRAM_NAME).c main.c
+hello :	$(PROGRAM_NAME).c $(PROGRAM_NAME).h main.c menlo_cnc.c
+	cc $(DEBUG_OPTIONS) -o $(PROGRAM_NAME) $(PROGRAM_NAME).c main.c menlo_cnc.c
 
 clean :
 	rm $(PROGRAM_NAME)

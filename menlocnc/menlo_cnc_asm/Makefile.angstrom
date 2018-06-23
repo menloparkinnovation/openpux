@@ -17,7 +17,7 @@ CC = $(CROSS_COMPILE)gcc
 ARCH= arm
 
 build: $(TARGET)
-$(TARGET): main.o menlo_cnc_asm.o
+$(TARGET): main.o menlo_cnc_asm.o menlo_cnc.o
 	$(CC) $(LDFLAGS)   $^ -o $@  
 %.o : %.c
 	$(CC) $(CFLAGS) -c $< -o $@

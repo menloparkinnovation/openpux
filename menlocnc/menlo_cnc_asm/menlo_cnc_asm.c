@@ -150,10 +150,25 @@
 //
 
 //
+// 2 = General Display
+//
+// 10 = Debug
+//
+#define DEBUG_LEVEL_NONE 0
+#define DEBUG_LEVEL_ONE  1
+#define DEBUG_LEVEL_FULL 10
+
+int g_verboseLevel = DEBUG_LEVEL_NONE;
+
+//
 // Setting this to 1 shows the state machine of the assembler
 // to assist debugging.
 //
-#define DBG_PRINT_ENABLED 1
+// TODO: enable these based on a -verbose or -vx switch rather than
+// have to recompile a production version to get assembler/disassembler
+// details.
+//
+#define DBG_PRINT_ENABLED 0
 
 #if DBG_PRINT_ENABLED
 #define DBG_PRINT(x)             (printf(x))
@@ -172,6 +187,8 @@
 //
 // Prototypes
 //
+
+int process_assembly_block(PASSEMBLER_CONTEXT context);
 
 int processSymbol(PASSEMBLER_CONTEXT context, char* s);
 
@@ -199,8 +216,6 @@ int process_begin_block(PASSEMBLER_CONTEXT context, char* s);
 
 int process_end_block(PASSEMBLER_CONTEXT context, char* s);
 
-int process_assembly_block(PASSEMBLER_CONTEXT context);
-
 PAXIS_OPCODE get_axis_opcode(PASSEMBLER_CONTEXT context);
 
 void reset_current_assembler_axis(PASSEMBLER_CONTEXT context);
@@ -219,6 +234,27 @@ int process_opcode(PASSEMBLER_CONTEXT context, PAXIS_OPCODE op, char* symbol);
 
 int processLines(PASSEMBLER_CONTEXT context, FILE* f);
 
+int parse_pulse_rate_to_binary(char* s, unsigned long* l);
+
+int parse_pulse_count_to_binary(char* s, unsigned long* l);
+
+int parse_pulse_width_to_binary(char* s, unsigned long* l);
+
+// block_array support
+int block_array_seek_entry(PBLOCK_ARRAY ba, int entry_index);
+
+int block_array_internal_test();
+
+int block_array_internal_dump_state(PBLOCK_ARRAY ba);
+// block_array support
+
+int
+parse_string_value(
+    char* s,
+    double* l,
+    char** returnPostFix
+    );
+
 int
 compile_assembly_block(
     PASSEMBLER_CONTEXT context,
@@ -231,6 +267,26 @@ compile_axis_opcode(
     PASSEMBLER_CONTEXT context,
     PAXIS_OPCODE symbolic,
     PAXIS_OPCODE_BINARY bin
+    );
+
+int
+compile_end_block(
+    PASSEMBLER_CONTEXT context,
+    POPCODE_BLOCK_FOUR_AXIS symbolic,
+    PAXIS_OPCODE_BINARY bin
+    );
+
+int
+compile_info_block(
+    PASSEMBLER_CONTEXT context,
+    PAXIS_OPCODE symbolic,
+    PAXIS_OPCODE_BINARY bin
+    );
+
+void
+dump_opcode_block_four_axis_binary(
+    POPCODE_BLOCK_FOUR_AXIS_BINARY b,
+    unsigned long tag
     );
 
 //
@@ -531,6 +587,11 @@ process_end_block(PASSEMBLER_CONTEXT context, char* symbol)
   DBG_PRINT1("*** END BLOCK *** Line %d\n", context->lineNumber);
 
   context->saw_end = 1;
+
+  //
+  // Now we have a full opcode block across all resources
+  // we process it into a binary representation.
+  //
 
   ret = process_assembly_block(context);
 
@@ -1086,34 +1147,127 @@ reset_current_assembler_opcode(PASSEMBLER_CONTEXT context)
 void
 debug_print_string_or_null(char* s)
 {
-#if DBG_PRINT_ENABLED
   if (s != NULL) {
     printf("%s\n", s);
   }
   else {
     printf("NULL\n");
   }
-#endif    
+}
+void
+debug_print_string_or_null_nnl(char* s)
+{
+  if (s != NULL) {
+    printf(" %s", s);
+  }
+  else {
+    printf(" NULL");
+  }
 }
 
 void
-dump_axis_opcode(PASSEMBLER_CONTEXT context, PAXIS_OPCODE opcode)
+debug_print_ulong(unsigned long l)
 {
-  debug_print_string_or_null(opcode->axis);
-  debug_print_string_or_null(opcode->opcode);
-  debug_print_string_or_null(opcode->arg0);
-  debug_print_string_or_null(opcode->arg1);
-  debug_print_string_or_null(opcode->arg2);
+  printf("0x%lx (%ld)\n", l, l);
 }
 
 void
-dump_opcode_block_four_axis(PASSEMBLER_CONTEXT context, POPCODE_BLOCK_FOUR_AXIS b)
+dump_axis_opcode(PAXIS_OPCODE opcode, char* entry)
 {
-  dump_axis_opcode(context, &b->info);
-  dump_axis_opcode(context, &b->x);
-  dump_axis_opcode(context, &b->y);
-  dump_axis_opcode(context, &b->z);
-  dump_axis_opcode(context, &b->a);
+  printf("%s ", entry);
+  debug_print_string_or_null_nnl(opcode->axis);
+  debug_print_string_or_null_nnl(opcode->opcode);
+  debug_print_string_or_null_nnl(opcode->arg0);
+  debug_print_string_or_null_nnl(opcode->arg1);
+  debug_print_string_or_null_nnl(opcode->arg2);
+  printf("\n");
+}
+
+void
+dump_opcode_block_four_axis(POPCODE_BLOCK_FOUR_AXIS b)
+{
+  dump_axis_opcode(&b->info, "INFO");
+  dump_axis_opcode(&b->x, "X");
+  dump_axis_opcode(&b->y, "Y");
+  dump_axis_opcode(&b->z, "Z");
+  dump_axis_opcode(&b->a, "A");
+}
+
+void
+dump_axis_opcode_binary_instruction(
+    unsigned long instruction
+    )
+{
+  if (instruction == OPCODE_NOP) {
+    printf("NOP (0x%lx), ", instruction);
+  }
+  else if (instruction == OPCODE_DWELL) {
+    printf("DWELL (0x%lx), ", instruction);
+  }
+  else if (instruction == OPCODE_MOTION_CW) {
+    printf("MOTION_CW (0x%lx), ", instruction);
+  }
+  else if (instruction == OPCODE_MOTION_CCW) {
+    printf("MOTION_CCW (0x%lx), ", instruction);
+  }
+  else {
+    printf("0x%lx (%ld), ", instruction, instruction);
+  }
+}
+
+void
+dump_axis_opcode_binary(
+    PAXIS_OPCODE_BINARY opcode,
+    char* entry
+    )
+{
+  printf("    %s ", entry);
+  dump_axis_opcode_binary_instruction(opcode->instruction);
+  printf("0x%lx (%ld), ", opcode->pulse_rate, opcode->pulse_rate);
+  printf("0x%lx (%ld), ", opcode->pulse_count, opcode->pulse_count);
+  printf("0x%lx (%ld)", opcode->pulse_width, opcode->pulse_width);
+  printf("\n");
+}
+
+void
+dump_axis_opcode_binary_begin(
+    PAXIS_OPCODE_BINARY opcode,
+    unsigned long tag
+    )
+{
+  //
+  // If any parameters, display them.
+  //
+  // None right now.
+  //
+  printf("begin %ld\n", tag);
+}
+void
+dump_axis_opcode_binary_end(
+    PAXIS_OPCODE_BINARY opcode
+    )
+{
+  //
+  // If any parameters, display them.
+  //
+  // None right now.
+  //
+  printf("end\n");
+}
+
+void
+dump_opcode_block_four_axis_binary(
+    POPCODE_BLOCK_FOUR_AXIS_BINARY b,
+    unsigned long tag
+    )
+{
+  dump_axis_opcode_binary_begin(&b->begin, tag);
+  dump_axis_opcode_binary(&b->x, "X");
+  dump_axis_opcode_binary(&b->y, "Y");
+  dump_axis_opcode_binary(&b->z, "Z");
+  dump_axis_opcode_binary(&b->a, "A");
+  dump_axis_opcode_binary_end(&b->end);
+  printf("\n");
 }
 
 int
@@ -1127,11 +1281,26 @@ process_assembly_block(PASSEMBLER_CONTEXT context)
 
   DBG_PRINT1("    process_assembly_block Line: %d\n", context->lineNumber);
 
-  dump_opcode_block_four_axis(context, &context->opcode_block);
+  if (g_verboseLevel >= DEBUG_LEVEL_ONE) {
+    dump_opcode_block_four_axis(&context->opcode_block);
+  }
 
   ret = compile_assembly_block(context, &context->opcode_block, &bin);
   if (ret != 0) {
     return ret;
+  }
+
+  if (g_verboseLevel == DEBUG_LEVEL_FULL) {
+
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+
+      dump_opcode_block_four_axis_binary(&bin, 0);
+
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
+      printf("!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!\n");
   }
 
   //
@@ -1167,28 +1336,91 @@ compile_assembly_block(
 {
   int ret;
 
-  // TODO: How to handle info? begin/end?
-  // dump_axis_opcode(context, &b->info);
+  ret = compile_info_block(context, &symbolic->info, &bin->begin);
+  if (ret != 0) {
+    printf("INFO block bad format\n");
+    dump_opcode_block_four_axis(symbolic);
+    return ret;
+  }
 
   ret = compile_axis_opcode(context, &symbolic->x, &bin->x);
   if (ret != 0) {
+    printf("X axis compile error\n");
+    dump_opcode_block_four_axis(symbolic);
     return ret;
   }
 
   ret = compile_axis_opcode(context, &symbolic->y, &bin->y);
   if (ret != 0) {
+    printf("Y axis compile error\n");
+    dump_opcode_block_four_axis(symbolic);
     return ret;
   }
 
   ret = compile_axis_opcode(context, &symbolic->z, &bin->z);
   if (ret != 0) {
+    printf("Z axis compile error\n");
+    dump_opcode_block_four_axis(symbolic);
     return ret;
   }
 
   ret = compile_axis_opcode(context, &symbolic->a, &bin->a);
   if (ret != 0) {
+    printf("A axis compile error\n");
+    dump_opcode_block_four_axis(symbolic);
     return ret;
   }
+
+  ret = compile_end_block(context, symbolic, &bin->end);
+  if (ret != 0) {
+    printf("END block bad format\n");
+    dump_opcode_block_four_axis(symbolic);
+    return ret;
+  }
+
+  return 0;
+}
+
+//
+// Compile end block.
+//
+// This contains the checksum for the block.
+//
+int
+compile_end_block(
+    PASSEMBLER_CONTEXT context,
+    POPCODE_BLOCK_FOUR_AXIS symbolic,
+    PAXIS_OPCODE_BINARY bin
+    )
+{
+  //
+  // TODO: Compile checksum for entries into bin which
+  // represents the end resource entry of the block.
+  //
+
+  return 0;
+}
+
+int
+compile_info_block(
+    PASSEMBLER_CONTEXT context,
+    PAXIS_OPCODE symbolic,
+    PAXIS_OPCODE_BINARY bin
+    )
+{
+
+  // typedef struct _OPCODE_BLOCK_FOUR_AXIS_BINARY {
+  //  AXIS_OPCODE_BINARY begin;
+  //  AXIS_OPCODE_BINARY x;
+  //  AXIS_OPCODE_BINARY y;
+  //  AXIS_OPCODE_BINARY z;
+  //  AXIS_OPCODE_BINARY a;
+  //  AXIS_OPCODE_BINARY end;
+  //} OPCODE_BLOCK_FOUR_AXIS_BINARY, *POPCODE_BLOCK_FOUR_AXIS_BINARY;
+
+  //
+  // Info block gets compiled into the begin entry.
+  //
 
   return 0;
 }
@@ -1218,35 +1450,284 @@ compile_axis_opcode(
     return ERANGE;
   }
 
-  ret = string_to_unsigned_long(symbolic->arg0, &bin->pulse_rate);
+  ret = parse_pulse_rate_to_binary(symbolic->arg0, &bin->pulse_rate);
   if (ret != 0) {
     return ret;
   }
 
-  ret = string_to_unsigned_long(symbolic->arg1, &bin->pulse_count);
+  ret = parse_pulse_count_to_binary(symbolic->arg1, &bin->pulse_count);
   if (ret != 0) {
     return ret;
   }
 
-  ret = string_to_unsigned_long(symbolic->arg2, &bin->pulse_width);
+  ret = parse_pulse_width_to_binary(symbolic->arg2, &bin->pulse_width);
   if (ret != 0) {
     return ret;
+  }
+
+  //
+  // Validation:
+  //
+  // If the OPCODE == OPCODE_NOP validate the values
+  // in the axis parameters are 0.
+  //
+  if (bin->instruction == OPCODE_NOP) {
+    if ((bin->pulse_rate != 0) ||
+        (bin->pulse_count != 0) ||
+        (bin->pulse_width != 0)) {
+
+      printf("NOP in AXIS %s, line %d requires all parameters to be zero\n",
+	     symbolic->axis, context->lineNumber);
+
+      return EBADF;
+    }
   }
 
   return 0;  
 }
 
+//
+// Parse pulse_rate string to binary for opcode parameter.
+//
+// Output is the number of machine clock cycles with any
+// scaling factors applied.
+//
+int
+parse_pulse_rate_to_binary(char* s, unsigned long* l)
+{
+  int ret;
+  char* postFix = NULL;
+  double double_value;
+  double raw_freq;
+  unsigned long temp_l;
+
+  // A NULL string returns a 0 entry since its not specified.
+  if ((s == NULL) || (*s == '\0')) {
+    return 0;
+  }
+
+  ret = parse_string_value(s, &double_value, &postFix);
+  if (ret != 0) {
+    return ret;
+  }
+
+  if (postFix != NULL) {
+
+    //
+    // Validate the time and fractional time notation
+    //
+
+    if (strcmp(postFix, "s") == 0) {
+      // 1 second == 1 Hertz
+      raw_freq = double_value;
+    }
+    else if (strcmp(postFix, "ms") == 0) {
+      // It's a time that has been scaled by 1/1000 so convert to frequency
+      raw_freq = (double)1 / double_value;
+    }
+    else if (strcmp(postFix, "us") == 0) {
+      // It's a time that has been scaled by 1/1,000,000 so convert to frequency
+      raw_freq = (double)1 / double_value;
+    }
+    else if (strcmp(postFix, "ns") == 0) {
+      // It's a time that has been scaled by 1/1,000,000,000 so convert to frequency
+      raw_freq = (double) 1 / double_value;
+    }
+
+    //
+    // Validate frequency notation and convert the raw_time
+    // of the pulse period.
+    //
+    else if (strcmp(postFix, "hz") == 0) {
+      // Direct HZ
+      raw_freq = double_value;
+    }
+    else if (strcmp(postFix, "khz") == 0) {
+      // It has been scaled by 1000
+      raw_freq = double_value;
+    }
+    else if (strcmp(postFix, "mhz") == 0) {
+      // It has been scaled by 1,000,000
+      raw_freq = double_value;
+    }
+    else {
+    // not recognized, fail.
+      printf("postfix %s not valid for pulse_rate\n", postFix);
+      return EBADF;
+    }
+  }
+  else {
+
+    //
+    // no postFix, only allow 0 with no postfix
+    //
+    if ((unsigned long)double_value == 0) {
+      *l = 0;
+      return 0;
+    }
+
+    // No postFix, fail since we want to be explicit in regards to time or frequency.
+    printf("pulse_rate requires value type postfix in either time or frequency\n");
+    return EBADF;
+  }
+
+  ret = menlo_cnc_registers_calculate_pulse_rate_by_hz(NULL, raw_freq, &temp_l);
+  if (ret != 0) {
+    printf("pulse_rate %g out of range for target hardware\n", raw_freq);
+    return ret;
+  }
+
+  *l = temp_l;
+
+  return 0;
+}
+
+int
+parse_pulse_count_to_binary(char* s, unsigned long* l)
+{
+  int ret;
+  char* postFix = NULL;
+  double double_value;
+  unsigned long temp_l;
+
+  // A NULL string returns a 0 entry since its not specified.
+  if ((s == NULL) || (*s == '\0')) {
+    return 0;
+  }
+
+  ret = parse_string_value(s, &double_value, &postFix);
+  if (ret != 0) {
+    return ret;
+  }
+
+  if (postFix != NULL) {
+
+    //
+    // Validate pulse count is an integer value
+    // and not a fraction, frequency, or other value.
+    //
+
+    if (strcmp(postFix, "k") == 0) {
+      // It has been scaled 1000
+    }
+    else if (strcmp(postFix, "m") == 0) {
+      // It has been scaled by 1,000,000
+    }
+    else if (strcmp(postFix, "g") == 0) {
+      // It has been scaled by 1,000,000,000
+    }
+    else {
+      // not recognized.
+      printf("postfix %s not valid for pulse_count\n", postFix);
+      return EBADF;
+    }
+  }
+
+  ret = menlo_cnc_registers_calculate_pulse_count(NULL, double_value, &temp_l);
+  if (ret != 0) {
+    printf("pulse_count %g out of range for target hardware\n", double_value);
+    return ret;
+  }
+
+  *l = temp_l;
+
+  return 0;
+}
+
+int
+parse_pulse_width_to_binary(char* s, unsigned long* l)
+{
+  int ret;
+  char* postFix = NULL;
+  double double_value;
+  double raw_time;
+  unsigned long time_in_nanoseconds;
+  unsigned long temp_l;
+
+  // A NULL string returns a 0 entry since its not specified.
+  if ((s == NULL) || (*s == '\0')) {
+    return 0;
+  }
+
+  ret = parse_string_value(s, &double_value, &postFix);
+  if (ret != 0) {
+    return ret;
+  }
+
+  if (postFix != NULL) {
+
+    if (strcmp(postFix, "ms") == 0) {
+      // It has been scaled by 1/1000
+      raw_time = double_value;
+    }
+    else if (strcmp(postFix, "us") == 0) {
+      // It has been scaled by 1/1,000,000
+      raw_time = double_value;
+    }
+    else if (strcmp(postFix, "ns") == 0) {
+      // It has been scaled by 1/1,000,000,000
+      raw_time = double_value;
+    }
+    else if (strcmp(postFix, "s") == 0) {
+      // 1:1 value in seconds
+      raw_time = double_value;
+    }
+    else {
+
+      // TODO: Support percent for PWM instructions.
+      // Needs pulse_period/rate for input
+
+      // not recognized.
+      printf("postfix %s not valid for pulse_width\n", postFix);
+      return EBADF;
+    }
+  }
+
+  time_in_nanoseconds = raw_time * (double)1000000000;
+
+  ret = menlo_cnc_registers_calculate_pulse_width(NULL, time_in_nanoseconds, &temp_l);
+  if (ret != 0) {
+    printf("pulse_width %g out of range for target hardware\n", double_value);
+    return ret;
+  }
+
+  *l = temp_l;
+
+  return 0;
+}
+
 char* supported_postfix_array[] = {
-  "hz",
+
+  //
+  // Note: larger strings to smaller strings to allow
+  // a simple forward search for a substring.
+  //
+
+  "clocks",
+  "percent",
+
   "khz",
   "mhz",
-  "s",
+  "ghz",
+  "thz",
+
+  "hz",
   "ms",
   "us",
   "ns",
-  "clocks",
-  "percent",
-  "%",
+  "ps",
+
+  //
+  // Note: single character a, b, c, d, e, f, are not allowed
+  // as they conflict with hex numbers.
+  //
+
+  "s",
+  "k",
+  "m",
+  "g",
+  "t",
+
   NULL
 };
 
@@ -1285,6 +1766,85 @@ find_supported_postfix(char* s)
   return NULL;
 }
 
+int
+scale_by_postfix(char* postFix, double* l)
+{
+  double tmp;
+
+  tmp = *l;
+
+  if (strcmp(postFix, "clocks") == 0) {
+    // do nothing
+  }
+  else if (strcmp(postFix, "percent") == 0) {
+    // Divide by 100
+    tmp = tmp / (double)100L;
+  }
+  else if (strcmp(postFix, "khz") == 0) {
+    // multiply by 1000
+    tmp = tmp * (double)1000L;
+  }
+  else if (strcmp(postFix, "mhz") == 0) {
+    // multiply by 1,000,000
+    tmp = tmp * (double)1000000L;
+  }
+  else if (strcmp(postFix, "ghz") == 0) {
+    // multiply by 1,000,000,000
+    tmp = tmp * (double)1000000000L;
+  }
+  else if (strcmp(postFix, "thz") == 0) {
+    // multiply by 1,000,000,000,000
+    tmp = tmp * (double)1000000000000L;
+  }
+  else if (strcmp(postFix, "ms") == 0) {
+    // divide by 1000
+    tmp = tmp / (double)1000L;
+  }
+  else if (strcmp(postFix, "us") == 0) {
+    // divide by 1,000,000
+    tmp = tmp / (double)1000000L;
+  }
+  else if (strcmp(postFix, "ns") == 0) {
+    // divide by 1,000,000,000
+    tmp = tmp / (double)1000000000L;
+  }
+  else if (strcmp(postFix, "ps") == 0) {
+    // divide by 1,000,000,000,000
+    tmp = tmp / (double)1000000000000L;
+  }
+  else if (strcmp(postFix, "hz") == 0) {
+    // do nothing
+  }
+  else if (strcmp(postFix, "s") == 0) {
+    // do nothing
+  }
+  else if (strcmp(postFix, "k") == 0) {
+    // multiply by 1000
+    tmp = tmp * (double)1000L;
+  }
+  else if (strcmp(postFix, "m") == 0) {
+    // multiply by 1,000,000
+    tmp = tmp * (double)1000000L;
+  }
+  else if (strcmp(postFix, "g") == 0) {
+    // multiply by 1,000,000,000
+    tmp = tmp * (double)1000000000L;
+  }
+  else if (strcmp(postFix, "t") == 0) {
+    // multiply by 1,000,000,000,000
+    tmp = tmp * (double)1000000000000L;
+  }
+  else {
+    printf("unrecognized postfix %s\n", postFix);
+    return EBADF;
+  }
+
+  *l = tmp;
+
+  return 0;
+}
+
+
 //
 // Parse a string with optional semantic post fix.
 //
@@ -1302,9 +1862,10 @@ find_supported_postfix(char* s)
 // format:
 //
 // 123 - decimal integer
-// 0x123 - hexadecimal integer
 //
 // 1.3 - floating point number, only decimal bases allowed.
+//
+// 0x123 - hexadecimal integer, no fractional components allowed.
 //
 // Note: the following post fixes are supported:
 //
@@ -1322,20 +1883,36 @@ find_supported_postfix(char* s)
 // 100clocks - 100 clocks. Clock period defined by implementation.
 // 50%  - 50 percent
 //
-// Return 0 if NULL.
+//
+// Returns:
+//
+// 0 - Success. double contains scaled value, returnPostFix
+//     points to the lowercase postfix name if present.
 //
 int
 parse_string_value(char* s, double* l, char** returnPostFix)
 {
-  char* firstIndex;
-  char* lastIndex;
-  int isDouble = 0;
+  int ret;
   double double_value;
   unsigned long integer_value;
   char* endptr;
   char* postFix;
 
   *returnPostFix = NULL;
+
+  int isHex = 0;
+
+  if ((s == NULL) || (*s == '\0')) {
+    printf("NULL string not allowed in field\n");
+    return EBADF;
+  }
+
+  //
+  // See if its hex by a leading "0x"
+  //
+  if ((s[0] == '0') && (s[1] == 'x')) {
+    isHex = 1;
+  }
 
   //
   // lookup post fix
@@ -1347,58 +1924,64 @@ parse_string_value(char* s, double* l, char** returnPostFix)
     // No postFix
   }
   else {
+    // This lets the caller determine how to treat the value.
     *returnPostFix = postFix;
   }
 
-  //
-  // TODO: trim post fix, ensure only numbers of '.'
-  //
+  if (isHex) {
+      // strtol will parse till any post fix characters returning the integer.
+      integer_value = strtol(s, &endptr, 16);
 
-  //
-  // Look for a single "." to see if should be parsed as a double.
-  //
-
-  // first occurance
-  firstIndex = strchr(s, '.');
-  if (firstIndex == NULL) {
-    // not found, so treat as integer
-    isDouble = 0;
+      // Now convert to double
+      double_value = (double)integer_value;
   }
   else {
-    isDouble = 1;
+      //
+      // strtod will parse till any post fix characters returning the double.
+      //
+      // It will handle any fraction such as 0.123 or an integer 123
+      // and sign values such as - or +.
+      //
+      double_value = strtod(s, &endptr);
   }
 
-  lastIndex = strchr(s, '.');
-  if ((firstIndex != NULL) && (lastIndex == NULL)) {
-    // not found, this should not happen
-    return ERANGE;
-  }
+  if (postFix != NULL) {
 
-  if (lastIndex != firstIndex) {
-    // More than one '.', this an error
-    return ERANGE;
-  }
-
-  endptr = NULL;
-
-  if (isDouble) {
-    // parse double
-    double_value = strtod(s, &endptr);
+    //
+    // If there is a postfix, we expect the conversion to stop
+    // there as postfix's should not conflict with valid strtod
+    // values such as ., +, -, nan, inf, infinity.
+    //
+    // Ubuntu Linux "man strtod"
+    // STRTOD(3)
+    //
+    if (endptr != postFix) {
+      printf("Invalid character :%c: in number:%s:\n", *endptr, s);
+      return EBADF;
+    }
   }
   else {
-    // parse integer
-    integer_value = strtol(s, &endptr, 0);
+
+    //
+    // endptr should be '\0'
+    //
+    if (*endptr != '\0') {
+      printf("Invalid character :%c: in number:%s:\n", *endptr, s);
+      return EBADF;
+    }
   }
 
   //
-  // ?Scale it by prefix?
+  // Scale by postfix if present.
   //
-  if (isDouble) {
-    *l = double_value;
+  if (postFix != NULL) {
+      ret = scale_by_postfix(postFix, &double_value);
+      if (ret != 0) {
+        return ret;
+      }
   }
-  else {
-    *l = (double)integer_value;
-  }
+
+  *l = double_value;
 
   return 0;
 }
@@ -1529,6 +2112,19 @@ block_array_allocate(int entry_size, int array_size, int array_increment_size)
 {
   PBLOCK_ARRAY ba;
   int total_length;
+  static int test_run = 0;
+
+  //
+  // Run internal test first time to validate.
+  //
+  // Must set test_run first otherwise it will recurse off the stack.
+  //
+  if (test_run == 0) {
+    test_run = 1;
+    if (block_array_internal_test() != 0) {
+      return NULL;
+    }
+  }
 
   ba = (PBLOCK_ARRAY)malloc(sizeof(BLOCK_ARRAY));
   if (ba == NULL) {
@@ -1591,11 +2187,16 @@ block_array_get_entry(PBLOCK_ARRAY ba, int index)
 // Returns the newly allocated entry index.
 //
 void*
-block_array_push_entry(PBLOCK_ARRAY ba, void* entry, int entry_size)
+block_array_push_entry(
+    PBLOCK_ARRAY ba,
+    void* entry,
+    int entry_size
+    )
 {
   char* tmp;
   void* new_blocks;
   int new_capacity;
+  int new_bytes;
 
   if (entry_size != ba->entry_size) {
     return (void*)NULL;
@@ -1605,7 +2206,9 @@ block_array_push_entry(PBLOCK_ARRAY ba, void* entry, int entry_size)
     // realloc
     new_capacity = ba->array_capacity + ba->array_increment_size;
 
-    new_blocks = realloc(ba->blocks, new_capacity);
+    new_bytes = new_capacity * ba->entry_size;
+
+    new_blocks = realloc(ba->blocks, new_bytes);
     if (new_blocks == NULL) {
       return (void*)NULL;
     }
@@ -1616,19 +2219,19 @@ block_array_push_entry(PBLOCK_ARRAY ba, void* entry, int entry_size)
     // Advance to end of current capacity
     tmp += (ba->entry_size * ba->array_capacity);
 
-    bzero(tmp, new_capacity - (ba->array_size * ba->array_capacity));
+    bzero(tmp, new_bytes - (ba->array_capacity * ba->entry_size));
 
     ba->blocks = new_blocks;
     ba->array_capacity = new_capacity;    
   }
 
-  // Advance to next entry
-  ba->array_size++;
-
   tmp = (char*)ba->blocks;
   tmp += (ba->array_size * ba->entry_size);
 
-  bcopy(tmp, entry, entry_size);
+  bcopy(entry, tmp, ba->entry_size);
+
+  // Advance to next entry
+  ba->array_size++;
 
   return (void*)tmp;
 }
@@ -1637,6 +2240,197 @@ int
 block_array_get_array_size(PBLOCK_ARRAY ba)
 {
   return ba->array_size;
+}
+
+void
+initialize_opcode_block_four_axis_binary(
+    POPCODE_BLOCK_FOUR_AXIS_BINARY b,
+    unsigned long count
+    )
+{
+  b->begin.instruction = count;
+  b->begin.pulse_rate = count;
+  b->begin.pulse_count = count;
+  b->begin.pulse_width = count;
+
+  b->x.instruction = count;
+  b->x.pulse_rate = count;
+  b->x.pulse_count = count;
+  b->x.pulse_width = count;
+
+  b->y.instruction = count;
+  b->y.pulse_rate = count;
+  b->y.pulse_count = count;
+  b->y.pulse_width = count;
+
+  b->z.instruction = count;
+  b->z.pulse_rate = count;
+  b->z.pulse_count = count;
+  b->z.pulse_width = count;
+
+  b->a.instruction = count;
+  b->a.pulse_rate = count;
+  b->a.pulse_count = count;
+  b->a.pulse_width = count;
+
+  b->end.instruction = count;
+  b->end.pulse_rate = count;
+  b->end.pulse_count = count;
+  b->end.pulse_width = count;
+}
+
+int
+block_array_dump_state(PBLOCK_ARRAY ba)
+{
+  printf("PBLOCK_ARRAY=\n");
+  printf("entry_size %d, array_size %d, array_capacity %d, seek_index %d\n",
+	 ba->entry_size, ba->array_size, ba->array_capacity, ba->seek_index);
+
+  printf("blocks 0x%p, array_increment_size %d\n", ba->blocks, ba->array_increment_size);
+
+  return 0;
+}
+
+int
+block_array_internal_test()
+{
+  int ret;
+  void* newBin;
+  OPCODE_BLOCK_FOUR_AXIS_BINARY old;
+  POPCODE_BLOCK_FOUR_AXIS_BINARY newBlock;
+  PBLOCK_ARRAY array;
+  unsigned long count;
+  int test_loop_count;
+  int i;
+
+  test_loop_count = BLOCK_ARRAY_INITIAL_ALLOCATION * 4;
+
+  count = 0x5555FFFF;
+
+  initialize_opcode_block_four_axis_binary(&old, count);
+
+  array = block_array_allocate(
+      sizeof(OPCODE_BLOCK_FOUR_AXIS_BINARY),
+      BLOCK_ARRAY_INITIAL_ALLOCATION,
+      BLOCK_ARRAY_INCREMENTAL_ALLOCATION
+      );
+
+  if (array == NULL) {
+    printf("allocation failure\n");
+    return EBADF;
+  }
+
+  newBin = block_array_push_entry(
+               array,
+	       &old,
+	       sizeof(old)
+	       );
+
+  if (newBin == NULL) {
+    printf("push entry failed\n");
+    return EBADF;
+  }
+
+  ret = block_array_seek_entry(array, 0);
+  if (ret != 0) {
+    printf("seek entry failed %d\n", ret);
+    return ret;
+  }
+
+  newBlock = block_array_get_next_entry(array);
+  if (newBlock == NULL) {
+    printf("could not get block\n");
+    return EBADF;
+  }
+
+  if (memcmp(&old, newBlock, sizeof(old)) != 0) {
+    printf("memcmp failure\n");
+    return EBADF;
+  }
+
+  block_array_free(array);
+
+  //
+  // Now do a loop to push to realloc
+  //
+
+  array = block_array_allocate(
+      sizeof(OPCODE_BLOCK_FOUR_AXIS_BINARY),
+      BLOCK_ARRAY_INITIAL_ALLOCATION,
+      BLOCK_ARRAY_INCREMENTAL_ALLOCATION
+      );
+
+  if (array == NULL) {
+    printf("allocation failure\n");
+    return EBADF;
+  }
+
+  count = 0;
+
+  for (i = 0; i < test_loop_count; i++) {
+
+      initialize_opcode_block_four_axis_binary(&old, count);
+
+       newBin = block_array_push_entry(
+                   array,
+	           &old,
+	           sizeof(old)
+	           );
+
+      if (newBin == NULL) {
+        printf("push entry failed\n");
+        return EBADF;
+      }
+
+      count++;
+  }
+
+  //
+  // Read back and compare
+  //
+
+  count = 0;
+
+  ret = block_array_seek_entry(array, 0);
+  if (ret != 0) {
+    printf("seek entry failed %d\n", ret);
+    return ret;
+  }
+
+  for (i = 0; i < test_loop_count; i++) {
+
+      initialize_opcode_block_four_axis_binary(&old, count);
+
+      newBlock = block_array_get_next_entry(array);
+      if (newBlock == NULL) {
+        printf("could not get block\n");
+        return EBADF;
+      }
+
+      if (memcmp(&old, newBlock, sizeof(old)) != 0) {
+        printf("memcmp failure index %d, data=\n", i);
+
+        dump_opcode_block_four_axis_binary(newBlock, count);
+
+        printf("SB=\n");
+
+        dump_opcode_block_four_axis_binary(&old, count);
+
+        block_array_dump_state(array);
+
+        return EBADF;
+      }
+
+      count++;
+  }
+
+  block_array_free(array);
+
+  if (g_verboseLevel != DEBUG_LEVEL_NONE) {
+      printf("block_array all internal tests passed\n");
+  }
+
+  return 0;
 }
 
 //
@@ -1670,6 +2464,10 @@ assemble_file(char* fileName, PBLOCK_ARRAY* binary)
       BLOCK_ARRAY_INCREMENTAL_ALLOCATION
       );
 
+  if (context->compiled_binary == NULL) {
+    return ENOMEM;
+  }
+
   ret = processLines(context, file);
 
   fclose(file);
@@ -1684,6 +2482,46 @@ assemble_file(char* fileName, PBLOCK_ARRAY* binary)
   DBG_PRINT1("assembled %d opcode blocks\n", block_array_get_array_size(context->compiled_binary));
 
   *binary = context->compiled_binary;
+
+  return 0;
+}
+
+int
+disassemble_stream(
+    PBLOCK_ARRAY binary
+    )
+{
+  int ret;
+  void *block;
+  unsigned long instruction_block_count;
+
+  ret = block_array_seek_entry(binary, 0);
+  if (ret != 0) {
+    printf("disassemble_stream: error rewinding block array %d\n", ret);
+    return ret;
+  }
+
+  instruction_block_count = 0;
+
+  printf("    rsrc, opcode, rate, count, width\n");
+
+  while (1) {
+
+    block = block_array_get_next_entry(binary);
+    if (block == NULL) {
+      printf("disassemble_stream: No more instruction entries in block array, disassembled %ld blocks\n",
+      instruction_block_count);
+      goto Done;
+    }
+
+    dump_opcode_block_four_axis_binary(block, instruction_block_count);
+
+    instruction_block_count++;
+  }
+
+  printf("\n    rsrc, opcode, rate, count, width\n");
+
+Done:
 
   return 0;
 }

@@ -77,31 +77,66 @@ INFO, HEADER, 1, 1, 0
 INFO, CONFIG, 4, 0, 0
 
 ; implied begin/end block commands
-X,CW,100,16,4, Y,CCW,50,8,2, Z,DWELL,75,12,0, A,NOP,0,0,0
-X,CW,100,16,4, Y,CCW,50,8,2, Z,DWELL,75,12,0, A,NOP,0,0,0
+X,CW,100hz,16,4, Y,CCW,50hz,8,2, Z,DWELL,75hz,12,0, A,NOP,0,0,0
+X,CW,100hz,16,4, Y,CCW,50hz,8,2, Z,DWELL,75hz,12,0, A,NOP,0,0,0
 	
 ; explicit begin/end block command on a single line
-begin,X,CW,100,16,4, Y,CCW,50,8,2, Z,DWELL,75,12,0, A,NOP,0,0,0,end
+begin,X,CW,100hz,16,4, Y,CCW,50hz,8,2, Z,DWELL,75hz,12,0, A,NOP,0,0,0,end
 
 ; multiple line begin/end block commands.
 begin
-  X,CW,0x100,16,4
-  Y,CCW,50,8,2
-  Z,DWELL,75,12,0
+  X,CW,0xAmhz,16,4
+  Y,CCW,5mhz,8,2
+  Z,DWELL,7.5mhz,12,0
   A,NOP,0,0,0
 end
 
 begin
-  X,CW,0x100,16,4
-  Y,CCW,50,8,2
-  Z,DWELL,75,12,0
+  X,CW,0x100hz,16,4
+  Y,CCW,50hz,8,2
+  Z,DWELL,75hz,12,0
   A,NOP,0,0,0
 end
 
 begin
-  X, CW, 0x100, 16, 4
-  Y, CCW,   50,  8, 2
-  Z, DWELL, 75, 12, 0
+  X, CW, 0x100khz, 16, 4
+  Y, CCW,   50khz,  8, 2
+  Z, DWELL, 75khz, 12, 0
+  A, NOP,    0,  0, 0
+end
+
+; 
+; These demonstrate the suffix formats
+; 
+; 1hz - one Hertz
+; 1khz - 10**3 Hertz
+; 1mhz - 10**6 Hertz
+; 
+; 1s  - 1 second
+; 1ms - 10**-3 second
+; 1us - 10**-6 second
+; 1ns - 10**-9 second
+; 
+; 1k - 10**3 10**3 units
+; 1m - 10**6 10**6 units
+; 1g - 10**6 10**9 units
+; 
+; 100clocks - 100 clocks at hardware clock rate
+; 
+; 50percent - 50% of baseline cycle such as pulse width during period.
+; 
+
+begin
+  X, CW, 1ms, 1k, 22us
+  Y, CCW, 50khz, 8m, 50us
+  Z, DWELL, 75ms, 1g, 20ns
+  A, NOP,    0,  0, 0
+end
+
+begin
+  X, CW, 0x100ms, 0x16k, 0xaus
+  Y, CCW,   5.0mhz,  8m, 20ns
+  Z, DWELL, 75ms, 12k, 100ns
   A, NOP,    0,  0, 0
 end
 

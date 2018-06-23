@@ -15,6 +15,11 @@
 //
 // 06/06/2018
 
+//
+// An opcode block represents an opcode entry for
+// multiple resources such as axis, spindle, etc.
+//
+
 typedef struct _AXIS_OPCODE {
   char* axis;
   char* opcode;
@@ -22,6 +27,11 @@ typedef struct _AXIS_OPCODE {
   char* arg1;
   char* arg2;
 } AXIS_OPCODE, *PAXIS_OPCODE;
+
+//
+// An opcode block represents an opcode entry for
+// multiple resources such as axis, spindle, etc.
+//
 
 typedef struct _OPCODE_BLOCK_FOUR_AXIS {
   AXIS_OPCODE info;
@@ -565,22 +575,29 @@ typedef struct _ASSEMBLER_CONTEXT {
 //
 // Parameters are 32 bit unsigned, little endian byte order.
 //
-// Note: NOP and DWELL are the same opcode.
+// OPCODE_NOP:
 //
-// Set parameters to 0 for NOP so it does not delay
-// execution block completion.
+//   Do nothing, and do not delay completion of the current
+//   instruction block. The instruction block will complete
+//   when the other axis complete.
+//             
+//   pulse_rate, pulse_count, pulse_width are ignored.
 //
-// DWELL time is the execution rate of the opcodes
-// parameters pulse_rate and pulse_count.
+// OPCODE_DWELL:
+//
+//   Do nothing, but delay completion of the current instruction
+//   block for the given pulse_rate, pulse_count amount of time.
+//
+//   pulse_width is ignored.
 //
 
 #define OPCODE_NOP         0x00
 
+#define OPCODE_DWELL       0x01
+
 #define OPCODE_MOTION_CW   0x02
 
 #define OPCODE_MOTION_CCW  0x03
-
-#define OPCODE_DWELL       0x00
 
 //
 // These are pseudo instructions that mark a program block,
@@ -654,6 +671,11 @@ typedef struct _ASSEMBLER_CONTEXT {
 // and return the binary instructions in memory.
 //
 int assemble_file(char* fileName, PBLOCK_ARRAY* binary);
+
+//
+// Disassemble stream.
+//
+int disassemble_stream(PBLOCK_ARRAY binary);
 
 //
 // Seek stream in block array
