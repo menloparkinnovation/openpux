@@ -756,6 +756,7 @@ test_menlo_cnc_pulse(
     char *frequency_as_string
     )
 {
+    int ret;
     PMENLO_CNC_REGISTERS registers;
     unsigned long command;
     unsigned long instruction;
@@ -824,7 +825,11 @@ test_menlo_cnc_pulse(
     // jog rate if the physics support it.
     //
 
-    pulse_rate = menlo_cnc_registers_calculate_pulse_rate_by_hz(registers, frequency);
+    ret = menlo_cnc_registers_calculate_pulse_rate_by_hz(registers, frequency, &pulse_rate);
+    if (ret != 0) {
+        printf("overflow calulating pulse frequency %g for target machine\n", frequency);
+        return 1;
+    }
 
     period = (double)1 / frequency;
 
@@ -835,7 +840,11 @@ test_menlo_cnc_pulse(
 
     test_width_in_nanoseconds = (unsigned long)test_width_in_nanoseconds_f;
 
-    pulse_width = menlo_cnc_registers_calculate_pulse_width(registers, test_width_in_nanoseconds);
+    ret = menlo_cnc_registers_calculate_pulse_width(registers, test_width_in_nanoseconds, &pulse_width);
+    if (ret != 0) {
+      printf("overflow calculating pulse_width %ld for target machine\n", test_width_in_nanoseconds);
+      return 1;
+    }
 
     // pulse count for testing
     //pulse_count = 999999;  // 0xF423F

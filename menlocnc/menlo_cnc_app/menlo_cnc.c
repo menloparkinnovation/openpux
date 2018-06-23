@@ -133,111 +133,41 @@ menlo_cnc_registers_noop(
 //
 
 //
-// Returns the value for the pulse_rate register that will generate
-// the specified frequency in HZ.
-//
-// Frequency can be fractional or or whole to represent periods
-// from 40ns to ~80 seconds based on 32 bit internal registers clocked
-// at a base rate of 50Mhz.
-//
-unsigned long
-menlo_cnc_registers_calculate_pulse_rate_by_hz(
-    PMENLO_CNC_REGISTERS registers,
-    double frequency_in_hz
-    )
-{
-    unsigned long clock_periods;
-    unsigned long clock_scale_factor;
-    unsigned long pulse_rate;
-
-    //
-    // TODO: Verify and FIX:
-    //
-    // Period is a 4X scaling factor going through the period
-    // counter flip flop fed into the pulse generator which also
-    // has a flip flop on output.
-    //
-    // TODO: Verify and FIX:
-    //
-
-    clock_scale_factor = TIMING_GENERATOR_PULSE_RATE_SCALE_FACTOR;
-
-    //
-    // Clock period for 50Mhz is 20ns
-    //
-    clock_periods = menlo_cnc_registers_calculate_clock_periods_by_hz(
-        registers,
-        frequency_in_hz
-        );
-
-    //
-    // Value is divided by the scale factor.
-    //
-    // (lower values == higher frequency)
-    //
-    pulse_rate = clock_periods / clock_scale_factor;
-
-    return pulse_rate;
-}
-
-//
-// Returns the value for the pulse_width register that
-// will generate the specified pulse_width in nanoseconds.
-//
-unsigned long
-menlo_cnc_registers_calculate_pulse_width(
-    PMENLO_CNC_REGISTERS registers,
-    unsigned long pulse_width_in_nanoseconds
-    )
-{
-    unsigned long clock_period;
-    unsigned long clock_scale_factor;
-    unsigned long periods;
-
-    clock_period = TIMING_GENERATOR_BASE_CLOCK_PERIOD_IN_NANOSECONDS;
-
-    //
-    // TODO: Verify and FIX:
-    //
-    // But clock for width is scaled by 2X due to output
-    // flip flop.
-    //
-    // TODO: Verify and FIX:
-    //
-
-    clock_scale_factor = TIMING_GENERATOR_PULSE_WIDTH_SCALE_FACTOR;
-
-    periods = pulse_width_in_nanoseconds / clock_period;
-
-    //
-    // Clock for pulse width is scaled by 2X due to output flip flop.
-    //
-    // Lesser value == smaller period.
-    //
-
-    periods = periods / clock_scale_factor;
-
-    return periods;
-}
-
-//
 // Calculates the number of clock periods for the given
 // frequency in HZ.
 //
-// Frequency can be fractional or or whole to represent periods
-// from 40ns to ~80 seconds based on 32 bit internal registers clocked
-// at a base rate of 50Mhz, which is a clock period of 20ns.
+// Registers is optional and my be NULL.
 //
-unsigned long
+// This routines *does not* validate whether the calculated
+// clock periods fits within the machine constraints. It is
+// up to the caller to do so. This allows the caller to apply
+// any pre-scale factors to the result before determining if
+// it fits within the hardware register range.
+//
+int
 menlo_cnc_registers_calculate_clock_periods_by_hz(
     PMENLO_CNC_REGISTERS registers,
-    double frequency_in_hz
+    double frequency_in_hz,
+    double* clock_periods
     )
 {
     double clock_rate;
     double clock_period;
     double period;
     double result_clock_periods;
+
+    //
+    // Zero is always zero.
+    //
+    if (frequency_in_hz == 0) {
+      *clock_periods = 0;
+      return 0;
+    }
+
+    if (frequency_in_hz < 0) {
+      // Negative frequency makes no sense.
+      return -1;
+    }
 
     //
     // Most calculations are unsigned longs, since the hardware can
@@ -257,7 +187,15 @@ menlo_cnc_registers_calculate_clock_periods_by_hz(
     clock_rate = (double)TIMING_GENERATOR_BASE_CLOCK_RATE;
     clock_period = (double)1 / clock_rate;
 
+#if DBG_TRACE2
+    printf("clock_rate %g, clock_period %g\n", clock_rate, clock_period);
+#endif
+
     period = (double)1 / frequency_in_hz;
+
+#if DBG_TRACE2
+    printf("frequency_in_hz %g, period %g\n", frequency_in_hz, period);
+#endif
 
     //
     // Scale the result in clock periods in order to not lose
@@ -269,7 +207,224 @@ menlo_cnc_registers_calculate_clock_periods_by_hz(
 
     result_clock_periods = period / clock_period;
 
-    return result_clock_periods;
+#if DBG_TRACE2
+    printf("result_clock_periods %g\n", result_clock_periods);
+#endif
+
+    *clock_periods = result_clock_periods;
+
+    return 0;
+}
+
+//
+// Returns the value for the pulse_rate register that will generate
+// the specified frequency in HZ.
+//
+// Registers is optional and my be NULL.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
+menlo_cnc_registers_calculate_pulse_rate_by_hz(
+    PMENLO_CNC_REGISTERS registers,
+    double frequency_in_hz,
+    unsigned long* binary_pulse_rate
+    )
+{
+    int ret;
+    double clock_periods;
+    double clock_scale_factor;
+    double pulse_rate;
+
+    //
+    // Zero is always zero.
+    //
+    if (frequency_in_hz == 0) {
+      *binary_pulse_rate = 0;
+      return 0;
+    }
+
+    if (frequency_in_hz < 0) {
+      // Negative frequency makes no sense.
+      return -1;
+    }
+
+    //
+    // Clock period for 50Mhz is 20ns
+    //
+    // Since the clock through the circuits is scaled this
+    // value can exceed the range of the register so its
+    // a double. Total range is validated below after any
+    // scaling factors are applied.
+    //
+    ret = menlo_cnc_registers_calculate_clock_periods_by_hz(
+        registers,
+        frequency_in_hz,
+        &clock_periods
+        );
+
+    if (ret != 0) {
+      // Value out of range
+#if DBG_TRACE
+      printf("pulse_rate_by_hz overflow in clock_periods_by_hz frequency %g\n", frequency_in_hz);
+#endif
+      return ret;
+    }
+
+    clock_scale_factor = (double)TIMING_GENERATOR_PULSE_RATE_SCALE_FACTOR;
+
+    //
+    // Value is divided by the scale factor.
+    //
+    // (lower values == higher frequency)
+    //
+    pulse_rate = clock_periods / clock_scale_factor;
+
+    //
+    // Ensure we don't go over the range of the 32 bit
+    // period counter value.
+    //
+    if (pulse_rate >= (double)TIMING_GENERATOR_MAXIMUM_CLOCK_PERIOD_COUNT) {
+#if DBG_TRACE
+      printf("pulse_rate_by_hz overflow in pulse_rate %g\n", pulse_rate);
+      printf("frequency %g\n", frequency_in_hz);
+      printf("clock_periods %g, clock_scale_factor %g\n", clock_periods, clock_scale_factor);
+#endif
+      return -1;
+    }
+
+    //
+    // We could underflow. If converted to unsigned long its zero, fail.
+    //
+    // Note that we checked for a request of zero on entry so in this
+    // case its an underflow.
+    //
+    if ((unsigned long)pulse_rate == 0) {
+#if DBG_TRACE
+      printf("pulse_rate_by_hz underflow in pulse_rate %g\n", pulse_rate);
+#endif
+      return -1;
+    }
+
+    //
+    // This converts to unsigned long.
+    // The above code has ensured the double value is
+    // within the range.
+    //
+
+    *binary_pulse_rate = (unsigned long)pulse_rate;
+
+    return 0;
+}
+
+//
+// Returns the binary_pulse_count for the register.
+//
+// Normally pulse counts and the register value
+// are 1:1, but the range needs to be checked against
+// the machines capabilities. So this function validates
+// that value.
+//
+// It's possible that some machine may return a non-1:1
+// value, and that is legal, such as using software to
+// adjust for any internal scaling factors.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
+menlo_cnc_registers_calculate_pulse_count(
+    PMENLO_CNC_REGISTERS registers,
+    double pulse_count,
+    unsigned long* binary_pulse_count
+    )
+{
+
+  //
+  // Zero is always zero.
+  //
+  if (pulse_count == 0) {
+    *binary_pulse_count = 0;
+    return 0;
+  }
+
+  if (pulse_count > TIMING_GENERATOR_MAXIMUM_PULSE_COUNT) {
+    return -1;
+  }
+
+  if (pulse_count < 0) {
+    // Negative pulse count makes no sense.
+    return -1;
+  }
+
+  //
+  // N.B. This rounds to integer as only whole pulses can be specified.
+  //
+
+  *binary_pulse_count = (unsigned long)pulse_count;
+
+  return 0;
+}
+
+
+//
+// Returns the value for the pulse_width register that
+// will generate the specified pulse_width in nanoseconds.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
+menlo_cnc_registers_calculate_pulse_width(
+    PMENLO_CNC_REGISTERS registers,
+    unsigned long pulse_width_in_nanoseconds,
+    unsigned long* binary_pulse_width
+    )
+{
+    double clock_period;
+    double clock_scale_factor;
+    double periods;
+
+    //
+    // Zero is always zero.
+    //
+    if (pulse_width_in_nanoseconds == 0) {
+      *binary_pulse_width = 0;
+      return 0;
+    }
+
+    clock_period = (double)TIMING_GENERATOR_BASE_CLOCK_PERIOD_IN_NANOSECONDS;
+
+    clock_scale_factor = (double)TIMING_GENERATOR_PULSE_WIDTH_SCALE_FACTOR;
+
+    periods = (double)pulse_width_in_nanoseconds / clock_period;
+
+    //
+    // Apply any scale factor
+    //
+    periods = periods / clock_scale_factor;
+
+    if (periods > TIMING_GENERATOR_MAXIMUM_PULSE_WIDTH_COUNT) {
+      return -1;
+    }
+
+    //
+    // We could underflow. If converted to unsigned long its zero, fail.
+    //
+    // Note that we checked for a request of zero on entry so in this
+    // case its an underflow.
+    //
+    if ((unsigned long)periods == 0) {
+#if DBG_TRACE
+      printf("calculate_pulse_width underflow in pulse_width %g\n", periods);
+#endif
+      return -1;
+    }
+
+    *binary_pulse_width = (unsigned long)periods;
+
+    return 0;
 }
 
 int

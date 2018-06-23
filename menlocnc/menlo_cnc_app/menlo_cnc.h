@@ -774,6 +774,34 @@ typedef struct _MENLO_CNC_REGISTERS {
 // 0 == DWELL, 1 == generate movement pulses
 #define MENLO_CNC_REGISTERS_INSTRUCTION_INS 0x02
 
+
+//
+// Parameters are 32 bit unsigned, little endian byte order.
+//
+// OPCODE_NOP:
+//
+//   Do nothing, and do not delay completion of the current
+//   instruction block. The instruction block will complete
+//   when the other axis complete.
+//             
+//   pulse_rate, pulse_count, pulse_width are ignored.
+//
+// OPCODE_DWELL:
+//
+//   Do nothing, but delay completion of the current instruction
+//   block for the given pulse_rate, pulse_count amount of time.
+//
+//   pulse_width is ignored.
+//
+
+#define MENLO_CNC_OPCODE_NOP         0x00
+
+#define MENLO_CNC_OPCODE_DWELL       0x01
+
+#define MENLO_CNC_OPCODE_MOTION_CW   0x02
+
+#define MENLO_CNC_OPCODE_MOTION_CCW  0x03
+
 //
 // Binary command packet for each axis
 //
@@ -998,6 +1026,15 @@ menlo_cnc_load_four_axis(
 // 50Mhz
 #define TIMING_GENERATOR_BASE_CLOCK_PERIOD_IN_NANOSECONDS 20
 
+// Maximum value in the clock period register.
+#define TIMING_GENERATOR_MAXIMUM_CLOCK_PERIOD_COUNT 0xFFFFFFFE
+
+// Maximum pulse count is one less than maximum 32 bit int.
+#define TIMING_GENERATOR_MAXIMUM_PULSE_COUNT        0xFFFFFFFE
+
+// Maximum value in the pulse width register.
+#define TIMING_GENERATOR_MAXIMUM_PULSE_WIDTH_COUNT  0xFFFFFFFE
+
 // Scale factor is base clock rate divided by stages scale factor.
 #define TIMING_GENERATOR_PULSE_RATE_SCALE_FACTOR    4
 
@@ -1005,41 +1042,78 @@ menlo_cnc_load_four_axis(
 #define TIMING_GENERATOR_PULSE_WIDTH_SCALE_FACTOR   1
 
 //
+// Calculates the number of clock periods for the given
+// frequency in HZ.
+//
+// Registers is optional and my be NULL.
+//
+// This routines *does not* validate whether the calculated
+// clock periods fits within the machine constraints. It is
+// up to the caller to do so. This allows the caller to apply
+// any pre-scale factors to the result before determining if
+// it fits within the hardware register range.
+//
+int
+menlo_cnc_registers_calculate_clock_periods_by_hz(
+    PMENLO_CNC_REGISTERS registers,
+    double frequency_in_hz,
+    double* clock_periods
+    );
+
+//
 // Returns the value for the pulse_rate register that will generate
 // the specified frequency in HZ.
 //
-// Frequency can be fractional or or whole to represent periods
-// from 40ns to ~80 seconds based on 32 bit internal registers clocked
-// at a base rate of 50Mhz.
+// Registers is optional and my be NULL.
 //
-unsigned long
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
 menlo_cnc_registers_calculate_pulse_rate_by_hz(
     PMENLO_CNC_REGISTERS registers,
-    double frequency_in_hz
+    double frequency_in_hz,
+    unsigned long* binary_pulse_rate
+    );
+
+//
+// Returns the binary_pulse_count for the register.
+//
+// Normally pulse counts and the register value
+// are 1:1, but the range needs to be checked against
+// the machines capabilities. So this function validates
+// that value.
+//
+// It's possible that some machine may return a non-1:1
+// value, and that is legal, such as using software to
+// adjust for any internal scaling factors.
+//
+// Registers is optional and my be NULL.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
+menlo_cnc_registers_calculate_pulse_count(
+    PMENLO_CNC_REGISTERS registers,
+    double pulse_count,
+    unsigned long* binary_pulse_count
     );
 
 //
 // Returns the value for the pulse_width register that
 // will generate the specified pulse_width in nanoseconds.
 //
-unsigned long
+// Registers is optional and my be NULL.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
 menlo_cnc_registers_calculate_pulse_width(
     PMENLO_CNC_REGISTERS registers,
-    unsigned long pulse_width_in_nanoseconds
-    );
-
-//
-// Calculates the number of clock periods for the given
-// frequency in HZ.
-//
-// Frequency can be fractional or or whole to represent periods
-// from 40ns to ~80 seconds based on 32 bit internal registers clocked
-// at a base rate of 50Mhz, which is a clock period of 20ns.
-//
-unsigned long
-menlo_cnc_registers_calculate_clock_periods_by_hz(
-    PMENLO_CNC_REGISTERS registers,
-    double frequency_in_hz
+    unsigned long pulse_width_in_nanoseconds,
+    unsigned long* binary_pulse_width
     );
 
 //
