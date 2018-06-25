@@ -319,6 +319,22 @@ stream_instructions(
   unsigned long instruction_block_count;
   unsigned long underrun_errors;
 
+  // Reset the timing engine
+  // TODO: Have option to leave its state intact by default.
+  // -reset or -resetfirst
+  //
+  printf("resetting timing engine fabric...\n");
+
+  status = menlo_cnc_reset_timing_engine(registers);
+
+  printf("reset timing engine done\n");
+
+  printf("status after reset 0x%lx\n", status);
+
+  status = menlo_cnc_read_status(registers);
+
+  printf("status on enttry 0x%lx\n", status);
+
   //
   // context->compiled_binary is a pointer to the block array
   // that contains the compiled assembly instructions as machine

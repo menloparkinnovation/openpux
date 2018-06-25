@@ -443,6 +443,7 @@ module timing_generator_registers
   reg [c_data_width-1:0]     command_register;
 
   // Locally managed sticky status register bits
+  reg                        sticky_fifo_empty_armed;
   reg                        c_sticky_fifo_empty_reg;
 
 `ifdef DEBUG_AVALON_MM_SLAVE
@@ -889,6 +890,7 @@ module timing_generator_registers
           fifo_write_signal <= 0;
           reg_clear_buffer <= 0;
           c_sticky_fifo_empty_reg <= 0;
+          sticky_fifo_empty_armed <= 0;
 
           x_insert_instruction <= 0; 
           x_insert_pulse_period <= 0; 
@@ -970,12 +972,28 @@ module timing_generator_registers
               //
               fifo_write_signal <= 0;
           end
-          else if (c_fifo_entry_count == 0) begin
+
+          //
+          // Process sticky_fifo_entry (SFE)
+          //
+          if (sticky_fifo_empty_armed == 1'b1) begin
 
               //
-              // Process Sticky FIFO Empty
+              // Armed and see count of 0, so set the bit
               //
-              c_sticky_fifo_empty_reg <= 1'b1;
+              if (c_fifo_entry_count == 0) begin
+                  c_sticky_fifo_empty_reg <= 1'b1;
+              end
+          end
+          else begin
+
+              //
+              // Not armed, but seen a non-zero FIFO entry count
+              // so start the trigger sequence.
+              //
+              if (c_fifo_entry_count != 0) begin
+                  sticky_fifo_empty_armed <= 1'b1;
+              end
           end
 
           //
@@ -1053,6 +1071,7 @@ module timing_generator_registers
                       //
                       if ((slave_writedata & STATUS_SFE) != 0) begin
                           c_sticky_fifo_empty_reg <= 1'b0;
+                          sticky_fifo_empty_armed <= 1'b0;
                       end
                   end
 
