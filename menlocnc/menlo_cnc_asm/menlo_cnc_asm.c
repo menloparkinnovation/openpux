@@ -2,10 +2,6 @@
 //
 // TODO:
 //
-// See documentation for "PARAMETERS:" in menlo_cnc_asm.h
-//
-// Implement parameters base number system support.
-//
 // Add basic include file support. This is to allow a common
 // machine configuration block to be included in assembler programs.
 //
@@ -170,6 +166,8 @@ int g_verboseLevel = DEBUG_LEVEL_NONE;
 //
 #define DBG_PRINT_ENABLED 0
 
+#define xDBG_PRINT(x)             (printf(x))
+
 #if DBG_PRINT_ENABLED
 #define DBG_PRINT(x)             (printf(x))
 #define DBG_PRINT1(x, arg)       (printf(x, arg))
@@ -202,10 +200,6 @@ char* stripTrailingWhiteSpace(char *old);
 
 void reset_assembler_context(PASSEMBLER_CONTEXT context);
 
-int process_header(PASSEMBLER_CONTEXT context, char* line);
-
-int process_config(PASSEMBLER_CONTEXT context, char* line);
-
 int process_begin_line(PASSEMBLER_CONTEXT context);
 
 int process_end_of_line(PASSEMBLER_CONTEXT context);
@@ -227,6 +221,8 @@ enum AxisState get_axis_state_by_symbol(PASSEMBLER_CONTEXT context, char* symbol
 int axis_symbol_to_binary(char* s);
 
 int opcode_symbol_to_binary(char* s);
+
+unsigned long info_symbol_to_binary(char* s);
 
 int string_to_unsigned_long(char* s, unsigned long* l);
 
@@ -270,6 +266,13 @@ compile_axis_opcode(
     );
 
 int
+compile_begin_block(
+    PASSEMBLER_CONTEXT context,
+    POPCODE_BLOCK_FOUR_AXIS symbolic,
+    PAXIS_OPCODE_BINARY bin
+    );
+
+int
 compile_end_block(
     PASSEMBLER_CONTEXT context,
     POPCODE_BLOCK_FOUR_AXIS symbolic,
@@ -279,8 +282,9 @@ compile_end_block(
 int
 compile_info_block(
     PASSEMBLER_CONTEXT context,
-    PAXIS_OPCODE symbolic,
-    PAXIS_OPCODE_BINARY bin
+    POPCODE_BLOCK_FOUR_AXIS symbolic,
+    POPCODE_BLOCK_FOUR_AXIS_BINARY bin,
+    int * isInfoBlock
     );
 
 void
@@ -395,23 +399,9 @@ processSymbol(PASSEMBLER_CONTEXT context, char* symbol)
 
   if (strcmp(symbol, OPCODE_BEGIN_SYMBOL) == 0) {
 
-    if ((context->saw_header == 0) || (context->saw_config == 0)) {
-      printf("Line %d: Opcodes can only be specified after header and config statements\n", context->lineNumber);
-      return EBADR;
-    }
-
-    if (context->saw_end != 0) {
-      printf("Line %d: Opcode begin can only be specified after a balanced end\n", context->lineNumber);
-      return EBADR;
-    }
-
     return process_begin_block(context, symbol);
   }
   else if (strcmp(symbol, OPCODE_END_SYMBOL) == 0) {
-    if (context->saw_begin == 0) {
-      printf("Line %d: Opcode end can only be specified after a balanced begin\n", context->lineNumber);
-      return EBADR;
-    }
 
     return process_end_block(context, symbol);
   }
@@ -521,44 +511,6 @@ char* stripTrailingWhiteSpace(char *old)
   }
 
   return news;
-}
-
-int
-process_header(PASSEMBLER_CONTEXT context, char* symbol)
-{
-  DBG_PRINT2("    Line %d: process_header: %s\n", context->lineNumber, symbol);
-
-  context->saw_header = 1;
-
-  //printf("Line %d: error processing header\n", context->lineNumber);
-
-  //
-  // Need to process header arguments.
-  //
-  // Could get the rest of the line, or get them a token at a time.
-  //
-  // Could have a call for end of line.
-  //
-  // begin/end is not allowed.
-  //
-  // 3 arguments till end of line.
-  //
-
-  return 0;
-}
-
-int
-process_config(PASSEMBLER_CONTEXT context, char* symbol)
-{
-  DBG_PRINT2("    Line %d: process_config: %s\n", context->lineNumber, symbol);
-
-  context->saw_config = 1;
-
-  //
-  // Same processing requirments as header.
-  //
-
-  return 0;
 }
 
 int
@@ -889,8 +841,17 @@ get_axis_state_by_symbol(PASSEMBLER_CONTEXT context, char* symbol)
   else if (strcmp(symbol, W_AXIS_SYMBOL) == 0) {
     axis = AxisStateW;
   }
-  else if (strcmp(symbol, INFO_AXIS_SYMBOL) == 0) {
-    axis = AxisStateInfo;
+  else if (strcmp(symbol, INFO_AXIS_SYMBOL_X) == 0) {
+    axis = AxisStateX;
+  }
+  else if (strcmp(symbol, INFO_AXIS_SYMBOL_Y) == 0) {
+    axis = AxisStateY;
+  }
+  else if (strcmp(symbol, INFO_AXIS_SYMBOL_Z) == 0) {
+    axis = AxisStateZ;
+  }
+  else if (strcmp(symbol, INFO_AXIS_SYMBOL_A) == 0) {
+    axis = AxisStateA;
   }
   else {
     printf("unrecognized axis %s\n", symbol);
@@ -926,10 +887,6 @@ get_axis_opcode(PASSEMBLER_CONTEXT context)
 
   case AxisStateA:
     return &context->opcode_block.a;
-    break;
-
-  case AxisStateInfo:
-    return &context->opcode_block.info;
     break;
 
   case AxisStateB:
@@ -976,28 +933,10 @@ process_opcode(PASSEMBLER_CONTEXT context, PAXIS_OPCODE op, char* symbol)
     op->opcode = copyNewString(symbol);
   }
   else if (strcmp(symbol, OPCODE_HEADER_SYMBOL) == 0) {
-
-    if (context->saw_header != 0) {
-      printf("header opcode can only appear once in a file, line %d\n", context->lineNumber);
-      return EBADF;
-    }
-
     op->opcode = copyNewString(symbol);
-
-    // Mark that header is seen
-    context->saw_header = 1;
   }
   else if (strcmp(symbol, OPCODE_CONFIG_SYMBOL) == 0) {
-
-    if (context->saw_config != 0) {
-      printf("config opcode can only appear once in a file, line %d\n", context->lineNumber);
-      return EBADF;
-    }
-
     op->opcode = copyNewString(symbol);
-
-    // Mark that config is seen
-    context->saw_config = 1;
   }
   else {
     printf("unrecognized opcode %s\n", symbol);
@@ -1187,10 +1126,10 @@ void
 dump_opcode_block_four_axis(POPCODE_BLOCK_FOUR_AXIS b)
 {
   dump_axis_opcode(&b->info, "INFO");
-  dump_axis_opcode(&b->x, "X");
-  dump_axis_opcode(&b->y, "Y");
-  dump_axis_opcode(&b->z, "Z");
-  dump_axis_opcode(&b->a, "A");
+  dump_axis_opcode(&b->x,    "   X");
+  dump_axis_opcode(&b->y,    "   Y");
+  dump_axis_opcode(&b->z,    "   Z");
+  dump_axis_opcode(&b->a,    "   A");
 }
 
 void
@@ -1209,6 +1148,12 @@ dump_axis_opcode_binary_instruction(
   }
   else if (instruction == OPCODE_MOTION_CCW) {
     printf("MOTION_CCW (0x%lx), ", instruction);
+  }
+  else if (instruction == OPCODE_HEADER) {
+    printf("HEADER (0x%lx), ", instruction);
+  }
+  else if (instruction == OPCODE_CONFIG) {
+    printf("CONFIG (0x%lx), ", instruction);
   }
   else {
     printf("0x%lx (%ld), ", instruction, instruction);
@@ -1335,10 +1280,34 @@ compile_assembly_block(
     )
 {
   int ret;
+  int isInfoBlock;
 
-  ret = compile_info_block(context, &symbolic->info, &bin->begin);
+  //
+  // First see if its an INFO block which are directives to the
+  // software about machine configuration and version the program
+  // is compiled for.
+  //
+
+  isInfoBlock = 0;
+  ret = compile_info_block(context, symbolic, bin, &isInfoBlock);
   if (ret != 0) {
     printf("INFO block bad format\n");
+    dump_opcode_block_four_axis(symbolic);
+    return ret;
+  }
+
+  if (isInfoBlock != 0) {
+    // Special handling for INFO block, so we are done.
+    return 0;
+  }
+
+  //
+  // Compile a machine targeted assembly block.
+  //
+
+  ret = compile_begin_block(context, symbolic, &bin->begin);
+  if (ret != 0) {
+    printf("BEGIN block bad format\n");
     dump_opcode_block_four_axis(symbolic);
     return ret;
   }
@@ -1382,6 +1351,21 @@ compile_assembly_block(
 }
 
 //
+// Compile begin block.
+//
+int
+compile_begin_block(
+    PASSEMBLER_CONTEXT context,
+    POPCODE_BLOCK_FOUR_AXIS symbolic,
+    PAXIS_OPCODE_BINARY bin
+    )
+{
+  bin->instruction = OPCODE_BEGIN_BLOCK;
+
+  return 0;
+}
+
+//
 // Compile end block.
 //
 // This contains the checksum for the block.
@@ -1398,29 +1382,166 @@ compile_end_block(
   // represents the end resource entry of the block.
   //
 
+  bin->instruction = OPCODE_END_BLOCK;
+
   return 0;
 }
 
 int
-compile_info_block(
-    PASSEMBLER_CONTEXT context,
+parse_unsigned_long(
+    char* s,
+    unsigned long* result
+    )
+{
+  char* endptr;
+  unsigned long integer_value;
+
+  integer_value = strtol(s, &endptr, 0);
+
+  if (*endptr != '\0') {
+    return EBADF;
+  }
+
+  *result = integer_value;
+
+  return 0;
+}
+
+int
+compile_info_block_parameters(
     PAXIS_OPCODE symbolic,
     PAXIS_OPCODE_BINARY bin
     )
 {
+  int ret;
+  unsigned long integer_value;
 
-  // typedef struct _OPCODE_BLOCK_FOUR_AXIS_BINARY {
-  //  AXIS_OPCODE_BINARY begin;
-  //  AXIS_OPCODE_BINARY x;
-  //  AXIS_OPCODE_BINARY y;
-  //  AXIS_OPCODE_BINARY z;
-  //  AXIS_OPCODE_BINARY a;
-  //  AXIS_OPCODE_BINARY end;
-  //} OPCODE_BLOCK_FOUR_AXIS_BINARY, *POPCODE_BLOCK_FOUR_AXIS_BINARY;
+  if ((ret = parse_unsigned_long(symbolic->arg0, &integer_value)) != 0) {
+    return ret;
+  }
+
+  bin->pulse_rate = integer_value;
+
+  if ((ret = parse_unsigned_long(symbolic->arg1, &integer_value)) != 0) {
+    return ret;
+  }
+
+  bin->pulse_count = integer_value;
+
+  if ((ret = parse_unsigned_long(symbolic->arg2, &integer_value)) != 0) {
+    return ret;
+  }
+
+  bin->pulse_width = integer_value;
+
+  return 0;
+}
+
+//
+// Compile a potential info block.
+//
+// If the opcode on the X axis is one of the HEADER, CONFIG
+// virtual opcodes, its declared and info block.
+//
+// If an info block all axis instructions must be the same
+// as X.
+//
+// OPCODE_HEADER
+// OPCODE_CONFIG
+//
+int
+compile_info_block(
+    PASSEMBLER_CONTEXT context,
+    POPCODE_BLOCK_FOUR_AXIS symbolic,
+    POPCODE_BLOCK_FOUR_AXIS_BINARY bin,
+    int * isInfoBlock
+    )
+{
+  int ret;
+  char *s;
+  unsigned long instruction;
+
+  *isInfoBlock = 0;
+
+  s = symbolic->x.opcode;
+
+  if (s == NULL) {
+    // Not an info block
+    DBG_PRINT("X opcode == NULL, not an INFO block \n");
+    return 0;
+  }
+
+  instruction = info_symbol_to_binary(s);
+  if (instruction == OPCODE_NOP) {
+    // Not an info block
+    DBG_PRINT("OPCODE_NOP not an INFO \n");
+    return 0;
+  }
+
+  if (instruction != OPCODE_HEADER) {
+    DBG_PRINT("INFO block X axis must be HEADER\n");
+    return ERANGE;
+  }
 
   //
-  // Info block gets compiled into the begin entry.
+  // Validate the instruction on each axis. Must be:
   //
+  // HEADER, CONFIG, CONFIG, CONFIG
+  //
+  bin->x.instruction = info_symbol_to_binary(symbolic->x.opcode);
+  if (bin->x.instruction != OPCODE_HEADER) {
+    printf("internal error: X instruction does not match in INFO block %s\n", symbolic->x.opcode);
+    printf("instruction 0x%lx\n", bin->x.instruction);
+    return ERANGE;
+  }
+
+  bin->y.instruction = info_symbol_to_binary(symbolic->y.opcode);
+  if (bin->y.instruction != OPCODE_CONFIG) {
+    printf("Second INFO entry must be CONFIG %s\n", s);
+    return ERANGE;
+  }
+
+  bin->z.instruction = info_symbol_to_binary(symbolic->z.opcode);
+  if (bin->z.instruction != OPCODE_CONFIG) {
+    printf("Third INFO entry must be CONFIG %s\n", s);
+    return ERANGE;
+  }
+
+  bin->a.instruction = info_symbol_to_binary(symbolic->a.opcode);
+  if (bin->a.instruction != OPCODE_CONFIG) {
+    printf("Fourth INFO entry must be CONFIG %s\n", s);
+    return ERANGE;
+  }
+
+  if (context->saw_info_block != 0) {
+    printf("info block can only appear once in a file, line %d\n", context->lineNumber);
+    return EBADF;
+  }
+
+  ret = compile_info_block_parameters(&symbolic->x, &bin->x);
+  if (ret != 0) {
+    return ret;
+  }
+
+  ret = compile_info_block_parameters(&symbolic->y, &bin->y);
+  if (ret != 0) {
+    return ret;
+  }
+
+  ret = compile_info_block_parameters(&symbolic->z, &bin->z);
+  if (ret != 0) {
+    return ret;
+  }
+
+  ret = compile_info_block_parameters(&symbolic->a, &bin->a);
+  if (ret != 0) {
+    return ret;
+  }
+
+  context->saw_info_block = 1;
+
+  // It's a valid info block
+  *isInfoBlock = 1;
 
   return 0;
 }
@@ -1440,6 +1561,11 @@ compile_axis_opcode(
   //
 
   DBG_PRINT2("compile_axis_opcode axis %s, line %d\n", symbolic->axis, context->lineNumber);
+
+  if (context->saw_info_block == 0) {
+      printf("Line %d: Opcodes can only be specified after an info block\n", context->lineNumber);
+      return EBADF;
+  }
 
   //
   // Note entries may be NULL and NOP's are placed in the compiled opcode.
@@ -2043,6 +2169,33 @@ string_to_unsigned_long(char* s, unsigned long* l)
   return 0;
 }
 
+unsigned long
+info_symbol_to_binary(char* s)
+{
+  // if null, the opcode is NOP
+  if (s == NULL) {
+    return OPCODE_NOP;
+  }
+
+  if (strcmp(s, OPCODE_HEADER_SYMBOL) == 0) {
+    return OPCODE_HEADER;
+  }
+  else if (strcmp(s, OPCODE_CONFIG_SYMBOL) == 0) {
+    return OPCODE_CONFIG;
+  }
+  else {
+    // Not an INFO block
+    return OPCODE_NOP;
+  }
+}
+
+//
+// Compile an opcode symbol to binary.
+//
+// Note: Only valid machine instructions are handled here.
+//
+// HEADER and CONFIG info blocks are handled separately.
+//
 int
 opcode_symbol_to_binary(char* s)
 {
@@ -2062,12 +2215,6 @@ opcode_symbol_to_binary(char* s)
   }
   else if (strcmp(s, OPCODE_DWELL_SYMBOL) == 0) {
     return OPCODE_DWELL;
-  }
-  else if (strcmp(s, OPCODE_HEADER_SYMBOL) == 0) {
-    return OPCODE_HEADER;
-  }
-  else if (strcmp(s, OPCODE_CONFIG_SYMBOL) == 0) {
-    return OPCODE_CONFIG;
   }
   else {
     return -1;
@@ -2089,7 +2236,16 @@ axis_symbol_to_binary(char* s)
   else if (strcmp(s, A_AXIS_SYMBOL) == 0) {
     return AXIS_CODE_A;
   }
-  else if (strcmp(s, INFO_AXIS_SYMBOL) == 0) {
+  else if (strcmp(s, INFO_AXIS_SYMBOL_X) == 0) {
+    return AXIS_CODE_INFO;
+  }
+  else if (strcmp(s, INFO_AXIS_SYMBOL_Y) == 0) {
+    return AXIS_CODE_INFO;
+  }
+  else if (strcmp(s, INFO_AXIS_SYMBOL_Z) == 0) {
+    return AXIS_CODE_INFO;
+  }
+  else if (strcmp(s, INFO_AXIS_SYMBOL_A) == 0) {
     return AXIS_CODE_INFO;
   }
   else {

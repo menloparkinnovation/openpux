@@ -32,6 +32,12 @@ typedef struct _AXIS_OPCODE {
 // An opcode block represents an opcode entry for
 // multiple resources such as axis, spindle, etc.
 //
+// Info is only present for ASM HEADER and CONFIG
+// entries and provides configuration information.
+//
+// No instructions may be present if an info block has any
+// non-NULL fields.
+//
 
 typedef struct _OPCODE_BLOCK_FOUR_AXIS {
   AXIS_OPCODE info;
@@ -115,12 +121,7 @@ enum AxisState {
 
   AxisStateU           = 8,
   AxisStateV           = 9,
-  AxisStateW           = 10,
-
-  //
-  // INFO is a virtual axis.
-  //
-  AxisStateInfo        = 11
+  AxisStateW           = 10
 };
 
 //
@@ -192,9 +193,7 @@ typedef struct _ASSEMBLER_CONTEXT {
 
   char opcode_block_valid;
 
-  char saw_header;
-
-  char saw_config;
+  char saw_info_block;
 
   char saw_begin;
 
@@ -523,9 +522,15 @@ typedef struct _ASSEMBLER_CONTEXT {
 #define W_AXIS_SYMBOL "W"
 
 //
-// INFO is a virtual axis
+// INFO_X is a virtual axis
 //
-#define INFO_AXIS_SYMBOL "INFO"
+#define INFO_AXIS_SYMBOL_X "INFO_X"
+
+#define INFO_AXIS_SYMBOL_Y "INFO_Y"
+
+#define INFO_AXIS_SYMBOL_Z "INFO_Z"
+
+#define INFO_AXIS_SYMBOL_A "INFO_A"
 
 //
 // The following are resources treated as instruction targets
@@ -618,12 +623,16 @@ typedef struct _ASSEMBLER_CONTEXT {
 // they are handled by host or embedded firmware processors.
 //
 
-#define OPCODE_HEADER        0xFF000000
+//
+// Note: Unsigned long casts are needed for sign extension
+// issues on 64 bit systems.
+//
+#define OPCODE_HEADER        ((unsigned long)0xFF000000)
 
-#define OPCODE_CONFIG        0xFE000000
+#define OPCODE_CONFIG        ((unsigned long)0xFE000000)
 
 // Begining of a block of instructions.
-#define OPCODE_BEGIN_BLOCK 0xFD000000
+#define OPCODE_BEGIN_BLOCK   ((unsigned long)0xFD000000)
 
 //
 // End of a block of instructions.

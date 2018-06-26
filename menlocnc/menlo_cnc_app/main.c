@@ -74,6 +74,12 @@ int setup_hardware();
 
 int close_hardware();
 
+int
+validate_header_block(
+    void* menlo_cnc_registers_base_address,
+    void* block
+    );
+
 int memory_fd = -1;
 
 // Base virtual address returned from mmap()
@@ -371,6 +377,23 @@ stream_instructions(
     return ret;
   }
 
+  //
+  // Note: First entry must be header
+  //
+
+  block = block_array_get_next_entry(binary);
+  if (block == NULL) {
+    printf("Empty assembly streadm\n");
+    // status is set from last load, or initial value if array is empty.
+    return EBADF;
+  }
+
+  ret = validate_header_block(registers, block);
+  if (ret != 0) {
+    printf("No HEADER block at start of instruction stream\n");
+    return ret;
+  }
+
   // 
   // Load commands from block array until end or error.
   // 
@@ -480,7 +503,9 @@ stream_instructions(
     if (menlo_cnc_registers_is_underrun(status)) {
 
       // Just report it, don't abort
-      printf("underrun occurred status 0x%lx\n", status);
+      printf("underrun occurred status 0x%lx at instruction block %ld\n",
+	     status, instruction_block_count);
+
       underrun_errors++;
 
       // Rearm it
@@ -641,6 +666,40 @@ convert_four_axis_binary(
   convert_axis_binary(&src->a, &target->a);
 
   return;
+}
+
+int
+validate_header_block(
+    void* menlo_cnc_registers_base_address,
+    void* block
+    )
+{
+  POPCODE_BLOCK_FOUR_AXIS_BINARY src;
+
+  src = (POPCODE_BLOCK_FOUR_AXIS_BINARY)block;
+
+  if (src->x.instruction != OPCODE_HEADER) {
+    return EBADF;
+  }
+
+  if (src->y.instruction != OPCODE_CONFIG) {
+    return EBADF;
+  }
+
+  if (src->z.instruction != OPCODE_CONFIG) {
+    return EBADF;
+  }
+
+  if (src->a.instruction != OPCODE_CONFIG) {
+    return EBADF;
+  }
+
+  //
+  // TODO: Validate against machine parameters and version
+  // in regsiter file.
+  //
+
+  return 0;
 }
 
 unsigned long

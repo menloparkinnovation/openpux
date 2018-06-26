@@ -56,25 +56,27 @@
 ; 
 ; major version represents a breaking API change.
 ; 
-; minor version represents new features, but generally
-; forward compatible.
+; minor version represents new features, but generally backward
+; compatible with same major version.
 ; 
-INFO, HEADER, 1, 1, 0
+; Meaning newer minor versions can run older minor version binaries
+; if they share the same major version.
+; 
 	
-; 
-;  config
-;  - Required
-;  - Must be after header and before any executable lines.
-; 
-; configuration of target machine.
-; 
-; number of axis
-; 
-;  options0
-; 
-;  options1
-; 
-INFO, CONFIG, 4, 0, 0
+begin
+  ;;    Engine Version
+  ;; 	        Major, Minor, Update
+  INFO_X, HEADER,     1,     0,      0
+	
+  ;;   Axis Count, Capabilities0, Capabilities1
+  INFO_Y, CONFIG, 4,    0x00000000,    0x00000000
+	
+  ;; Machine specific, Passed Through in binary
+  INFO_Z, CONFIG, 0, 0, 0
+	
+  ;; Machine specific, Passed Through in binary
+  INFO_A, CONFIG, 0, 0, 0
+end
 
 ; implied begin/end block commands
 X,CW,100hz,16,4, Y,CCW,50hz,8,2, Z,DWELL,75hz,12,0, A,NOP,0,0,0
