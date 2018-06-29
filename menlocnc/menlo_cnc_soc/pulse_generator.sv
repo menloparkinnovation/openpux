@@ -5,19 +5,26 @@
 //
 // 03/31/2018
 //
-// Pulse Generator.
+// Counted pulse Generator.
 //
 // Generates a programmable series of output pulses and then
-// stops.
+// stops and sets its tc signal to true.
 //
 // Each write enables a new series of pulses to be generated when en == 1
 // until it stops again.
+//
+// If freerun is set during the write of the count, it will negate tc
+// and perform a countdown cycle. When it reaches 0, tc is set to true
+// and the counter is reloaded with the last written count. This allows
+// it to generate a continuous series of pulses for supporting PWM
+// in addition to step/dir style outputs.
 //
 // Parameterized size, deault 4.
 //
 // clock_in - main system clock.
 //
 // pulse_clock_in - determines the rate of the pulses.
+//
 // Must be related to main clock_in.
 //
 // reset - synchronous reset.
@@ -29,9 +36,21 @@
 //
 // initial_count - Count value.
 //
+// freerun - Don't stop if == 1.
+//
+//           Loaded with initial_count on write.
+//
+//           Will reload the counter when it reaches 0.
+//
+//           Will set tc after the first count down, but
+//           will re-load and continue counting.
+//
+//           This allows generation of continous output such
+//           as for PWM control.
+//
 // tc == 1 when current_count is 0.
 //
-// count stops when tc == 1
+// count stops when tc == 1, and freerun == 0
 //
 // reset == 1 resets
 //   initial_count == 0
@@ -49,6 +68,7 @@ module pulse_generator_xx
     en,
     write,
     initial_count,
+    freerun,
     pulse_out,
     tc
 );
@@ -72,7 +92,8 @@ module pulse_generator_xx
   input               en;
   input               write;
   input [width-1:0]   initial_count;
-  
+  input               freerun;
+
   //
   // outputs
   //
@@ -85,11 +106,25 @@ module pulse_generator_xx
   //
   
   //
-  // This holds the current count
+  // Thisolds the current count
+  //
   // Note: Normally would be width-1, but we need +1 bit for X2 count.
   //
   reg [width:0] current_count_reg;
   
+  //
+  // This holds the initial_count supplied during write.
+  //
+  // Note: Normally would be width-1, but we need +1 bit for X2 count.
+  //
+  reg [width:0] reg_initial_count_shifted;
+
+  // freerun command saved on write
+  reg reg_freerun;
+
+  // Terminate count signal register
+  reg reg_tc;
+
   //
   // Need to evaluate all signals in the clock_in always block.
   //
@@ -105,11 +140,9 @@ module pulse_generator_xx
   // have multiple triggers due to the fast clock_in and the much slower pulse_clock.
   //
   
-  //reg trigger;
   reg hold_trigger;
 
-  // tc == 1 when current_count_reg == 0.
-  assign tc = (current_count_reg == {width+1{1'h0}}) ? 1'b1 : 1'b0;
+  assign tc = reg_tc;
   
   //
   // Stateful logic evaluated at the clock edge.
@@ -122,8 +155,10 @@ module pulse_generator_xx
     //
     if (reset == 1'b1) begin
         current_count_reg <= {width+1{1'h0}};
+        reg_initial_count_shifted <= {width+1{1'h0}};
+        reg_tc <= 1;
+        reg_freerun <= 0;
         pulse_out <= 0;
-        //trigger <= 0;
         hold_trigger <= 0;
     end
     else begin
@@ -140,7 +175,16 @@ module pulse_generator_xx
 
             // The assignment shifts the input by 1 bit, multiplying X2.
             current_count_reg[width:1] <= initial_count[width-1:0];
-            //trigger <= 0;
+
+            // The assignment shifts the input by 1 bit, multiplying X2.
+            reg_initial_count_shifted[width:1] <= initial_count[width-1:0];
+
+            // clear tc as we have a new command
+            reg_tc <= 0;
+
+            // Capture free run value
+            reg_freerun <= freerun;
+
             hold_trigger <= 0;
         end
         else begin
@@ -157,13 +201,11 @@ module pulse_generator_xx
 
 		 if (hold_trigger == 1'b0) begin
 
-		     // First time we have seen this pulse_clock_in period.
-		     //trigger <= 1'b1;
-
 		     // Hold new triggers until pulse_clock_in low is seen.
 		     hold_trigger <= 1'b1;
 
                      if (current_count_reg != {width+1{1'h0}}) begin
+
                          current_count_reg <= current_count_reg - 1;
 
 			 //
@@ -179,10 +221,21 @@ module pulse_generator_xx
 		   end
 		   else begin
 
-		        // Count has gone to zero, restart the sequence.
+                        //
+		        // Count has gone to zero
+                        //
 		        pulse_out <= 0;
-		        //trigger <= 0;
 		        hold_trigger <= 0;
+
+                        // Set tc
+                        reg_tc <= 1'b1;
+
+                        //
+                        // If free run the counter is reloaded even though tc is set.
+                        //
+                        if (reg_freerun == 1'b1) begin
+                          current_count_reg <= reg_initial_count_shifted;
+                        end
 		   end
 	
 		 end // end hold_trigger == 1'b0
@@ -194,7 +247,6 @@ module pulse_generator_xx
 		// are now expecting a new pulse_clock_in period.
 		//
 		hold_trigger <= 1'b0;
-		//trigger <= 1'b0;
 	    end
 
         end // end not write == 1

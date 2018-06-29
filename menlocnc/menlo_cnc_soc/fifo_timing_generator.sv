@@ -1,7 +1,4 @@
 
-// 06/15/2018
-// TODO: fix TODO's in this file.
-
 // set timescale for 1ns with 100ps precision.
 `timescale 1ns / 100ps
 
@@ -182,24 +179,6 @@ module fifo_timing_generator
   //
 
   //
-  // Bit 0 is the direction from the timing generator
-  //
-  // 0 == clockwise, 1 == counter clockwise
-  //
-  wire                           timing_generator_instruction_bit0_dir_in;
-
-  //
-  // Bit 1 is the operation. 0 == DWELL, 1 == generate pulse out
-  //
-  wire                           timing_generator_instruction_bit1_op_in;
-
-  // Bit 2
-  wire                           timing_generator_instruction_bit2_rsv2_in;
-
-  // Bit 3
-  wire                           timing_generator_instruction_bit3_rsv3_in;
-
-  //
   // This is set to indicate when a write operation occurs to
   // place a command from the FIFO to the timing generator.
   //
@@ -264,8 +243,7 @@ module fifo_timing_generator
       .enable(enable),
       .estop(estop),
       .write(timing_generator_write),
-      .instruction(timing_generator_instruction_bit1_op_in),
-      .direction(timing_generator_instruction_bit0_dir_in),
+      .instruction(remove_instruction),
       .pulse_period(remove_pulse_period),
       .pulse_count(remove_pulse_count),
       .pulse_width(remove_pulse_width),
@@ -281,25 +259,6 @@ module fifo_timing_generator
       .debug_pulse_generator1_tc(debug_pulse_generator1_tc)
 `endif
   );
-
-  //
-  // Continous assigns for decoding the instruction from the FIFO
-  // to the specific timing generator inputs.
-  //
-
-  assign timing_generator_instruction_bit0_dir_in = remove_instruction[0:0];
-  assign timing_generator_instruction_bit1_op_in = remove_instruction[1:1];
-
-  //
-  // These are reserved to decode new opcodes to the timing generator.
-  //
-  // [3:2] == 00 - Above definition
-  // [3:2] == 01 - opcode1
-  // [3:2] == 02 - opcode2
-  // [3:2] == 03 - opcode3
-  //
-  assign timing_generator_instruction_bit2_rsv2_in = remove_instruction[2:2];
-  assign timing_generator_instruction_bit3_rsv3_in = remove_instruction[3:3];
 
 `ifdef DEBUG
   //
