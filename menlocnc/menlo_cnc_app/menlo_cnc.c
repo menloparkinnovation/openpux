@@ -367,6 +367,74 @@ menlo_cnc_registers_calculate_pulse_count(
   return 0;
 }
 
+//
+// Returns the value for the pulse_width register that
+// will generate the specified pulse_width represented
+// as 1 / Hertz.
+//
+// Registers is optional and my be NULL.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
+menlo_cnc_registers_calculate_pulse_width_by_hz(
+    PMENLO_CNC_REGISTERS registers,
+    double pulse_width_in_hz,
+    unsigned long* binary_pulse_width
+    )
+{
+    double clock_period;
+    double clock_scale_factor;
+    double periods;
+    double pulse_period;
+    double pulse_period_in_nanoseconds;
+
+    //
+    // Zero is always zero.
+    //
+    if (pulse_width_in_hz == 0) {
+      *binary_pulse_width = 0;
+      return 0;
+    }
+
+    pulse_period = (double)1 / pulse_width_in_hz;
+
+    // convert to nanoseconds
+    pulse_period_in_nanoseconds = pulse_period * (double)1000000000;
+
+    clock_period = (double)TIMING_GENERATOR_BASE_CLOCK_PERIOD_IN_NANOSECONDS;
+
+    clock_scale_factor = (double)TIMING_GENERATOR_PULSE_WIDTH_SCALE_FACTOR;
+
+    periods = pulse_period_in_nanoseconds / clock_period;
+
+    //
+    // Apply any scale factor
+    //
+    periods = periods / clock_scale_factor;
+
+    if (periods > TIMING_GENERATOR_MAXIMUM_PULSE_WIDTH_COUNT) {
+      return -1;
+    }
+
+    //
+    // We could underflow. If converted to unsigned long its zero, fail.
+    //
+    // Note that we checked for a request of zero on entry so in this
+    // case its an underflow.
+    //
+    if ((unsigned long)periods == 0) {
+#if DBG_TRACE
+      printf("calculate_pulse_width underflow in pulse_width %g\n", periods);
+#endif
+      return -1;
+    }
+
+    *binary_pulse_width = (unsigned long)periods;
+
+    return 0;
+}
 
 //
 // Returns the value for the pulse_width register that

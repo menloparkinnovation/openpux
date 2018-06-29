@@ -48,6 +48,17 @@ stream_instructions(
     PBLOCK_ARRAY binary
     );
 
+int
+find_maximum_pulse_rate(
+    void* registers
+    );
+
+int
+test_pulse_rate(
+    void* registers,
+    double frequency
+    );
+
 unsigned long
 load_block(
     void* menlo_cnc_registers_base_address,
@@ -496,7 +507,7 @@ stream_instructions(
 
     status = load_block(registers, block);
     if (menlo_cnc_registers_is_error(status)) {
-      printf("error %ld loading block %ld\n", status, instruction_block_count);
+      printf("error %ld loading block 0x%lx\n", status, instruction_block_count);
       goto Done;
     }
 
@@ -882,7 +893,7 @@ test_menlo_cnc_pulse(
 
     //instruction = 0; // clockwise (output is 0)
     instruction = 1; // counter clockwise (output is 1)
-    instruction |= MENLO_CNC_REGISTERS_INSTRUCTION_INS;
+    instruction |= MENLO_CNC_REGISTERS_INSTRUCTION_PULSE;
 
     //
     // Sherline:
@@ -1029,6 +1040,242 @@ test_menlo_cnc_pulse(
     status = menlo_cnc_read_status(registers);
 
     printf("status on exit 0x%lx\n", status);
+
+    return 0;
+}
+
+//
+// Loads all axis with the test parameters.
+//
+int
+test_initialize_test_block(
+    void* registers_base_address,
+    PMENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY target,
+    unsigned long instruction,
+    unsigned long pulse_count,
+    double frequency,
+    double width
+    )
+{
+    PMENLO_CNC_REGISTERS registers;
+    int ret;
+    unsigned long pulse_rate;
+    unsigned long pulse_width;
+
+    registers = (PMENLO_CNC_REGISTERS)registers_base_address;
+
+    ret = menlo_cnc_registers_calculate_pulse_rate_by_hz(
+        registers,
+        frequency,
+        &pulse_rate
+        );
+
+    if (ret != 0) {
+        printf("overflow calulating pulse frequency %g for target machine\n", frequency);
+        return 1;
+    }
+
+    ret = menlo_cnc_registers_calculate_pulse_width_by_hz(
+        registers,
+        width,
+        &pulse_width
+        );
+
+    if (ret != 0) {
+      printf("overflow calculating pulse_width %g for target machine\n", width);
+      return 1;
+    }
+
+    target->x.instruction = instruction;
+    target->x.pulse_rate = pulse_rate;
+    target->x.pulse_count = pulse_count;
+    target->x.pulse_width = pulse_width;
+
+    target->y.instruction = instruction;
+    target->y.pulse_rate = pulse_rate;
+    target->y.pulse_count = pulse_count;
+    target->y.pulse_width = pulse_width;
+
+    target->z.instruction = instruction;
+    target->z.pulse_rate = pulse_rate;
+    target->z.pulse_count = pulse_count;
+    target->z.pulse_width = pulse_width;
+
+    target->a.instruction = instruction;
+    target->a.pulse_rate = pulse_rate;
+    target->a.pulse_count = pulse_count;
+    target->a.pulse_width = pulse_width;
+
+    return 0;
+}
+
+int
+run_maximum_pulse_test_pass(
+    void* registers_base_address,
+    PMENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY target,
+    unsigned long command,
+    int count_to_load
+    )
+{
+    PMENLO_CNC_REGISTERS registers;
+    int index;
+    unsigned long status;
+
+    registers = (PMENLO_CNC_REGISTERS)registers_base_address;
+
+    status = menlo_cnc_reset_timing_engine(registers);
+
+    printf("status after reset 0x%lx\n", status);
+
+    //
+    // Clear Sticky FIFO Underrun before entring the real time loop.
+    //
+    // This gets set if the FIFO's go empty once the first instruction
+    // has been loaded.
+    //
+    menlo_cnc_registers_reset_sfe(registers);
+
+    //
+    // Begin load loop
+    //
+
+    for (index = 0; index < count_to_load; index++) {
+
+        status = menlo_cnc_load_four_axis(
+            registers_base_address,
+            command,
+            &target->x,
+            &target->y,
+            &target->z,
+            &target->a
+            );
+
+        if (menlo_cnc_registers_is_error(status)) {
+          printf("error 0x%lx loading block %d\n", status, index);
+	  break;
+        }
+    }
+
+    if (menlo_cnc_registers_is_error(status)) {
+      return EBADF;
+    }
+
+    //
+    // Check for underflow
+    //
+
+    if (menlo_cnc_registers_is_underrun(status)) {
+      printf("underrun occurred status 0x%lx\n", status);
+      return EBADF;
+    }
+
+    printf("No underflow status 0x%lx\n", status);
+
+    return 0;
+}
+
+int
+find_maximum_pulse_rate(
+    void* registers_base_address
+    )
+{
+  int ret;
+  double frequency;
+
+  //
+  // Set initial frequency
+  //
+
+  frequency = (double)1000000;
+
+  //
+  // TODO: Loop to do a binary search till limit.
+  //
+  // First multiply by 2 to the limit based on underrun failure,
+  // the search the divide by 2 of the last known good to failure.
+  //
+  // Essentially power of 2 for progressively smaller increments
+  // until the frequency is determined, or enough pass accuracy has been
+  // achieved.
+  //
+
+  ret = test_pulse_rate(registers_base_address, frequency);
+  if (ret != 0) {
+    return ret;
+  }
+
+  return 0;
+}
+
+int
+test_pulse_rate(
+    void* registers_base_address,
+    double frequency
+    )
+{
+    MENLO_CNC_OPCODE_BLOCK_FOUR_AXIS_BINARY target;
+    unsigned long instruction;
+    unsigned long pulse_count;
+    unsigned long command;
+    double width;
+    int count_to_load;
+    int ret;
+
+    command = 0;
+    command |= (MENLO_CNC_REGISTERS_COMMAND_CMD |
+                MENLO_CNC_REGISTERS_COMMAND_EAN);
+
+    //
+    // Set for generating pulses with clockwise direction.
+    //
+    // instruction [0:0] == 0 == clockwise (don't care, no pulse)
+    // instruction [1:1] == 1 == PULSE out
+    //
+
+    instruction = 1; // counter clockwise (output is 1)
+    instruction |= MENLO_CNC_REGISTERS_INSTRUCTION_PULSE;
+
+    // Pulse count == 1 completes in shortest time
+    pulse_count = 1;
+
+    // 512 entry FIFO
+    count_to_load = 512;
+
+    //
+    // Set pulse width for a 50% duty cycle
+    //
+
+    width = frequency / (double)2;
+
+    ret = test_initialize_test_block(
+        registers_base_address,
+	&target,
+	instruction,
+	pulse_count,
+	frequency,
+	width
+	);
+
+    if (ret != 0) {
+      printf("overflow error initializing test block %d\n", ret);
+      return ret;
+    }
+
+    //
+    // Run a pass
+    //
+
+    ret = run_maximum_pulse_test_pass(
+        registers_base_address,
+	&target,
+	command,
+        count_to_load
+	);
+
+    if (ret != 0) {
+      printf("test pass failure %d", ret);
+      return ret;
+    }
 
     return 0;
 }

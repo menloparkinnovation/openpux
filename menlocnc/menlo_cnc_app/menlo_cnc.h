@@ -772,7 +772,7 @@ typedef struct _MENLO_CNC_REGISTERS {
 #define MENLO_CNC_REGISTERS_INSTRUCTION_DIR 0x01
 
 // 0 == DWELL, 1 == generate movement pulses
-#define MENLO_CNC_REGISTERS_INSTRUCTION_INS 0x02
+#define MENLO_CNC_REGISTERS_INSTRUCTION_PULSE 0x02
 
 
 //
@@ -793,6 +793,25 @@ typedef struct _MENLO_CNC_REGISTERS {
 //
 //   pulse_width is ignored.
 //
+// Opcode map:
+//
+// 0000 - OPCODE_NOP
+// 0001 - OPCODE_DWELL
+// 0010 - OPCODE_CW
+// 0011 - OPCODE_CCW
+// 0100 - OPCODE_PWM
+// 0101 - RESERVED, generators error signal
+// 0110 -   ""
+// 0111 -   ""
+// 1000 -   ""
+// 1001 -   ""
+// 1010 -   ""
+// 1011 -   ""
+// 1100 -   ""
+// 1101 -   ""
+// 1110 -   ""
+// 1111 -   ""
+//
 
 #define MENLO_CNC_OPCODE_NOP         0x00
 
@@ -801,6 +820,8 @@ typedef struct _MENLO_CNC_REGISTERS {
 #define MENLO_CNC_OPCODE_MOTION_CW   0x02
 
 #define MENLO_CNC_OPCODE_MOTION_CCW  0x03
+
+#define MENLO_CNC_OPCCODE_PWM        0x04
 
 //
 // Binary command packet for each axis
@@ -1098,6 +1119,23 @@ menlo_cnc_registers_calculate_pulse_count(
     PMENLO_CNC_REGISTERS registers,
     double pulse_count,
     unsigned long* binary_pulse_count
+    );
+
+//
+// Returns the value for the pulse_width register that
+// will generate the specified pulse_width represented
+// as 1 / Hertz.
+//
+// Registers is optional and my be NULL.
+//
+// This routine returns an error if the requested
+// range can not be specified on the target machine.
+//
+int
+menlo_cnc_registers_calculate_pulse_width_by_hz(
+    PMENLO_CNC_REGISTERS registers,
+    double pulse_width_in_hz,
+    unsigned long* binary_pulse_width
     );
 
 //
