@@ -1,5 +1,5 @@
 
-MenloCNC High Performance FGPA based Machine Controller
+MenloCNC High Performance FPGA based Machine Controller
 =======================================================
 
 Copyright (C) 2018 Menlo Park Innovation LLC
