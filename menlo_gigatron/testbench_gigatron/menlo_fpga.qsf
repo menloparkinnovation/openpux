@@ -1,0 +1,155 @@
+# -------------------------------------------------------------------------- #
+#
+# Copyright (C) 2017  Intel Corporation. All rights reserved.
+# Your use of Intel Corporation's design tools, logic functions 
+# and other software and tools, and its AMPP partner logic 
+# functions, and any output files from any of the foregoing 
+# (including device programming or simulation files), and any 
+# associated documentation or information are expressly subject 
+# to the terms and conditions of the Intel Program License 
+# Subscription Agreement, the Intel Quartus Prime License Agreement,
+# the Intel FPGA IP License Agreement, or other applicable license
+# agreement, including, without limitation, that your use is for
+# the sole purpose of programming logic devices manufactured by
+# Intel and sold by Intel or its authorized distributors.  Please
+# refer to the applicable agreement for further details.
+#
+# -------------------------------------------------------------------------- #
+#
+# Quartus Prime
+# Version 17.1.0 Build 590 10/25/2017 SJ Lite Edition
+# Date created = 20:15:49  March 17, 2018
+#
+# -------------------------------------------------------------------------- #
+#
+# Notes:
+#
+# 1) The default values for assignments are stored in the file:
+#		menlo_fpga_assignment_defaults.qdf
+#    If this file doesn't exist, see file:
+#		assignment_defaults.qdf
+#
+# 2) Altera recommends that you do not modify this file. This
+#    file is updated automatically by the Quartus Prime software
+#    and any changes you make may be lost or overwritten.
+#
+# -------------------------------------------------------------------------- #
+
+
+set_global_assignment -name NUM_PARALLEL_PROCESSORS 2
+set_global_assignment -name FAMILY "Cyclone V"
+set_global_assignment -name DEVICE 5CSXFC6D6F31C6
+set_global_assignment -name TOP_LEVEL_ENTITY menlo_fpga
+set_global_assignment -name ORIGINAL_QUARTUS_VERSION 17.1.0
+set_global_assignment -name PROJECT_CREATION_TIME_DATE "20:15:49  MARCH 17, 2018"
+set_global_assignment -name LAST_QUARTUS_VERSION "17.1.0 Lite Edition"
+set_global_assignment -name PROJECT_OUTPUT_DIRECTORY output_files
+set_global_assignment -name MIN_CORE_JUNCTION_TEMP 0
+set_global_assignment -name MAX_CORE_JUNCTION_TEMP 85
+set_global_assignment -name ERROR_CHECK_FREQUENCY_DIVISOR 256
+set_location_assignment PIN_AF14 -to CLOCK_50
+set_location_assignment PIN_AK4 -to KEY[1]
+set_location_assignment PIN_AJ4 -to KEY[0]
+set_location_assignment PIN_AD24 -to LED[3]
+set_location_assignment PIN_AC23 -to LED[2]
+set_location_assignment PIN_AB23 -to LED[1]
+set_location_assignment PIN_AA24 -to LED[0]
+set_global_assignment -name ENABLE_OCT_DONE OFF
+set_global_assignment -name ENABLE_CONFIGURATION_PINS OFF
+set_global_assignment -name ENABLE_BOOT_SEL_PIN OFF
+set_global_assignment -name STRATIXV_CONFIGURATION_SCHEME "PASSIVE SERIAL"
+set_global_assignment -name USE_CONFIGURATION_DEVICE ON
+set_global_assignment -name CRC_ERROR_OPEN_DRAIN ON
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_NEAR_END_VMEAS "HALF VCCIO" -fall
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -rise
+set_global_assignment -name OUTPUT_IO_TIMING_FAR_END_VMEAS "HALF SIGNAL SWING" -fall
+set_global_assignment -name ACTIVE_SERIAL_CLOCK FREQ_100MHZ
+set_global_assignment -name RESERVE_ALL_UNUSED_PINS_WEAK_PULLUP "AS INPUT TRI-STATED"
+set_location_assignment PIN_AA14 -to KEY[2]
+set_global_assignment -name POWER_PRESET_COOLING_SOLUTION "23 MM HEAT SINK WITH 200 LFPM AIRFLOW"
+set_global_assignment -name POWER_BOARD_THERMAL_MODEL "NONE (CONSERVATIVE)"
+set_global_assignment -name EDA_SIMULATION_TOOL "ModelSim-Altera (Verilog)"
+set_global_assignment -name EDA_TIME_SCALE "1 ps" -section_id eda_simulation
+set_global_assignment -name EDA_OUTPUT_DATA_FORMAT "VERILOG HDL" -section_id eda_simulation
+set_global_assignment -name EDA_TEST_BENCH_ENABLE_STATUS TEST_BENCH_MODE -section_id eda_simulation
+set_global_assignment -name EDA_NATIVELINK_SIMULATION_TEST_BENCH tb_x74xx595 -section_id eda_simulation
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_periodic_counter_xx -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_periodic_counter_xx
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_periodic_counter_xx -section_id tb_periodic_counter_xx
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_clock_generator_xx -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_clock_generator_xx
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_clock_generator_xx -section_id tb_clock_generator_xx
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_pulse_generator_xx -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_pulse_generator_xx
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_pulse_generator_xx -section_id tb_pulse_generator_xx
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_clock_generator2_xx -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_clock_generator2_xx
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_clock_generator2_xx -section_id tb_clock_generator2_xx
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_pulse_shaper_xx -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_pulse_shaper_xx
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_pulse_shaper_xx -section_id tb_pulse_shaper_xx
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_command_fifo -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_command_fifo
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_command_fifo -section_id tb_command_fifo
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_delayed_counter -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_delayed_counter
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_delayed_counter -section_id tb_delayed_counter
+set_global_assignment -name EDA_TEST_BENCH_NAME timing_generator -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id timing_generator
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_timing_generator -section_id timing_generator
+set_global_assignment -name PARTITION_NETLIST_TYPE SOURCE -section_id Top
+set_global_assignment -name PARTITION_FITTER_PRESERVATION_LEVEL PLACEMENT_AND_ROUTING -section_id Top
+set_global_assignment -name PARTITION_COLOR 16764057 -section_id Top
+set_global_assignment -name EDA_TEST_BENCH_NAME x74xx04 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id x74xx04
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx04 -section_id x74xx04
+set_global_assignment -name EDA_TEST_BENCH_NAME x74xx32 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id x74xx32
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx32 -section_id x74xx32
+set_global_assignment -name EDA_TEST_BENCH_NAME x74xx283 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id x74xx283
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx283 -section_id x74xx283
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_xx74xx273 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_xx74xx273
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx273 -section_id tb_xx74xx273
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_x74xx377 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_x74xx377
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx377 -section_id tb_x74xx377
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_x74xx163 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_x74xx163
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx163 -section_id tb_x74xx163
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx595.sv
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx163.sv
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx377.sv
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx273.sv
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx283.sv
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx32.sv
+set_global_assignment -name SYSTEMVERILOG_FILE x74xx04.sv
+set_global_assignment -name BDF_FILE menlo_fpga.bdf
+set_global_assignment -name QIP_FILE pll.qip
+set_global_assignment -name SIP_FILE pll.sip
+set_global_assignment -name QIP_FILE counter_bus_mux.qip
+set_global_assignment -name SDC_FILE menlo_fpga.sdc
+set_global_assignment -name QIP_FILE test_fifo.qip
+set_global_assignment -name QIP_FILE dcfifo32.qip
+set_global_assignment -name QIP_FILE dcfifo4.qip
+set_global_assignment -name EDA_TEST_BENCH_NAME tb_x74xx595 -section_id eda_simulation
+set_global_assignment -name EDA_DESIGN_INSTANCE_NAME NA -section_id tb_x74xx595
+set_global_assignment -name EDA_TEST_BENCH_MODULE_NAME tb_x74xx595 -section_id tb_x74xx595
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx595.sv -section_id tb_x74xx595
+set_global_assignment -name EDA_TEST_BENCH_FILE periodic_counter.sv -section_id tb_periodic_counter_xx
+set_global_assignment -name EDA_TEST_BENCH_FILE clock_generator.sv -section_id tb_clock_generator_xx
+set_global_assignment -name EDA_TEST_BENCH_FILE pulse_generator.sv -section_id tb_pulse_generator_xx
+set_global_assignment -name EDA_TEST_BENCH_FILE clock_generator2.sv -section_id tb_clock_generator2_xx
+set_global_assignment -name EDA_TEST_BENCH_FILE pulse_shaper.sv -section_id tb_pulse_shaper_xx
+set_global_assignment -name EDA_TEST_BENCH_FILE command_fifo.sv -section_id tb_command_fifo
+set_global_assignment -name EDA_TEST_BENCH_FILE delayed_counter.sv -section_id tb_delayed_counter
+set_global_assignment -name EDA_TEST_BENCH_FILE timing_generator.sv -section_id timing_generator
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx04.sv -section_id x74xx04
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx32.sv -section_id x74xx32
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx283.sv -section_id x74xx283
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx273.sv -section_id tb_xx74xx273
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx377.sv -section_id tb_x74xx377
+set_global_assignment -name EDA_TEST_BENCH_FILE x74xx163.sv -section_id tb_x74xx163
+set_instance_assignment -name PARTITION_HIERARCHY root_partition -to | -section_id Top

@@ -1,0 +1,468 @@
+
+Notes on MenloPark Innovation LLC 74xxx series TTL chip library.
+
+07/01/2018
+
+These are general notes you will find in the comments in the
+System Verilog implementation files where it makes sense.
+
+These general notes are copied here, and in some cases expand
+upon a shorter note within the Verilog module.
+
+Copyright Notice:
+
+//
+//
+//   A Menlo Park Innovation LLC Creation.
+//
+//   Copyright (C) 2018 Menlo Park Innovation LLC
+//
+//   menloparkinnovation.com
+//   menloparkinnovation@gmail.com
+//
+//   Snapshot License
+//
+//   This license is for a specific snapshot of a base work of
+//   Menlo Park Innovation LLC on a non-exclusive basis with no warranty
+//   or obligation for future updates. This work, any portion, or derivative
+//   of it may be made available under other license terms by
+//   Menlo Park Innovation LLC without notice or obligation to this license.
+//
+//   There is no warranty, statement of fitness, statement of
+//   fitness for any purpose, and no statements as to infringements
+//   on any patents.
+//
+//   Menlo Park Innovation has no obligation to offer support, updates,
+//   future revisions and improvements, source code, source code downloads,
+//   media, etc.
+//
+//   Unless required by applicable law or agreed to in writing, software
+//   distributed under the License is distributed on an "AS IS" BASIS,
+//   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+//   See the License for the specific language governing permissions and
+//   limitations under the License.
+//
+//   This specific snapshot is made available under the following license:
+//
+//   The MIT license:
+//
+// The MIT License (MIT)
+// Copyright (c) 2018 Menlo Park Innovation LLC
+// 
+// Permission is hereby granted, free of charge, to any person obtaining a
+// copy of this software and associated documentation files (the "Software"),
+// to deal in the Software without restriction, including without limitation
+// the rights to use, copy, modify, merge, publish, distribute, sublicense,
+// and/or sell copies of the Software, and to permit persons to whom the
+// Software is furnished to do so, subject to the following conditions:
+// 
+// The above copyright notice and this permission notice shall be included in
+// all copies or substantial portions of the Software.
+// 
+// THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+// IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+// FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+// AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+// LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING
+// FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER
+// DEALINGS IN THE SOFTWARE.
+//
+
+General use case of this library:
+
+//
+// Model of 74xxx series logic family.
+//
+// This module allows experimentation with circuits normally constructed
+// from 74xxx series TTL digital logic chips on breadboards and circuit
+// boards.
+//
+// It provides "textbook" examples of the logic circuit implementation.
+//
+// The name is generic using x's to replace symbol codes that represents
+// variations of the logic family. These variations do not apply to
+// circuits in common on an FPGA, or generic logic expressed in
+// System Verilog. Examples are 74LS00, SN74LS00, 74HC00, SN74HCT00, etc.
+//
+// It's not intended to be a Verilog library, but a way to model simple
+// hardware circuits documented in online projects, text books, datasheets,
+// and other digital logic learning sources that are constructed from
+// 74xxx series logic chips.
+//
+// With these modules a simple translation of a schematics wire connections
+// to these virtual "chips" can be done using simple System Verilog statements
+// to instantiate the modules and connect them with wires, whose signal
+// names match the schematics.
+//
+// In addition by the generation of symbol files for these modules they
+// can be placed on an actual schematic in tool chains such as Quartus II
+// for Altera FPGA's though the student is best to get familiar with at
+// least the simple System Verilog statements to describe wiring components
+// into a circuit. These same tool chains are capable of generating a
+// "schematic view" of a top level System Verilog module, so "schematics"
+// may still be supplied for documentation purposes.
+//
+// Modifying circuits is much easier once System Verilog is used to describe
+// its framework and connections vs. re-drawing a schematic view. Hardware
+// thus becomes "code" in which software engineering principles can be
+// applied.
+//
+// For the simpler chips, More complex projects are better suited by
+// including the example System Verilog code inline, though the "chip"
+// implementation module provides a "text book" example. Such "text book"
+// implementations are important since System Verilog compilers recognize
+// these patterns and will optimize and map them to higher level native
+// circuit functions available on the FPGA.
+//
+// For the more complex chips the "chip" implemention module provides a
+// reasonable component boundary for a larger project, though in some
+// cases individual signals may be more clearly expressed as vectors
+// vs. individual pins depending on the use case.
+//
+// A test bench is included even for simple logic chips to provide
+// an example of this System Verilog coding discipline. This also provides
+// a useful way for the student to experiment with the logic function
+// of the virtual "chip" using the virtual logic analyzer in a tool
+// such as ModelSim included in the Altera FPGA tool chain.
+//
+// One useful aspect of the 74xxx series of TTL chips is that they
+// are extensively documented in manufactures datasheets with input
+// and output waveforms, logic, etc. Due to the up front investment
+// costs of designing and manufacturing these chips a lot of attention
+// has been paid to their interfaces to make them as broadly useful
+// as possible, but with minimal signal (pin) count. Chip designs
+// were optimized in this way for implementing common, useful digital
+// logic circuits such as counters, sequencers, decoders, registers,
+// adders, which were components of larger systems in their day.
+//
+// These same characteristics makes them good candidates for a functional
+// module interface that allows larger System Verilog based designs to
+// be composed of well known logical function blocks. In addition the
+// ability to drop down into any component and tweak its test bench
+// to get a better understanding of its behavior in regards to the
+// interactions with your specific circuit/subsystem is a very useful
+// tool in ensuring that your higher level designs are built on a solid
+// understanding of the behavior of your components, especially at
+// the edges. The test benches here try to test these edges, but should
+// be enhanced as needed to represent conditions in your real world circuits
+// so you can sit down with ModelSim and have a full undertanding of how
+// the particular logic block behaves in your larger design.
+//
+// The only real "knock" on using the 74xxx series model for System Verilog
+// functional modules is being oriented towards "pins" for the signals,
+// vs. vectors where it makes sense. But this stylistic difference
+// can be mitigated by implementing a vector representation version
+// either as a new/forked file, or within the module itself just invoking
+// the main module with pin interface. There is no performance cost here
+// since in the end the System Verilog to logic compiler just turns it
+// all into a netlist, optimizes it, and places it onto the logic functions.
+// It does not care, or even see that they originated as individual signals
+// with "pin" names, or a group of signals with a "vector" name.
+// 
+
+Verilog rules of the clocked always @ block/process:
+
+Almost all logical processing occurs within a clocked always @ block
+so the rules are outlined here. It's one of the trickier areas to
+understand for System Verilog, especially when someone comes from
+a software/code background, and a very important one.
+
+Combinatorial logic that reduces to a series of and/or/not/xor gates
+is easier to understand since they map pretty closely to logic
+if/else statments and comparisons in programming languages. These
+are typically represented as "assign" statements, but may also be
+represented in a non-clocked always blocks in which the "sensitivity list"
+does not have a clock signal in it. Such forms as as follows:
+
+always @* // evaluation on any edge, any signal within. Like assign.
+always (posedge reset, enable) // Only evaluate these signals on these edges
+always (negedge reset, enable) // ""
+
+Note that combinatorial always @ blocks use blocking assignment "="
+since the input and output of each statement represents the logic
+evaluation flowing through the gates. In a typical computer programming
+language this would be modeling the programs sequential evaluation of
+the if/else/and/or conditions during its execution.
+
+Here, we will remain concerned with clocked always @ blocks such as:
+
+  always @ (posedge clock) begin
+  end
+
+  x74xx163.sv:
+
+    //
+    // Note: To understand this logic, a review of the rules
+    // of a clocked always @ block:
+    //
+    // On clock rising edge (posedge clock), all registered variables
+    // will have the values set at the *last* clock cycle.
+    //
+    // All assignments to the registered variables will not take
+    // effect till the end of all assignment statements in the
+    // current always block, and will occur at the end of the current
+    // clock cycle.
+    //
+    // This means that if a registered variable is assigned to, its
+    // value read remains the same during the entire always block regardless
+    // of any assignments within the current clock cycle. It will *not*
+    // reflect any new values till the *next* clock cycle.
+    //
+    // If there are multiple assignments to the same registered variable
+    // in the same clock cycle only the last value remains. The other
+    // intermediate values are *lost*. If you want to present them such
+    // as driving an output, a state machine is required.
+    //
+    // Always use non-blocking assignments "<=" and not "=". If you forget
+    // and make a mistake weird results are guaranteed when the circuit
+    // is synthesized.
+    //
+    // There are two types of signals:
+    //
+    //  Clocked signals: These are stable signals declared as register (reg)
+    //  and updated using the above clocked logic rules. These are safe
+    //  to evaluate and rely upon in the always block. These operate by
+    //  holding stable state in flip-flops (1 bit memory cells) that
+    //  are only changed between clock edges (posedge clock) within
+    //  a clocked always @ block.
+    //
+    //  Real time signals: These are the result of combinatorial logic
+    //  such as assign statements and represent a non-clocked computed
+    //  output of a set of input signals. These are essentially logic
+    //  gates with inputs and outputs that bounce around depending on
+    //  timing and stability of their input signals. If all of these
+    //  input signals are stable registers then the output is stable
+    //  during the always block execution. If one or more of the inputs
+    //  are unregistered, such as an external signal, then the timing
+    //  of the output is controlled by the unregistered signal and any
+    //  gate delays within the combinatorial logic generated. As such
+    //  they typically require special handling to gate these signals
+    //  within the setup and hold times required.
+    //  For this application of emulating a x74xx163.sv TTL chip the
+    //  data sheet specifies these setup and hold times, so the wider
+    //  range of the chip being modeled should fit within the setup
+    //  and hold times required by the FPGA logic, which is a faster
+    //  part using internal wiring. But this is not guaranteed and
+    //  attention should be paid to final circuit designs utilizing
+    //  these emulations.
+    //
+    
+Whats RTL?
+
+RTL stands for Register Transfer Logic. It's also been referenced
+as Register Transfer Language, which is close, since its a way
+of describing clocked logic circuits.
+
+At a very basic level digital logic gates (AND, OR, NOT, XOR) consist
+of real world transistor switches. These switches, and the "wires"
+that connect them have delays. The variations in implementation, in addition
+to the logical combination of these transistors give each specific gate
+a unique delay. These delays vary between instances of a particular type
+of gate due to process variations, as well changes in temperature and
+voltage of the operating chip. Such is the world of analog circuits,
+in which digital circuits are constructed from.
+
+Higher level digital logic circuits composed of these basic gates also
+have delays reflecting the number of logic elements a signal path
+flows through, and delays in their underlying transistor implementation.
+Some factors impacting these delays is half of your higher level logic
+circuit may flow through a "warm" area of the chip, while the other paths
+go through a "cooler" area of the chip. And the chips temperature and
+voltages can change over time.
+
+The only way to use these logic gates in the real world is to set a
+maximum delay time for a given implementation and conditions such
+as temperature and voltage and "qualify" chips during manufacturing
+that they meet these requirements. This is what gives rise to
+"speed grades", "temperature grades", etc. of semiconductor chips.
+
+This delay is typically called path delay, timing delay, logic delay, etc.
+
+Due to this, wiring up a bunch of boolean logic circuits has a limit
+in its complexity in which sum of these worse case delays defines
+the circuits logic rate.
+
+To make matters worse, a complex circuit with multiple inputs and
+multiple outputs would have unpredictable outputs based on these
+delays for any change in inputs, until this maximum set of worse
+case timing delays are waited for. This maximum worse case delay
+is typically referred to as a timing path delay, or a critical
+timing path delay if its the "slow path" holding up the rest of
+your circuit.
+
+A solution to dealing with these delays is to provide the circuit
+with a stable set of inputs, wait the required amount of time for
+the critical path(s) to create a stable set of outputs, and then
+read the result. The way to do this is with a clock, which is
+a periodic signal which says when to hold the inputs steady,
+and when to read the outputs after the proper delay.
+
+The period of this clock is defined by your circuits worse case
+timing delay. The inverse of time period is frequency. Thus this
+represents the maximum clock rate your circuit can run at, and yes,
+this does relate to your CPU rate clock since your CPU is a large
+combination of clocked circuits.
+
+In order to hold the inputs steady a set of circuits called
+flip-flops (composed of gates) are used to "latch" the data
+for your circuits input at the begining of a clock cycle. It
+will hold these values steady for the current clock period.
+
+In order to allow your circuits calculated output to be steady
+to be used else where another set of flip-flops latch, or hold
+your output signals at the end of the clock period.
+
+At this point you have turned the unstable analog world into
+the stable digital world of clocked logic. This is the reason
+why analog computers failed and digital computers dominated.
+
+By connecting the output flip flops of one circuit stage
+to the input logic of another circuit you create a pipeline
+in which each independent logic stage operates at the *same*
+clock. So you get "parallel processing".
+
+One thing to note is that since your lowest clock period, or
+highest clock frequency is defined by your worse case path delay
+in your and/or gates, minimizing this delay allows a faster
+clock. So rather than having a complicated, deeply nested
+set of logic perform calculations during each clock period, you break
+it up into simpler logic components that can be calculated within
+one faster clock cycle. You then pipeline your circuits
+logic in multiple stages in parallel and you can then run
+at a much faster clock rate than you could otherwise.
+
+Note that you end up taking the same amount of time upon
+entering your pipeline and exiting it, so your latency
+remains the same from input to final output. But since you
+have executed multiple calculations in parallel at a much
+faster clock, your throughput goes up.
+
+For example if a circuit is broken up into four stages such
+that it can run at a four times faster clock, it will have
+the same latency for first data in, to first data out as
+the slow clock circuit, but it will produce four times the
+results in the same amount of real time.
+
+Picture a car factory with 30 equally timed two minute assembly stages.
+The latency of the first car in to the firt car out is
+the two minutes times 30, or one hour. But once the first car emerges
+another new car emerges every two minutes after. So you are now producing
+30 cars an hour. This is because you have made the assembly work
+parallel by breaking up the steps so that more people and machines
+can operate on a stage within a fixed amount of time and keep
+the processing moving. In digital logic chips these are the
+Moore's law expansion of transistors to make gates, which allow
+more parallel processing to occur.
+
+So, back to where did RTL get its name?
+
+RTL stands for:
+
+Register (hold the input steady)
+
+Transfer Function (boolean algebra calculated by your gates)
+
+That's it. A register holds an input steady based on a clock,
+you perform your local calculations with gates, and another register reads
+your output at the end of the clock cycle and holds it steady for
+the next circuit.
+
+By connecting these together you create parallel processing pipelines
+in which you can "solve" your logic problem. Solving a series of logic
+problems composed together into higher level functional blocks create
+subunits. Subunits composed together create modules/components/subsystems,
+which further on create processors, memories, buses, communication controllers,
+GPU's, etc.
+
+In System Verilog, the clock based/sensitive always @ (posedge clock) blocks
+are the RTL. The rest is combinatorial logic whose outputs must be used
+with great care and understanding.
+
+Reading a clocked always @ block is as follows:
+
+Note that understanding this is the hardest part of unlocking
+an understanding of Verilog for someone with a software engineering
+background. This is the main area of Verilog that does not act
+like traditional code. The rest maps more or less to software engineering
+principles of components, interfaces, even parallel processing and
+synchronization.
+
+always @ (posedge clock) begin
+
+    //
+    // When clock edge goes high, begin the current clock period.
+    //
+    // Any register signals on input are stable *if* they depend
+    // on the *same* (or related) clock. This means updated by an
+    // always @ block using the same clock.
+    //
+    // Stable means they hold their value during the entire always @
+    // block till the end *EVEN IF YOU ASSIGN TO THEM*.
+    //
+
+    // 
+    // All registered output assignments will not be valid until
+    // the *END* of this always block, which represents the end
+    // of the current clock cycle.
+    //
+    // They will *ALWAYS* represent the *LAST* assignment statement
+    // and not any in between in the same clock cycle.
+    //
+
+    //
+    // Assume reg_value == 0 on entry
+    //
+
+    reg_value <= 3;
+
+    reg_value <= 1;
+
+    if (reg_value == 1) begin
+        // This *WILL NOT BE TRUE* until the *NEXT* clock cycle.
+    end
+
+    if (reg_value == 0) begin
+        //
+        // This *WILL BE TRUE* in *THIS* clock cycle.
+        //
+        // Notice this is true even after the assignment statements above.
+        //
+    end
+
+    if (reg_value == 3) begin
+
+        //
+        // This will *NEVER* be seen.
+        // It's always overritten by 1 so its never the final assignment
+        // at the end of the always block.
+        //
+    end
+
+    //
+    // Note: Don't do this, its a bug and creates a bogus circuit.
+    // This is called "blocking" assignment and should only be used
+    // for non-clock based logic as it represents a sequential dependency.
+    //
+    //reg_value = 1;
+
+    //
+    // The need for speed:
+    //
+    // Note that the total complexity of your logic within this
+    // always block defines its worse case timing. Depending on
+    // where your always @ block logic sits in your circuit, it may
+    // be the critical path defining your circuits maximum clock rate.
+    //
+    // So try and keep calculations simple and straightforward, and
+    // break things up into stages if needed.
+    //
+    // If you place more complex logic in an always @ block, understand
+    // which part of the circuit its present in so its not the critical
+    // path, such as operating on a slower clock which allows it more
+    // time to perform its calculations.
+    //
+
+end
+
+
+
