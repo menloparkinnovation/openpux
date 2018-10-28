@@ -49,3 +49,12 @@ Copyright (C) 2018 Menlo Park Innovation LLC
   the free versions limits.
 
   Designs have been tested by generating boards from OshPark.
+
+## FPGA Hardware:
+
+  menlo_cnc - FPGA based CNC controller with embedded Linux.
+
+  fpga/de10_nano_shell - Silicon Shell for Terasic DE110-Nano-SoC board.
+
+  menlo_gigatron - FPGA implementation of the Gigatron (gigatron.io)
+
